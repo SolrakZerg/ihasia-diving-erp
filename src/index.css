@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #3b82f6;           /* Blue 500 */
+  --color-brand-light: #60a5fa;     /* Blue 400 (Accessible for text on dark) */
+  --color-brand-dark: #1d4ed8;
+  --color-accent: #f59e0b;
+  --color-surface: #111827;
+  --color-surface-soft: #1f2937;
+  --color-surface-edge: #374151;
+  --color-table-header: #0b1121;
+  
+  /* Accessible Text Tokens */
+  --color-text-muted: #9ca3af;      /* Gray 400 - AA Pass on dark surface */
+  --color-text-dim: #6b7280;        /* Gray 500 - For icons/decoration only */
+  --color-amber-500: oklch(0.77 0.15 88.25); /* Premium High-Contrast Amber */
+  --color-rose-400: oklch(0.76 0.19 12.58);  /* Premium High-Contrast Rose */
+}
+
+/* Global Focus Styles for WCAG Operability */
+*:focus-visible {
+  outline: 2px solid var(--color-brand-light);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+:root {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for Premium Look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* Hide Calendar Icon in Date Inputs for a cleaner spreadsheet look */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+input[type="date"] {
+  position: relative;
+}
