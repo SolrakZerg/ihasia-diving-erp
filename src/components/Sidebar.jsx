@@ -15,6 +15,9 @@ import {
   Banknote
 } from 'lucide-react';
 
+import logoFull from '../assets/Logo_Ihasia.svg';
+import logoSmall from '../assets/logo-version-movil-ihasia.webp';
+
 export default function Sidebar({ activeView, onViewChange, user, onLogout, isCollapsed, onToggleCollapse }) {
   const menuItems = [
     { id: 'overview', label: 'Panel Principal', icon: BarChart3 },
@@ -31,9 +34,23 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
 
   return (
     <aside className={`${isCollapsed ? 'w-20' : 'w-64'} bg-surface-soft border-r border-surface-edge flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out z-40`}>
-      <div className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} border-b border-surface-edge relative`}>
-        <Waves className="w-8 h-8 text-brand flex-shrink-0" />
-        {!isCollapsed && <span className="text-xl font-bold tracking-tight text-white animate-in fade-in duration-500">IHASIA</span>}
+      <div className={`p-4 flex items-center justify-center border-b border-surface-edge relative ${isCollapsed ? 'h-20' : 'h-48'}`}>
+        {isCollapsed ? (
+          <img src={logoSmall} alt="Logo" className="w-10 h-10 object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert" />
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            <img 
+              src={logoFull} 
+              alt="Ihasia Logo" 
+              className="h-28 w-auto object-contain animate-in fade-in slide-in-from-top-4 duration-500 brightness-0 invert" 
+            />
+            <img 
+              src={logoSmall} 
+              alt="Ihasia Name" 
+              className="h-10 w-auto object-contain animate-in fade-in slide-in-from-bottom-4 duration-700 brightness-0 invert opacity-90" 
+            />
+          </div>
+        )}
         
         {/* Toggle Button */}
         <button 

@@ -25,3 +25,17 @@ Este documento define los tamaños de fuente y espaciados estandarizados para to
 - **Datos Activos**: `text-white` o `text-gray-200`.
 - **Datos Inactivos/Ceros**: `text-gray-600` o `text-gray-700`.
 - **Fondos de Fila**: `hover:bg-white/5` o `hover:bg-brand/5`.
+
+## 4. Cuadrícula de Facturación (Alta Densidad)
+
+Para vistas con más de 12 columnas (como el Billing Grid), usamos un escalado más compacto:
+
+| Elemento | Clase Tailwind | Tamaño (px) | Estilo |
+| :--- | :--- | :--- | :--- |
+| **Nombres y Apellidos** | `text-[13px]` | 13px | `font-bold` |
+| **Actividades** | `text-sm` | 14px | `font-black` |
+| **Precio, Q, Total** | `text-sm` | 14px | `font-black` |
+| **Resto de Datos (Status, Medio, etc.)** | `text-[12px]` | 12px | `font-black` |
+| **Notas** | `text-[12px]` | 12px | `font-medium` |
+
+**Regla de Invisibilidad**: Los valores por defecto (`NULL` en DB) para Medio de Pago (Cash) y Bizum (0€) deben usar la clase `text-transparent` para reducir el ruido visual.

@@ -19,7 +19,17 @@ const Attendance = () => <div className="p-10 text-gray-400">Próximamente: Asis
 export default function Dashboard({ user }) {
   const [activeView, setActiveView] = useState('overview');
   const [viewPayload, setViewPayload] = useState(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const newVal = !prev;
+      localStorage.setItem('sidebar-collapsed', String(newVal));
+      return newVal;
+    });
+  };
 
   const navigateTo = (view, payload = null) => {
     setViewPayload(payload);
@@ -56,7 +66,7 @@ export default function Dashboard({ user }) {
         user={user} 
         onLogout={handleLogout} 
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onToggleCollapse={toggleSidebar}
       />
 
       {/* Main Content Area */}

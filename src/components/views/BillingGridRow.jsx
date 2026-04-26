@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  ChevronDown, Trash2, Target, User, Search, 
+  ChevronDown, ChevronUp, Trash2, Target, User, Search, 
   CheckCircle2, X, Plus, Unlink, LogOut, Calendar,
-  Coins
+  Coins, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
-const SmartActivitySelect = ({ value, activities, onChange, placeholder = "Elegir Actividad..." }) => {
+const SmartActivitySelect = ({ value, activities = [], onChange, placeholder = "Elegir Actividad..." }) => {
   const [localValue, setLocalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [direction, setDirection] = useState('down');
   const containerRef = useRef(null);
 
-  const selectedActivity = activities.find(a => a.id === localValue);
+  const selectedActivity = activities.find(a => String(a.id) === String(localValue));
   
   useEffect(() => {
     if (isOpen && containerRef.current) {
@@ -65,7 +65,7 @@ const SmartActivitySelect = ({ value, activities, onChange, placeholder = "Elegi
           value={isOpen ? searchTerm : (selectedActivity?.name || '')}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          placeholder={placeholder}
+          placeholder={activities.length > 0 ? placeholder : "Cargando..."}
           autoComplete="off"
           aria-label="Seleccionar actividad"
         />
@@ -75,7 +75,7 @@ const SmartActivitySelect = ({ value, activities, onChange, placeholder = "Elegi
       </div>
 
       {isOpen && (
-        <div className={`absolute left-[-40px] z-[100] w-[280px] bg-white border border-gray-200 rounded-xl shadow-2xl py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${
+        <div className={`absolute left-0 z-[100] w-[280px] bg-white border border-gray-200 rounded-xl shadow-2xl py-2 animate-in fade-in slide-in-from-top-2 duration-200 ${
           direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
         }`}>
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -345,16 +345,38 @@ export default function BillingGridRow({
   staff = [], 
   selectedItemIds,
   onSelectItem,
+  onToggleGroup,
   onSelectItems,
   onUpdate,
   onDeleteInvoice,
   onExtractItem,
   handleDissolveGroup
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const storageKey = `billing-group-expanded-${invoice.id}`;
+  const [expanded, setExpanded] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleExpanded = () => {
+    setExpanded(prev => {
+      const newVal = !prev;
+      localStorage.setItem(storageKey, String(newVal));
+      return newVal;
+    });
+  };
+
   const [searchingId, setSearchingId] = useState(null); 
   
-  const items = invoice.invoice_items || [];
+  const itemsProp = invoice.invoice_items || [];
+  const [localItems, setLocalItems] = useState(itemsProp);
+
+  // Sincronizar con los datos reales cuando cambian de forma externa
+  useEffect(() => {
+    setLocalItems(itemsProp);
+  }, [itemsProp]);
+
+  const items = localItems;
   const isSelectedGroup = items.length > 0 && items.every(it => selectedItemIds.has(it.id));
   const isPartialGroup = !isSelectedGroup && items.some(it => selectedItemIds.has(it.id));
 
@@ -425,12 +447,20 @@ export default function BillingGridRow({
 
       // Logical calculated fields
       if (field === 'activity_id') {
-        const act = activities.find(a => a.id === value);
+        const act = activities.find(a => String(a.id) === String(value));
         if (act) {
           const up = Number(act.price_thb) || 0;
           const q = Number(item.quantity) || 1;
           updates.unit_price_thb = up;
           updates.total_thb = up * q;
+          
+          // LIMPIEZA AUTOMÁTICA DE INSTRUCTOR
+          const cat = act.category?.toLowerCase() || '';
+          const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
+          if (isStaffDisabled) {
+            updates.instructor_id = null;
+            updates.is_comm = false;
+          }
         }
       } else if (field === 'quantity') {
         const q = Number(value) || 0;
@@ -442,11 +472,19 @@ export default function BillingGridRow({
         updates.total_thb = q * up;
       }
 
+      // ACTUALIZACIÓN INSTANTÁNEA (OPTIMISTA)
+      setLocalItems(prev => prev.map(it => 
+        String(it.id) === String(itemId) ? { ...it, ...updates } : it
+      ));
+
       const { error } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
       if (error) throw error;
+      
+      // Llamamos a onUpdate para que la tabla se re-ordene sola en segundo plano
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error('Error updating item:', err);
+      if (onUpdate) onUpdate(); 
     }
   };
 
@@ -459,7 +497,7 @@ export default function BillingGridRow({
   const isAllPaid = totalCount > 0 && paidItems.length === totalCount;
   const displayTotal = isAllPaid ? totalSum : pendingSum;
 
-  const bizumOptions = [0, 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500];
+  const bizumOptions = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500];
 
   let groupStatus = 'ROJO';
   let groupStatusLabel = 'POR PAGAR';
@@ -510,7 +548,7 @@ export default function BillingGridRow({
       />
 
       {/* 4. Nombre / Buscador */}
-      <td className={`px-2 py-0.5 min-w-[160px] border-r border-gray-100 relative group/cell ${bLine}`}>
+      <td className={`px-1 py-0.5 border-r border-gray-100 relative group/cell ${bLine}`}>
         {!item.customer_id && searchingId === item.id ? (
           <CustomerSearchInput 
             item={item} 
@@ -552,25 +590,27 @@ export default function BillingGridRow({
       </td>
 
       {/* 5. Apellidos */}
-      <td className={`px-2 py-0.5 min-w-[140px] border-r border-gray-100 ${bLine}`}>
-        <span className="text-[13px] text-slate-800 font-bold truncate block px-1">
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+        <span className="text-[13px] text-slate-800 font-bold truncate block">
           {item.customers?.last_name || (item.temporary_name ? "-" : "...")}
         </span>
       </td>
 
       {/* 6. Email */}
-      <td className={`px-2 py-0.5 min-w-[160px] border-r border-gray-100 ${bLine}`}>
-        <span className="text-[13px] text-slate-500 truncate block px-1">
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+        <span className="text-[12px] text-slate-500 truncate block">
           {item.customers?.email || (item.temporary_name ? "-" : "")}
         </span>
       </td>
 
       {/* 7. Actividad */}
       <td 
-        className={`px-2 py-0.5 min-w-[180px] border-r border-gray-100 transition-all duration-200 group ${bLine}`}
+        className={`px-1 py-0.5 border-r border-gray-100 transition-all duration-200 group relative ${bLine} focus-within:z-50`}
         style={{ 
-          backgroundColor: activities.find(a => a.id === item.activity_id)?.color + '4D' || 'transparent',
-          borderLeft: item.activity_id ? `4px solid ${activities.find(a => a.id === item.activity_id)?.color}` : 'none'
+          backgroundColor: activities.find(a => a.id === item.activity_id)?.color ? activities.find(a => a.id === item.activity_id).color + '4D' : 'transparent',
+          borderLeft: item.activity_id && activities.find(a => a.id === item.activity_id)?.color 
+            ? `4px solid ${activities.find(a => a.id === item.activity_id).color}` 
+            : 'none'
         }}
       >
         <SmartActivitySelect 
@@ -581,64 +621,76 @@ export default function BillingGridRow({
       </td>
 
       {/* 8. Precio */}
-      <td className={`px-2 py-0.5 w-[70px] min-w-[70px] border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
         <input 
           type="number" 
           value={item.unit_price_thb ?? 0} 
           onChange={(e) => handleItemUpdate(item, 'unit_price_thb', e.target.value)}
           aria-label="Precio unitario"
-          className="bg-transparent text-gray-900 font-black text-[12px] w-full text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+          className="bg-transparent text-gray-900 font-black text-sm w-full text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
         />
       </td>
 
       {/* 9. Q */}
-      <td className={`px-2 py-0.5 w-[50px] min-w-[50px] border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
         <input 
           type="number" 
           value={item.quantity ?? 1} 
           onChange={(e) => handleItemUpdate(item, 'quantity', e.target.value)}
           aria-label="Cantidad"
-          className="bg-transparent text-gray-600 font-bold text-[12px] w-full text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm" 
+          className="bg-transparent text-gray-600 font-black text-sm w-full text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm" 
         />
       </td>
 
       {/* 10. Total */}
-      <td className={`px-2 py-0.5 w-[90px] min-w-[90px] text-right border-r border-gray-100 ${bLine}`}>
-        <div className={`px-1 py-1 rounded border-2 text-[12px] font-black tracking-tight ${
+      <td className={`px-1 py-0.5 text-right border-r border-gray-100 ${bLine}`}>
+        <div className={`px-1 py-1 rounded border-2 text-sm font-black tracking-tight ${
           item.status === 'Paid' 
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+            ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
             : 'bg-red-50 text-red-700 border-red-200'
         }`}>
           {Number(item.total_thb ?? 0).toLocaleString()} ฿
         </div>
       </td>
       {/* 11. Estado */}
-      <td className={`px-2 py-0.5 w-[100px] min-w-[100px] border-r border-gray-100 ${bLine}`}>
-        <button 
-          onClick={() => handleItemUpdate(item, 'status', item.status === 'Paid' ? 'Pending' : 'Paid')}
-          aria-label={`Cambiar estado de pago. Actual: ${item.status === 'Paid' ? 'Pagado' : 'Pendiente'}`}
-          className={`w-full py-1 rounded text-[10px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-            item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
-          }`}
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+        <div 
+          className="relative group/status"
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            handleItemUpdate(item, 'status', item.status === 'Paid' ? 'Pending' : 'Paid');
+          }}
         >
-          {item.status === 'Paid' ? 'PAGADO' : 'PENDIENTE'}
-        </button>
+          <select 
+            value={item.status || 'Pending'} 
+            onChange={(e) => handleItemUpdate(item, 'status', e.target.value)}
+            className={`w-full py-1.5 px-2 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${
+              item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
+            }`}
+          >
+            <option value="Paid" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PAGADO</option>
+            <option value="Pending" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PENDIENTE</option>
+          </select>
+          <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none opacity-0 group-hover/status:opacity-100 transition-opacity">
+            <ChevronDown className={`w-3 h-3 ${item.status === 'Paid' ? 'text-emerald-600' : 'text-red-400'}`} strokeWidth={4} />
+          </div>
+        </div>
       </td>
       {/* 12. Medio */}
-      <td className={`px-2 py-0.5 w-[100px] min-w-[100px] border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
         <div className="relative group/select">
-          <select 
+           <select 
              value={item.payment_method || ''} 
-             onChange={(e) => handleItemUpdate(item, 'payment_method', e.target.value)}
-             className={`appearance-none bg-transparent text-[11px] font-black uppercase text-center w-full px-1 py-1 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
+             onChange={(e) => handleItemUpdate(item, 'payment_method', e.target.value || null)}
+             className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full px-1 py-1 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
                !item.payment_method ? 'text-transparent' : 'text-gray-800'
              }`}
            >
-             <option value="">CASH ฿</option>
-             <option value="WISE BT">WISE BT</option>
-             <option value="WISE CR">WISE CR</option>
-             <option value="EUR BT">EUR BT</option>
-             <option value="EUR CR">EUR CR</option>
+             <option value="" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}></option>
+             <option value="WISE BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE BT</option>
+             <option value="WISE CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE CR</option>
+             <option value="EUR BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR BT</option>
+             <option value="EUR CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR CR</option>
            </select>
            <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-gray-500 group-hover/select:text-gray-700">
              <ChevronDown className="w-3 h-3" strokeWidth={4} />
@@ -646,79 +698,107 @@ export default function BillingGridRow({
         </div>
       </td>
       {/* 13. Instr */}
-      <td className={`px-2 py-0.5 w-[70px] min-w-[70px] border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0.5 border-r border-gray-100 ${
+        !item.instructor_id && !(() => {
+          const act = activities.find(a => String(a.id) === String(item.activity_id));
+          const cat = act?.category?.toLowerCase() || '';
+          return cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
+        })() ? 'bg-red-500/10' : 'bg-white'
+      } ${bLine}`}>
         {(() => {
-          const act = activities.find(a => a.id === item.activity_id);
+          const act = activities.find(a => String(a.id) === String(item.activity_id));
           const cat = act?.category?.toLowerCase() || '';
           const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
+          const isMissing = !item.instructor_id && !isStaffDisabled;
           
           return (
-            <select 
-               value={item.instructor_id || ''} 
-               onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
-               disabled={isStaffDisabled}
-               title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
-               className={`bg-transparent text-sm font-bold w-full text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity ${
-                 isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 'text-cyan-700 opacity-100 cursor-pointer'
-               }`}
-             >
-               <option value="">-</option>
-               {staff.map(s => <option key={s.id} value={s.id}>{s.initials}</option>)}
-             </select>
+            <div className="relative group/instr flex items-center justify-center gap-1">
+              {isMissing && (
+                <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse shrink-0" title="Falta Instructor" />
+              )}
+              <select 
+                 value={item.instructor_id || ''} 
+                 onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
+                 disabled={isStaffDisabled}
+                 title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
+                 className={`bg-transparent text-sm font-black w-full text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity ${
+                   isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 
+                   isMissing ? 'text-red-600 animate-pulse' : 'text-cyan-700 opacity-100 cursor-pointer'
+                 }`}
+               >
+                 <option value="" className="text-red-500 font-bold">!!!</option>
+                 {staff.map(s => <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>)}
+               </select>
+            </div>
           );
         })()}
       </td>
       {/* 14. BIZUM */}
-      <td className={`px-1 py-0.5 w-[60px] min-w-[60px] text-center border-r border-gray-100 transition-colors ${
-        Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : ''
-      } ${bLine}`}>
-        <div className="relative group/bizum h-full flex items-center">
-          <select 
-             value={item.bizum_deposit_eur || 0} 
-             onChange={(e) => handleItemUpdate(item, 'bizum_deposit_eur', Number(e.target.value))}
-             disabled={!item.customer_id}
-             className={`appearance-none bg-transparent font-black outline-none text-[11px] w-full text-center pr-3 transition-colors ${
-               Number(item.bizum_deposit_eur || 0) === 0 ? 'text-transparent' : 'text-white'
-             } disabled:opacity-30 cursor-pointer`}
-           >
-             {bizumOptions.map(val => <option key={val} value={val} className="text-gray-900 bg-white">{val}€</option>)}
-           </select>
-           <div className={`absolute inset-y-0 right-0 flex items-center pointer-events-none transition-opacity ${
-             Number(item.bizum_deposit_eur || 0) === 0 ? 'opacity-0' : 'opacity-100'
-           }`}>
-             <ChevronDown className="w-3 h-3 text-white/90" />
-           </div>
+      <td 
+        className={`px-1 py-0.5 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${
+          Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : 'bg-white'
+        } ${bLine}`}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          handleItemUpdate(item, 'bizum_deposit_eur', null);
+        }}
+        title="Doble clic para resetear a 0€"
+      >
+        <select 
+          value={item.bizum_deposit_eur || ''} 
+          onChange={(e) => handleItemUpdate(item, 'bizum_deposit_eur', e.target.value ? Number(e.target.value) : null)}
+          disabled={!item.customer_id}
+          className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-full text-center pr-3 transition-colors cursor-pointer relative z-10 ${
+            !item.bizum_deposit_eur ? 'text-transparent' : 'text-white'
+          } disabled:opacity-30`}
+        >
+          <option value="" className="text-gray-900 bg-white"></option>
+          {bizumOptions.map(val => <option key={val} value={val} className="text-gray-900 bg-white">{val}€</option>)}
+        </select>
+        <div className={`absolute inset-y-0 right-1 flex items-center pointer-events-none transition-opacity z-20 ${
+          Number(item.bizum_deposit_eur || 0) === 0 ? 'opacity-0' : 'opacity-100'
+        }`}>
+          <ChevronDown className="w-3 h-3 text-white/90" />
         </div>
       </td>
       {/* 15. COMISIÓN */}
-      <td className={`px-2 py-0.5 w-[50px] min-w-[50px] border-r border-gray-100 text-center ${bLine}`}>
-        <button 
-          disabled={!item.activity_id}
-          onClick={() => handleItemUpdate(item, 'is_comm', !item.is_comm)}
-          className={`p-1.5 rounded-lg transition-all border ${
-            item.activity_id 
-              ? item.is_comm 
-                ? 'bg-amber-500 text-white border-amber-600 shadow-inner' 
-                : 'bg-white text-gray-200 border-gray-100 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50'
-              : 'opacity-10 cursor-not-allowed border-transparent'
-          }`}
-          title={item.is_comm ? "Comisionable" : "Marcar Comisión"}
-        >
-          <Coins className={`w-4 h-4 ${item.is_comm ? 'fill-current' : ''}`} />
-        </button>
+      <td className={`px-1 py-0.5 border-r border-gray-100 text-center ${bLine}`}>
+        {(() => {
+          const act = activities.find(a => String(a.id) === String(item.activity_id));
+          const cat = act?.category?.toLowerCase() || '';
+          const isCommDisabled = !item.activity_id || cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
+          
+          return (
+            <button 
+              disabled={isCommDisabled}
+              onClick={() => handleItemUpdate(item, 'is_comm', !item.is_comm)}
+              className={`p-1.5 rounded-lg transition-all border ${
+                !isCommDisabled
+                  ? item.is_comm 
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-inner' 
+                    : 'bg-white text-gray-200 border-gray-100 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50'
+                  : 'opacity-10 cursor-not-allowed border-transparent'
+              }`}
+              title={isCommDisabled ? "No disponible para esta actividad" : (item.is_comm ? "Comisionable" : "Marcar Comisión")}
+            >
+              <Coins className={`w-4 h-4 ${item.is_comm ? 'fill-current' : ''}`} />
+            </button>
+          );
+        })()}
       </td>
       {/* 16. Notas */}
-      <td className={`px-2 py-0.5 w-auto border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0.5 overflow-hidden border-r border-gray-100 ${bLine}`}>
         <input 
-          type="text" placeholder="Notas..."
+          type="text" placeholder="..."
           defaultValue={item.notes || ''} 
           onBlur={(e) => handleItemUpdate(item, 'notes', e.target.value)}
-          className="bg-transparent text-gray-900 text-[11px] font-bold w-full outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate" 
+          className="bg-transparent text-gray-700 font-medium text-[12px] w-full outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate" 
+          title={item.notes || ''}
         />
       </td>
 
-      {/* 16. Action Icon */}
-      <td className={`px-2 py-0.5 w-[80px] min-w-[80px] text-center ${bLine} ${isHybridRow ? '' : rb}`}>
+      {/* Acciones */}
+      <td className={`px-1 py-0.5 text-center ${bLine} ${isHybridRow ? '' : rb}`}>
         <div className="flex items-center justify-center gap-1">
           {(!isHybridRow || (isHybridRow && items.length > 1)) && (
             <button 
@@ -743,10 +823,10 @@ export default function BillingGridRow({
 
   // Configuración de Estilo del Grupo
   const mainGroupColor = '#4f4f4f'; 
-  const lb = 'border-l-2 border-l-[var(--group-color)]'; 
-  const rb = 'border-r-2 border-r-[var(--group-color)]'; 
-  const tb = 'border-t-2 border-t-[var(--group-color)]'; 
-  const bb = 'border-b-2 border-b-[var(--group-color)]'; 
+  const lb = 'border-l-4 border-l-[var(--group-color)]'; 
+  const rb = 'border-r-4 border-r-[var(--group-color)]'; 
+  const tb = 'border-t-4 border-t-[var(--group-color)]'; 
+  const bb = 'border-b-4 border-b-[var(--group-color)]'; 
 
   if (isHybrid) {
     const item = items[0] || { date: new Date().toLocaleDateString('en-CA'), customers: {} };
@@ -755,21 +835,28 @@ export default function BillingGridRow({
 
     return (
       <tr 
-        className="font-bold bg-white hover:bg-gray-50 group h-9 relative border-b border-gray-100"
+        className="font-bold bg-white hover:bg-gray-50 group h-9 relative border-b border-gray-100 focus-within:z-[100]"
         style={{ '--group-color': mainGroupColor }}
       >
-        <td className="px-0 py-0 w-[48px] min-w-[48px] border-r border-gray-100 relative">
+        <td 
+          className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative cursor-pointer hover:bg-gray-100/50"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleGroup(e);
+          }}
+        >
           <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
-          <div className="flex justify-center items-center h-full pl-1">
+          <div className="flex justify-center items-center h-full pl-1 pointer-events-none">
             <input 
               type="checkbox" 
               checked={selectedItemIds.has(item.id)} 
-              onChange={() => onSelectItem(item.id)} 
-              className="w-5 h-5 rounded cursor-pointer" 
+              onChange={() => {}} 
+              className="w-5 h-5 rounded cursor-pointer accent-brand" 
             />
           </div>
         </td>
-         <td className="px-0 py-0 w-[50px] min-w-[50px] border-r border-gray-100">
+         <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100">
           <div className="flex justify-center items-center">
             <button onClick={(e) => handleAddChildItem(e, item)} className="p-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded transition-all">
                <Plus className="w-4 h-4" />
@@ -784,39 +871,53 @@ export default function BillingGridRow({
   return (
     <>
       <tr 
-        className="font-black transition-all cursor-pointer bg-[var(--group-color)] group h-10 relative z-10" 
+        className="font-black transition-all cursor-pointer bg-[var(--group-color)] group h-10 relative z-10 focus-within:z-[100]" 
         style={{ '--group-color': mainGroupColor }}
-        onClick={() => setExpanded(!expanded)}
+        onClick={toggleExpanded}
       >
-        <td className={`px-0 py-0 w-[48px] min-w-[48px] relative ${lb} ${tb}`} onClick={e => e.stopPropagation()}>
-           <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${groupStatus === 'VERDE' ? 'bg-emerald-500' : groupStatus === 'NARANJA' ? 'bg-orange-500' : 'bg-red-400'}`} />
-           <div className="flex justify-center items-center h-full pl-1">
+        <td 
+          className={`px-0 py-0 w-[35px] min-w-[35px] relative cursor-pointer hover:bg-white/5 ${lb} ${tb}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleGroup(e);
+          }}
+        >
+           <div className={`absolute left-0 top-0 bottom-0 w-2 ${groupStatus === 'VERDE' ? 'bg-emerald-500' : groupStatus === 'NARANJA' ? 'bg-orange-500' : 'bg-red-400'}`} />
+           <div className="flex justify-center items-center h-full pl-1 pointer-events-none">
              <input 
               type="checkbox" 
               checked={isSelectedGroup} 
               ref={el => el && (el.indeterminate = isPartialGroup)}
-              onChange={handleSelectGroup} 
-              className="w-5 h-5 rounded cursor-pointer" 
+              onChange={() => {}} 
+              className="w-5 h-5 rounded cursor-pointer accent-brand" 
              />
            </div>
         </td>
-        <td className={`w-[50px] min-w-[50px] ${tb}`}></td>
-        <td colSpan={6} className={`px-4 py-0 text-center ${tb}`}>
+        <td className={`w-[35px] min-w-[35px] ${tb}`}>
+          <div className="flex justify-center items-center h-full">
+            <div className={`text-white/70 transition-transform duration-300 ${expanded ? 'rotate-0' : 'rotate-180'}`}>
+              <ChevronUp className="w-5 h-5" />
+            </div>
+          </div>
+        </td>
+        {/* colspan: fecha(1) + nombre(1) + apellidos(1) + email(1) + actividad(1) = 5 cols con los nombres */}
+        <td colSpan={5} className={`px-4 py-0 text-left ${tb}`}>
            <span className="text-lg font-black text-white tracking-tight uppercase leading-tight">{groupDisplayName}</span>
         </td>
-        <td className={`w-[50px] min-w-[50px] ${tb}`}></td>
-        <td className={`px-3 py-0 w-[100px] min-w-[100px] text-right ${tb}`}>
+        {/* Precio + Q + Total combinados → 1 celda alineada derecha */}
+        <td colSpan={3} className={`px-3 py-0 text-right ${tb}`}>
            <span className={`font-black text-lg ${groupTextColor} leading-tight`}>{displayTotal.toLocaleString()} ฿</span>
         </td>
-        <td className={`px-2 py-0 w-[110px] min-w-[110px] text-center ${tb}`}>
-            <div className={`mx-1 py-1.5 rounded font-black text-xs uppercase tracking-wider shadow-lg leading-none ${groupColorClass}`}>
+        <td className={`px-0 py-0 w-[90px] min-w-[90px] text-center ${tb}`}>
+            <div className={`py-1.5 rounded font-black text-xs uppercase tracking-wider shadow-lg leading-none ${groupColorClass}`}>
               {groupStatusLabel}
             </div>
         </td>
-        <td className={`w-[110px] min-w-[110px] ${tb}`}></td>
-        <td className={`w-[70px] min-w-[70px] ${tb}`}></td>
+        <td className={`w-[80px] min-w-[80px] ${tb}`}></td>
         <td className={`w-[60px] min-w-[60px] ${tb}`}></td>
-        <td className={`w-[50px] min-w-[50px] ${tb}`}></td>
+        <td className={`w-[55px] min-w-[55px] ${tb}`}></td>
+        <td className={`w-[45px] min-w-[45px] ${tb}`}></td>
         <td className={`w-auto ${tb}`}></td>
         <td className={`px-2 py-0 w-[80px] min-w-[80px] text-center ${rb} ${tb}`} onClick={e => e.stopPropagation()}>
            <div className="flex items-center justify-center gap-1.5 px-2">
@@ -845,11 +946,11 @@ export default function BillingGridRow({
         return (
           <tr 
             key={item.id} 
-            className="font-bold bg-white hover:bg-gray-50 group h-9 border-b border-gray-100 transition-colors"
+            className="font-bold bg-white hover:bg-gray-50 group h-9 border-b border-gray-100 transition-colors relative focus-within:z-[100]"
             style={{ '--group-color': mainGroupColor }}
           >
-            <td className={`px-0 py-0 w-[48px] min-w-[48px] border-r border-gray-100 relative ${bLine}`}>
-               <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.status === 'Paid' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+            <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative ${bLine}`}>
+               <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.status === 'Paid' ? 'bg-emerald-500' : 'bg-red-400'}`} />
                <div className="flex justify-center items-center h-full pl-1">
                   <input 
                     type="checkbox" 
@@ -859,7 +960,7 @@ export default function BillingGridRow({
                   />
                </div>
             </td>
-             <td className={`w-[50px] min-w-[50px] border-r border-gray-100 ${bLine}`}>
+             <td className={`w-[35px] min-w-[35px] border-r border-gray-100 ${bLine}`}>
               <div className="flex justify-center items-center">
                 <button onClick={(e) => handleAddChildItem(e, item)} className="p-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded transition-all">
                    <Plus className="w-4 h-4" />
