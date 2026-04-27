@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Search, CheckCircle2, X, Loader2, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useBilling } from './billing/useBilling';
@@ -31,6 +31,16 @@ const RH = ({ children, colKey, startResize, className = '' }) => (
 export default function Billing() {
   const billing = useBilling();
   const { widths, startResize, resetWidths } = useColumnResize();
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (!billing.loadingInvoices && scrollRef.current) {
+      const savedScroll = sessionStorage.getItem('billingScrollPos');
+      if (savedScroll) {
+        scrollRef.current.scrollTop = Number(savedScroll);
+      }
+    }
+  }, [billing.loadingInvoices]);
 
   // 🐛 DEBUG: log column widths vs minimums every time widths change
   useEffect(() => {
@@ -93,6 +103,12 @@ export default function Billing() {
       {/* GRID PRINCIPAL - single scroll container: fit-content hugs table, maxWidth 100% constrains when screen narrows */}
       <div className="flex-1 px-5 py-1 min-h-0">
         <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            if (!billing.loadingInvoices && billing.invoices.length > 0) {
+              sessionStorage.setItem('billingScrollPos', e.target.scrollTop);
+            }
+          }}
           className="bg-surface border border-surface-edge rounded-lg shadow-2xl custom-scrollbar"
           style={{
             overflow: 'auto',
@@ -192,11 +208,20 @@ export default function Billing() {
                       staff={staff}
                       activities={activities}
                       selectedItemIds={selectedItemIds}
+                      onSelectItem={(itemId) => {
+                        setSelectedItemIds(prev => {
+                          const newSet = new Set(prev);
+                          if (newSet.has(itemId)) newSet.delete(itemId);
+                          else newSet.add(itemId);
+                          return newSet;
+                        });
+                      }}
                       onToggleGroup={(event) => handleToggleSelection(inv, index, event.shiftKey)}
                       onUpdate={() => fetchInvoices(false)}
                       onDeleteInvoice={handleDeleteInvoice}
                       onExtractItem={handleExtractItem}
                       handleDissolveGroup={handleDissolveGroup}
+                      setConfirmConfig={billing.setConfirmConfig}
                     />
                   ))}
                 </tbody>

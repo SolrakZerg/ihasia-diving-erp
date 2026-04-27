@@ -14,7 +14,9 @@ import {
   Info,
   DollarSign,
   Briefcase,
-  Timer
+  Timer,
+  Check,
+  Search
 } from 'lucide-react';
 
 export default function StaffSettlement() {
@@ -26,6 +28,8 @@ export default function StaffSettlement() {
   const [payoutRules, setPayoutRules] = useState([]);
   const [allActivities, setAllActivities] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeStaffIds, setActiveStaffIds] = useState(new Set());
+  const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   
   // Manual Adjustments & Advances (stored in settings for now)
   const [manualAdj, setManualAdj] = useState({}); // { day: amount }
@@ -48,6 +52,10 @@ export default function StaffSettlement() {
   }, []);
 
   useEffect(() => {
+    fetchActiveStaff();
+  }, [month, year]);
+
+  useEffect(() => {
     if (selectedStaffId) {
       fetchData();
     }
@@ -57,7 +65,29 @@ export default function StaffSettlement() {
     const { data } = await supabase.from('staff').select('id, first_name, last_name, initials, role, base_salary, commission_rate').order('first_name');
     if (data) {
       setStaff(data);
-      if (data.length > 0 && !selectedStaffId) setSelectedStaffId(data[0].id);
+    }
+  };
+
+  const fetchActiveStaff = async () => {
+    const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+    
+    const { data } = await supabase
+      .from('invoice_items')
+      .select('instructor_id')
+      .gte('date', firstDay)
+      .lte('date', lastDay);
+      
+    if (data) {
+      const ids = new Set(data.map(i => i.instructor_id).filter(Boolean));
+      setActiveStaffIds(ids);
+      
+      // If current selection is not in active list, select the first active one
+      if (ids.size > 0 && (!selectedStaffId || !ids.has(selectedStaffId))) {
+        setSelectedStaffId(Array.from(ids)[0]);
+      }
+    } else {
+      setActiveStaffIds(new Set());
     }
   };
 
@@ -259,14 +289,15 @@ export default function StaffSettlement() {
 
       if (!colKey || !data[day]) return;
 
+      const qty = Number(item.quantity ?? 1);
       if (!data[day].items[colKey]) data[day].items[colKey] = 0;
-      data[day].items[colKey] += (item.quantity || 1);
+      data[day].items[colKey] += qty;
 
       // Calculate value based on rules
       // Look for rule by activity ID OR by name if it's a fixed category
       const rule = payoutRules.find(r => String(r.activity_id) === actId);
       if (rule) {
-        data[day].total += (item.quantity || 1) * rule.amount_thb;
+        data[day].total += qty * rule.amount_thb;
       }
     });
 
@@ -346,7 +377,7 @@ export default function StaffSettlement() {
     <div className="flex flex-col h-full bg-surface animate-in fade-in duration-700">
       
       {/* Top Header Selector */}
-      <div className="bg-surface-soft/50 border-b border-surface-edge p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-brand/10 rounded-2xl text-brand">
             <Users className="w-6 h-6" />
@@ -357,23 +388,73 @@ export default function StaffSettlement() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner">
-          <select 
-            value={selectedStaffId || ''} 
-            onChange={(e) => setSelectedStaffId(e.target.value)}
-            className="bg-transparent text-white font-black px-4 py-2 outline-none border-r border-surface-edge cursor-pointer hover:text-brand transition-colors"
-          >
-            {staff.map(s => (
-              <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner relative">
+          {/* Custom Staff Dropdown */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowStaffDropdown(!showStaffDropdown)}
+              className="flex items-center gap-3 px-4 py-2 bg-surface-soft/50 hover:bg-surface-soft rounded-xl border border-surface-edge/50 transition-all min-w-[240px] group"
+            >
+              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-black text-xs">
+                {selectedMember?.initials || '??'}
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest leading-none mb-1">Instructor</p>
+                <p className="text-sm font-black text-white leading-none truncate">
+                  {selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Seleccionar...'}
+                </p>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${showStaffDropdown ? 'rotate-180' : ''}`} />
+            </button>
 
-          <div className="flex items-center gap-1 px-3">
-            <button onClick={() => setMonth(m => m === 1 ? 12 : m - 1)} className="p-1 hover:bg-surface-edge rounded-lg text-gray-400"><ArrowLeft className="w-4 h-4" /></button>
-            <span className="text-white font-black text-sm min-w-[100px] text-center uppercase tracking-tighter">
+            {showStaffDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowStaffDropdown(false)} />
+                <div className="absolute top-full left-0 mt-2 w-full bg-[#1a1c2d]/95 backdrop-blur-xl border border-surface-edge rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-2 border-b border-surface-edge/50 flex items-center gap-2 bg-white/5">
+                    <Search className="w-3.5 h-3.5 text-gray-500 ml-2" />
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Filtrado por facturación</span>
+                  </div>
+                  <div className="max-h-[500px] overflow-auto custom-scrollbar">
+                    {staff.filter(s => activeStaffIds.has(s.id)).length === 0 ? (
+                      <div className="p-6 text-center text-gray-500 text-xs italic">
+                        No hay instructores con actividad este mes
+                      </div>
+                    ) : (
+                      staff.filter(s => activeStaffIds.has(s.id)).map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedStaffId(s.id);
+                            setShowStaffDropdown(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 transition-colors text-left group ${selectedStaffId === s.id ? 'bg-brand/5' : ''}`}
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black ${selectedStaffId === s.id ? 'bg-brand text-[#1a1c2d]' : 'bg-surface-edge text-gray-400 group-hover:bg-brand/20 group-hover:text-brand'}`}>
+                            {s.initials}
+                          </div>
+                          <div className="flex-1">
+                            <p className={`text-sm font-black transition-colors ${selectedStaffId === s.id ? 'text-brand' : 'text-gray-300 group-hover:text-white'}`}>
+                              {s.first_name} {s.last_name}
+                            </p>
+                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{s.role}</p>
+                          </div>
+                          {selectedStaffId === s.id && <Check className="w-4 h-4 text-brand" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 px-3 border-l border-surface-edge/50">
+            <button onClick={() => setMonth(m => m === 1 ? 12 : m - 1)} className="p-2 hover:bg-surface-edge rounded-xl text-gray-400 transition-colors hover:text-brand"><ArrowLeft className="w-4 h-4" /></button>
+            <span className="text-white font-black text-sm min-w-[110px] text-center uppercase tracking-tighter">
               {months[month - 1]} {year}
             </span>
-            <button onClick={() => setMonth(m => m === 12 ? 1 : m + 1)} className="p-1 hover:bg-surface-edge rounded-lg text-gray-400"><ArrowRight className="w-4 h-4" /></button>
+            <button onClick={() => setMonth(m => m === 12 ? 1 : m + 1)} className="p-2 hover:bg-surface-edge rounded-xl text-gray-400 transition-colors hover:text-brand"><ArrowRight className="w-4 h-4" /></button>
           </div>
         </div>
       </div>
@@ -381,12 +462,15 @@ export default function StaffSettlement() {
       <div className="flex-1 flex overflow-hidden">
         
         {/* Main Matrix Table */}
-        <div className="flex-1 overflow-auto p-6 custom-scrollbar">
-          <div className="bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden">
-            <table className="w-full text-left border-collapse table-fixed">
-              <thead>
-                <tr className="bg-table-header/90 backdrop-blur-xl border-b border-surface-edge sticky top-0 z-10">
-                  <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-12 bg-surface-soft">Día</th>
+        <div className="flex-1 px-6 py-2 min-h-0 flex flex-col">
+          {/* Outer container for rounding and border */}
+          <div className="h-fit max-h-full bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden max-w-[850px] flex flex-col mx-auto">
+            {/* Inner scrollable container */}
+            <div className="flex-1 overflow-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse table-fixed">
+              <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
+                <tr className="border-b border-surface-edge">
+                  <th className="p-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-12 bg-surface-soft">Día</th>
                   
                   {/* Common Columns */}
                   {fixedColumns.map(col => (
@@ -416,24 +500,24 @@ export default function StaffSettlement() {
                     </div>
                   </th>
                   <th className="p-1 text-[16px] font-black text-brand uppercase tracking-widest text-center border-l border-surface-edge/30 w-16 bg-brand/5 min-w-[64px]">Extra</th>
-                  <th className="p-4 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
-                  <th className="p-4 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
+                  <th className="p-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
+                  <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-edge/40">
                 {Object.keys(matrixData).map(day => (
-                  <tr key={day} className="group hover:bg-white/5 transition-colors h-11">
-                    <td className="p-2 text-center font-black text-gray-600 text-base">{day}</td>
+                  <tr key={day} className="group hover:bg-white/5 transition-colors h-9">
+                    <td className="p-0 text-center font-black text-gray-600 text-sm">{day}</td>
                     
                     {/* Common Activity Cells */}
                     {fixedColumns.map(col => {
                        const count = matrixData[day].items[col.key] || 0;
                        return (
-                         <td key={col.key} className="p-0 border-l border-surface-edge/10 text-center w-[35px] min-w-[35px]">
-                           <span className={`text-[17px] font-black ${count > 0 ? 'text-white' : 'text-gray-800'}`}>
-                             {count || ''}
-                           </span>
-                         </td>
+                          <td key={col.key} className="p-0 border-l border-surface-edge/10 text-center w-[35px] min-w-[35px]">
+                            <span className={`text-base font-black ${count > 0 ? 'text-white' : 'text-gray-800'}`}>
+                              {count || ''}
+                            </span>
+                          </td>
                        );
                     })}
 
@@ -447,39 +531,39 @@ export default function StaffSettlement() {
                             </span>
                           </td>
                         );
-                    })}
+                     })}
 
                     {/* Assistance Column (Manual) */}
-                    <td className="p-1 border-l border-surface-edge/10 bg-cyan-500/5">
+                    <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5">
                       <input 
                         type="number" 
                         value={assists[day] || ''}
                         onChange={(e) => handleAssChange(day, e.target.value)}
-                        className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
                     </td>
 
                     {/* Extra / Manual Adjustment Cell */}
-                    <td className="p-1 border-l border-surface-edge/10 bg-brand/5">
+                    <td className="p-0 border-l border-surface-edge/10 bg-brand/5">
                       <input 
                         type="number" 
                         value={manualAdj[day] || ''}
                         onChange={(e) => handleAdjChange(day, e.target.value)}
-                        className="w-full bg-transparent text-center text-brand font-black text-sm outline-none focus:bg-brand/10 rounded py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full bg-transparent text-center text-brand font-black text-sm outline-none focus:bg-brand/10 rounded py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
                     </td>
 
                     {/* Attendance / OFF Column */}
                     <td 
-                      className={`p-1 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${
+                      className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${
                         attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : 
                         attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''
                       }`}
                       onClick={() => handleAttendanceToggle(day)}
                     >
-                      <span className={`text-[12px] font-black ${
+                      <span className={`text-[11px] font-black ${
                         attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : 
                         attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-gray-800'
                       }`}>
@@ -489,8 +573,8 @@ export default function StaffSettlement() {
                     </td>
 
                     {/* Daily Total */}
-                    <td className="p-2 text-right border-l border-surface-edge/20 bg-surface-edge/10 pr-4 w-auto">
-                      <span className={`text-base font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>
+                    <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4">
+                      <span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>
                         {(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿
                       </span>
                     </td>
@@ -498,32 +582,32 @@ export default function StaffSettlement() {
                 ))}
               </tbody>
               {/* Table Footer (Matrix Totals) */}
-              <tfoot className="bg-surface-edge/30">
-                <tr className="h-14 font-black">
-                  <td className="p-4 text-center text-gray-400 text-[12px] uppercase">TOT</td>
+              <tfoot className="sticky bottom-0 z-30 bg-surface-soft border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+                <tr className="h-9 font-black">
+                  <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOT</td>
                   {fixedColumns.map(col => (
-                    <td key={col.key} className="p-2 text-center border-l border-surface-edge/10 text-sm text-gray-300">
+                    <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-sm text-gray-300">
                       {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
                     </td>
                   ))}
                   {dynamicActivities.map(act => (
-                    <td key={act.id} className="p-2 text-center border-l border-surface-edge/10 text-[13px] text-amber-500/60 bg-amber-500/5">
+                    <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[13px] text-amber-500/60 bg-amber-500/5">
                       {Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}
                     </td>
                   ))}
-                  <td className="p-2 text-center border-l border-surface-edge/10 text-cyan-400 text-sm bg-cyan-500/5">
+                  <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-sm bg-cyan-500/5">
                     {Object.values(assists).reduce((acc, val) => acc + val, 0)}
                   </td>
-                  <td className="p-2 text-center border-l border-surface-edge/10 text-brand text-sm bg-brand/5">
+                  <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-sm bg-brand/5">
                     {totalAdj.toLocaleString()} ฿
                   </td>
-                  <td className="p-2 text-center border-l border-surface-edge/10 bg-indigo-500/5">
+                  <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5">
                      <div className="flex flex-col items-center leading-none">
                         <span className="text-[12px] font-black text-emerald-400">{attendanceData.summary.fullOff}F</span>
                         <span className="text-[12px] font-black text-amber-400 mt-1">{attendanceData.summary.halfOff}H</span>
                      </div>
                   </td>
-                  <td className="p-4 text-right border-l border-surface-edge/20 text-emerald-400 text-xl bg-surface-edge/30">
+                  <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">
                     {(totalComm + totalAssists + totalAdj).toLocaleString()} ฿
                   </td>
                 </tr>
@@ -531,6 +615,7 @@ export default function StaffSettlement() {
             </table>
           </div>
         </div>
+      </div>
 
         {/* Right Sidebar: Summary & Payouts */}
         <div className="w-[380px] bg-surface-soft border-l border-surface-edge flex flex-col p-8 space-y-10 overflow-auto shadow-2xl z-10">

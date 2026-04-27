@@ -59,7 +59,7 @@ const SmartActivitySelect = ({ value, activities = [], onChange, placeholder = "
       >
         <input
           type="text"
-          className={`bg-transparent text-sm w-full outline-none cursor-text focus-visible:ring-1 focus-visible:ring-brand-light rounded-sm ${
+          className={`bg-transparent text-sm w-full h-6 outline-none cursor-text focus-visible:ring-1 focus-visible:ring-brand-light rounded-sm py-0 ${
             !selectedActivity && !isOpen ? 'text-gray-400 italic font-normal' : 'text-gray-900 font-black'
           }`}
           value={isOpen ? searchTerm : (selectedActivity?.name || '')}
@@ -140,7 +140,7 @@ const DateCell = ({ item, handleItemUpdate, bLine, formatSmartDate }) => {
   };
 
   return (
-    <td className={`w-[110px] min-w-[110px] border-r border-gray-100 ${bLine} h-9 overflow-hidden relative`}>
+    <td className={`w-[110px] min-w-[110px] border-r border-gray-100 ${bLine} h-[30px] overflow-hidden relative py-0`}>
       <button 
         onClick={handleClick}
         aria-label={`Cambiar fecha: ${item.date || 'Sin fecha'}`}
@@ -149,7 +149,7 @@ const DateCell = ({ item, handleItemUpdate, bLine, formatSmartDate }) => {
         <Calendar className={`w-3.5 h-3.5 transition-colors ${
           !item.date ? 'text-blue-500' : 'text-brand'
         } group-hover/datebtn:scale-110`} />
-        <span className={`text-[12px] font-black transition-colors ${
+        <span className={`text-[12px] font-black transition-colors whitespace-nowrap ${
           !item.date ? 'text-blue-600 italic' : 'text-gray-900'
         }`}>
           {item.date ? formatSmartDate(item.date).toUpperCase() : "FECHA"}
@@ -350,7 +350,8 @@ export default function BillingGridRow({
   onUpdate,
   onDeleteInvoice,
   onExtractItem,
-  handleDissolveGroup
+  handleDissolveGroup,
+  setConfirmConfig
 }) {
   const storageKey = `billing-group-expanded-${invoice.id}`;
   const [expanded, setExpanded] = useState(() => {
@@ -450,7 +451,7 @@ export default function BillingGridRow({
         const act = activities.find(a => String(a.id) === String(value));
         if (act) {
           const up = Number(act.price_thb) || 0;
-          const q = Number(item.quantity) || 1;
+          const q = Number(item.quantity ?? 1);
           updates.unit_price_thb = up;
           updates.total_thb = up * q;
           
@@ -468,7 +469,7 @@ export default function BillingGridRow({
         updates.total_thb = q * up;
       } else if (field === 'unit_price_thb') {
         const up = Number(value) || 0;
-        const q = Number(item.quantity) || 0;
+        const q = Number(item.quantity ?? 1);
         updates.total_thb = q * up;
       }
 
@@ -518,9 +519,39 @@ export default function BillingGridRow({
     }
   }
 
-  const uniqueNames = [...new Set(items.map(it => it.customers?.first_name || it.temporary_name).filter(Boolean))];
-  const groupDisplayName = uniqueNames.length > 0 ? uniqueNames.join(', ') : (invoice.customers?.first_name || invoice.invoice_items?.[0]?.temporary_name || 'Sin Nombre');
+  let groupDisplayName = 'Sin Nombre';
+  
+  const entities = items.map(it => ({
+    id: it.customer_id || `temp-${it.temporary_name}`,
+    firstName: it.customers?.first_name || it.temporary_name,
+    lastName: it.customers?.last_name || ''
+  })).filter(e => e.firstName);
 
+  const uniqueEntities = [];
+  const seenIds = new Set();
+  for (const e of entities) {
+    if (!seenIds.has(e.id)) {
+      seenIds.add(e.id);
+      uniqueEntities.push(e);
+    }
+  }
+
+  if (uniqueEntities.length === 1) {
+    groupDisplayName = `${uniqueEntities[0].firstName} ${uniqueEntities[0].lastName}`.trim();
+  } else if (uniqueEntities.length > 1) {
+    groupDisplayName = uniqueEntities.map(e => e.firstName).join(', ');
+  } else {
+    groupDisplayName = invoice.customers?.first_name 
+      ? `${invoice.customers.first_name} ${invoice.customers.last_name || ''}`.trim() 
+      : 'Sin Nombre';
+  }
+  
+  const isAnyInstructorMissing = items.some(item => {
+    const act = activities.find(a => String(a.id) === String(item.activity_id));
+    const cat = act?.category?.toLowerCase() || '';
+    const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
+    return !item.instructor_id && !isStaffDisabled;
+  });
 
   // Smart Date Logic
   const formatSmartDate = (dateString) => {
@@ -548,7 +579,7 @@ export default function BillingGridRow({
       />
 
       {/* 4. Nombre / Buscador */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 relative group/cell ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 relative group/cell ${bLine}`}>
         {!item.customer_id && searchingId === item.id ? (
           <CustomerSearchInput 
             item={item} 
@@ -567,7 +598,7 @@ export default function BillingGridRow({
                 if (!item.customer_id) setSearchingId(item.id);
               }
             }}
-            className="flex items-center gap-2 overflow-hidden cursor-text h-8 px-1 outline-none focus-visible:ring-1 focus-visible:ring-brand focus-visible:rounded"
+            className="flex items-center gap-2 overflow-hidden cursor-text h-full px-1 outline-none focus-visible:ring-1 focus-visible:ring-brand focus-visible:rounded"
             aria-label={item.customers?.first_name ? `Cliente: ${item.customers.first_name}` : "Vincular nuevo cliente"}
           >
              <span className={`text-[13px] font-bold truncate block ${item.customer_id ? 'text-gray-900' : 'text-blue-600 italic font-medium'}`}>
@@ -577,7 +608,18 @@ export default function BillingGridRow({
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleItemUpdate(item, 'customer_id', null);
+                    if (setConfirmConfig) {
+                      setConfirmConfig({
+                        show: true,
+                        title: 'Desvincular Cliente',
+                        message: `Estás a punto de desvincular a ${item.customers?.first_name || 'este cliente'} del registro. ¿Deseas continuar?`,
+                        type: 'danger',
+                        onConfirm: () => {
+                          handleItemUpdate(item, 'customer_id', null);
+                          setConfirmConfig(prev => ({ ...prev, show: false }));
+                        }
+                      });
+                    }
                   }}
                   aria-label="Desvincular cliente"
                   className="hidden group-hover/cell:flex items-center text-gray-400 hover:text-red-600 p-1 transition-colors"
@@ -590,14 +632,14 @@ export default function BillingGridRow({
       </td>
 
       {/* 5. Apellidos */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
         <span className="text-[13px] text-slate-800 font-bold truncate block">
           {item.customers?.last_name || (item.temporary_name ? "-" : "...")}
         </span>
       </td>
 
       {/* 6. Email */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
         <span className="text-[12px] text-slate-500 truncate block">
           {item.customers?.email || (item.temporary_name ? "-" : "")}
         </span>
@@ -605,7 +647,7 @@ export default function BillingGridRow({
 
       {/* 7. Actividad */}
       <td 
-        className={`px-1 py-0.5 border-r border-gray-100 transition-all duration-200 group relative ${bLine} focus-within:z-50`}
+        className={`px-1 py-0 border-r border-gray-100 transition-all duration-200 group relative ${bLine} focus-within:z-50`}
         style={{ 
           backgroundColor: activities.find(a => a.id === item.activity_id)?.color ? activities.find(a => a.id === item.activity_id).color + '4D' : 'transparent',
           borderLeft: item.activity_id && activities.find(a => a.id === item.activity_id)?.color 
@@ -621,30 +663,30 @@ export default function BillingGridRow({
       </td>
 
       {/* 8. Precio */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
         <input 
           type="number" 
           value={item.unit_price_thb ?? 0} 
           onChange={(e) => handleItemUpdate(item, 'unit_price_thb', e.target.value)}
           aria-label="Precio unitario"
-          className="bg-transparent text-gray-900 font-black text-sm w-full text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+          className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
         />
       </td>
 
       {/* 9. Q */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
         <input 
           type="number" 
           value={item.quantity ?? 1} 
           onChange={(e) => handleItemUpdate(item, 'quantity', e.target.value)}
           aria-label="Cantidad"
-          className="bg-transparent text-gray-600 font-black text-sm w-full text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm" 
+          className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0" 
         />
       </td>
 
       {/* 10. Total */}
-      <td className={`px-1 py-0.5 text-right border-r border-gray-100 ${bLine}`}>
-        <div className={`px-1 py-1 rounded border-2 text-sm font-black tracking-tight ${
+      <td className={`px-1 py-0 text-right border-r border-gray-100 ${bLine}`}>
+        <div className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm font-black tracking-tight whitespace-nowrap ${
           item.status === 'Paid' 
             ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
             : 'bg-red-50 text-red-700 border-red-200'
@@ -653,7 +695,7 @@ export default function BillingGridRow({
         </div>
       </td>
       {/* 11. Estado */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
         <div 
           className="relative group/status"
           onDoubleClick={(e) => {
@@ -664,7 +706,7 @@ export default function BillingGridRow({
           <select 
             value={item.status || 'Pending'} 
             onChange={(e) => handleItemUpdate(item, 'status', e.target.value)}
-            className={`w-full py-1.5 px-2 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${
+            className={`w-full h-6 py-0 px-1 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${
               item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
             }`}
           >
@@ -677,12 +719,12 @@ export default function BillingGridRow({
         </div>
       </td>
       {/* 12. Medio */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
         <div className="relative group/select">
            <select 
              value={item.payment_method || ''} 
              onChange={(e) => handleItemUpdate(item, 'payment_method', e.target.value || null)}
-             className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full px-1 py-1 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
+             className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full h-6 px-1 py-0 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
                !item.payment_method ? 'text-transparent' : 'text-gray-800'
              }`}
            >
@@ -698,7 +740,7 @@ export default function BillingGridRow({
         </div>
       </td>
       {/* 13. Instr */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 ${
+      <td className={`px-1 py-0 border-r border-gray-100 ${
         !item.instructor_id && !(() => {
           const act = activities.find(a => String(a.id) === String(item.activity_id));
           const cat = act?.category?.toLowerCase() || '';
@@ -712,21 +754,23 @@ export default function BillingGridRow({
           const isMissing = !item.instructor_id && !isStaffDisabled;
           
           return (
-            <div className="relative group/instr flex items-center justify-center gap-1">
+            <div className="relative group/instr flex items-center justify-center h-full">
               {isMissing && (
-                <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse shrink-0" title="Falta Instructor" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Falta Instructor" />
+                </div>
               )}
               <select 
                  value={item.instructor_id || ''} 
                  onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
                  disabled={isStaffDisabled}
                  title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
-                 className={`bg-transparent text-sm font-black w-full text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity ${
+                 className={`bg-transparent text-sm font-black w-full h-6 text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity py-0 relative z-10 ${
                    isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 
-                   isMissing ? 'text-red-600 animate-pulse' : 'text-cyan-700 opacity-100 cursor-pointer'
+                   isMissing ? 'text-red-600 animate-pulse appearance-none' : 'text-cyan-700 opacity-100 cursor-pointer'
                  }`}
                >
-                 <option value="" className="text-red-500 font-bold">!!!</option>
+                 <option value="" className="text-gray-400"></option>
                  {staff.map(s => <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>)}
                </select>
             </div>
@@ -735,7 +779,7 @@ export default function BillingGridRow({
       </td>
       {/* 14. BIZUM */}
       <td 
-        className={`px-1 py-0.5 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${
+        className={`px-1 py-0 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${
           Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : 'bg-white'
         } ${bLine}`}
         onDoubleClick={(e) => {
@@ -748,7 +792,7 @@ export default function BillingGridRow({
           value={item.bizum_deposit_eur || ''} 
           onChange={(e) => handleItemUpdate(item, 'bizum_deposit_eur', e.target.value ? Number(e.target.value) : null)}
           disabled={!item.customer_id}
-          className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-full text-center pr-3 transition-colors cursor-pointer relative z-10 ${
+          className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-6 text-center pr-3 transition-colors cursor-pointer relative z-10 ${
             !item.bizum_deposit_eur ? 'text-transparent' : 'text-white'
           } disabled:opacity-30`}
         >
@@ -762,7 +806,7 @@ export default function BillingGridRow({
         </div>
       </td>
       {/* 15. COMISIÓN */}
-      <td className={`px-1 py-0.5 border-r border-gray-100 text-center ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 text-center ${bLine}`}>
         {(() => {
           const act = activities.find(a => String(a.id) === String(item.activity_id));
           const cat = act?.category?.toLowerCase() || '';
@@ -772,7 +816,7 @@ export default function BillingGridRow({
             <button 
               disabled={isCommDisabled}
               onClick={() => handleItemUpdate(item, 'is_comm', !item.is_comm)}
-              className={`p-1.5 rounded-lg transition-all border ${
+              className={`p-0.5 rounded-md transition-all border ${
                 !isCommDisabled
                   ? item.is_comm 
                     ? 'bg-amber-500 text-white border-amber-600 shadow-inner' 
@@ -787,18 +831,18 @@ export default function BillingGridRow({
         })()}
       </td>
       {/* 16. Notas */}
-      <td className={`px-1 py-0.5 overflow-hidden border-r border-gray-100 ${bLine}`}>
+      <td className={`px-1 py-0 overflow-hidden border-r border-gray-100 ${bLine}`}>
         <input 
           type="text" placeholder="..."
           defaultValue={item.notes || ''} 
           onBlur={(e) => handleItemUpdate(item, 'notes', e.target.value)}
-          className="bg-transparent text-gray-700 font-medium text-[12px] w-full outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate" 
+          className="bg-transparent text-gray-700 font-medium text-[12px] w-full h-6 outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate py-0" 
           title={item.notes || ''}
         />
       </td>
 
       {/* Acciones */}
-      <td className={`px-1 py-0.5 text-center ${bLine} ${isHybridRow ? '' : rb}`}>
+      <td className={`px-1 py-0 text-center ${bLine} ${isHybridRow ? '' : rb}`}>
         <div className="flex items-center justify-center gap-1">
           {(!isHybridRow || (isHybridRow && items.length > 1)) && (
             <button 
@@ -835,23 +879,19 @@ export default function BillingGridRow({
 
     return (
       <tr 
-        className="font-bold bg-white hover:bg-gray-50 group h-9 relative border-b border-gray-100 focus-within:z-[100]"
+        className="font-bold bg-white hover:bg-gray-50 group h-[30px] leading-none relative border-b border-gray-100 focus-within:z-[100]"
         style={{ '--group-color': mainGroupColor }}
       >
         <td 
-          className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative cursor-pointer hover:bg-gray-100/50"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onToggleGroup(e);
-          }}
+          className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative cursor-default"
+          onClick={(e) => e.stopPropagation()}
         >
           <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
-          <div className="flex justify-center items-center h-full pl-1 pointer-events-none">
+          <div className="flex justify-center items-center h-full pl-1">
             <input 
               type="checkbox" 
               checked={selectedItemIds.has(item.id)} 
-              onChange={() => {}} 
+              onChange={(e) => onToggleGroup(e)} 
               className="w-5 h-5 rounded cursor-pointer accent-brand" 
             />
           </div>
@@ -871,25 +911,21 @@ export default function BillingGridRow({
   return (
     <>
       <tr 
-        className="font-black transition-all cursor-pointer bg-[var(--group-color)] group h-10 relative z-10 focus-within:z-[100]" 
+        className="font-black transition-all cursor-pointer bg-[var(--group-color)] group h-[30px] relative z-10 focus-within:z-[100]" 
         style={{ '--group-color': mainGroupColor }}
         onClick={toggleExpanded}
       >
         <td 
-          className={`px-0 py-0 w-[35px] min-w-[35px] relative cursor-pointer hover:bg-white/5 ${lb} ${tb}`}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onToggleGroup(e);
-          }}
+          className={`px-0 py-0 w-[35px] min-w-[35px] relative cursor-default hover:bg-white/5 ${lb} ${tb}`}
+          onClick={(e) => e.stopPropagation()}
         >
            <div className={`absolute left-0 top-0 bottom-0 w-2 ${groupStatus === 'VERDE' ? 'bg-emerald-500' : groupStatus === 'NARANJA' ? 'bg-orange-500' : 'bg-red-400'}`} />
-           <div className="flex justify-center items-center h-full pl-1 pointer-events-none">
+           <div className="flex justify-center items-center h-full pl-1">
              <input 
               type="checkbox" 
               checked={isSelectedGroup} 
               ref={el => el && (el.indeterminate = isPartialGroup)}
-              onChange={() => {}} 
+              onChange={(e) => onToggleGroup(e)} 
               className="w-5 h-5 rounded cursor-pointer accent-brand" 
              />
            </div>
@@ -901,21 +937,31 @@ export default function BillingGridRow({
             </div>
           </div>
         </td>
-        {/* colspan: fecha(1) + nombre(1) + apellidos(1) + email(1) + actividad(1) = 5 cols con los nombres */}
-        <td colSpan={5} className={`px-4 py-0 text-left ${tb}`}>
-           <span className="text-lg font-black text-white tracking-tight uppercase leading-tight">{groupDisplayName}</span>
+        {/* Fecha */}
+        <td className={`px-1 py-0 ${tb}`}></td>
+        {/* colspan: nombre(1) + apellidos(1) + email(1) = 3 cols */}
+        <td colSpan={3} className={`px-2 py-0 text-left overflow-hidden ${tb}`}>
+           <span className="text-[15px] font-bold text-white tracking-tight uppercase leading-tight truncate block w-full">{groupDisplayName}</span>
         </td>
+        {/* Actividad */}
+        <td className={`px-1 py-0 ${tb}`}></td>
         {/* Precio + Q + Total combinados → 1 celda alineada derecha */}
         <td colSpan={3} className={`px-3 py-0 text-right ${tb}`}>
-           <span className={`font-black text-lg ${groupTextColor} leading-tight`}>{displayTotal.toLocaleString()} ฿</span>
+           <span className={`font-bold text-[15px] ${groupTextColor} leading-tight`}>{displayTotal.toLocaleString()} ฿</span>
         </td>
-        <td className={`px-0 py-0 w-[90px] min-w-[90px] text-center ${tb}`}>
-            <div className={`py-1.5 rounded font-black text-xs uppercase tracking-wider shadow-lg leading-none ${groupColorClass}`}>
+        <td className={`px-0 py-0 w-[90px] min-w-[90px] text-center px-1 ${tb}`}>
+            <div className={`h-6 flex items-center justify-center rounded font-black text-xs uppercase tracking-wider shadow-lg leading-none ${groupColorClass}`}>
               {groupStatusLabel}
             </div>
         </td>
         <td className={`w-[80px] min-w-[80px] ${tb}`}></td>
-        <td className={`w-[60px] min-w-[60px] ${tb}`}></td>
+        <td className={`w-[60px] min-w-[60px] ${tb}`}>
+          {isAnyInstructorMissing && (
+            <div className="flex items-center justify-center h-full">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Falta instructor en grupo" />
+            </div>
+          )}
+        </td>
         <td className={`w-[55px] min-w-[55px] ${tb}`}></td>
         <td className={`w-[45px] min-w-[45px] ${tb}`}></td>
         <td className={`w-auto ${tb}`}></td>
@@ -923,14 +969,14 @@ export default function BillingGridRow({
            <div className="flex items-center justify-center gap-1.5 px-2">
              <button 
                onClick={() => handleDissolveGroup(invoice.id)} 
-               className="p-1.5 hover:bg-gray-900/10 text-gray-900 hover:text-black transition-all rounded"
+               className="p-1 hover:bg-gray-900/10 text-gray-900 hover:text-black transition-all rounded"
                title="Desagrupar todos (romper grupo)"
              >
                <Unlink className="w-4 h-4" />
              </button>
              <button 
                onClick={handleDeleteInvoice} 
-               className="p-1.5 hover:bg-red-50 text-red-600/50 hover:text-red-600 transition-all rounded"
+               className="p-1 hover:bg-red-50 text-red-600/50 hover:text-red-600 transition-all rounded"
                title="ELIMINAR FACTURA COMPLETA"
              >
                <Trash2 className="w-4 h-4" />
@@ -946,7 +992,7 @@ export default function BillingGridRow({
         return (
           <tr 
             key={item.id} 
-            className="font-bold bg-white hover:bg-gray-50 group h-9 border-b border-gray-100 transition-colors relative focus-within:z-[100]"
+            className="font-bold bg-white hover:bg-gray-50 group h-[30px] leading-none border-b border-gray-100 transition-colors relative focus-within:z-[100]"
             style={{ '--group-color': mainGroupColor }}
           >
             <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative ${bLine}`}>
@@ -960,8 +1006,8 @@ export default function BillingGridRow({
                   />
                </div>
             </td>
-             <td className={`w-[35px] min-w-[35px] border-r border-gray-100 ${bLine}`}>
-              <div className="flex justify-center items-center">
+             <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 ${bLine}`}>
+              <div className="flex justify-center items-center h-full">
                 <button onClick={(e) => handleAddChildItem(e, item)} className="p-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded transition-all">
                    <Plus className="w-4 h-4" />
                 </button>

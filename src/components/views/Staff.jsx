@@ -15,7 +15,8 @@ import {
   ArrowUpDown,
   UserPlus,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  AlertCircle
 } from 'lucide-react';
 import StaffDetailDrawer from './StaffDetailDrawer';
 
@@ -37,6 +38,7 @@ export default function Staff({ isNested = false }) {
   const [isExtendedView, setIsExtendedView] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({ show: false, title: '', message: '', type: 'danger', onConfirm: null });
 
   // Add Form state
   const [formData, setFormData] = useState({
@@ -127,10 +129,17 @@ export default function Staff({ isNested = false }) {
   };
 
   const deleteStaff = async (id) => {
-    if (confirm('¿Eliminar permanentemente a este miembro de staff?')) {
-      await supabase.from('staff').delete().eq('id', id);
-      fetchData(false);
-    }
+    setConfirmConfig({
+      show: true,
+      title: 'Eliminar Personal',
+      message: '¿Estás seguro de que quieres eliminar permanentemente a este miembro del staff? Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig(prev => ({ ...prev, show: false }));
+        await supabase.from('staff').delete().eq('id', id);
+        fetchData(false);
+      }
+    });
   };
 
   const toggleSelectAll = () => {
@@ -155,11 +164,18 @@ export default function Staff({ isNested = false }) {
   };
 
   const handleBulkDelete = async () => {
-    if (confirm(`¿Eliminar ${selectedIds.size} miembros?`)) {
-      await supabase.from('staff').delete().in('id', Array.from(selectedIds));
-      setSelectedIds(new Set());
-      fetchData(false);
-    }
+    setConfirmConfig({
+      show: true,
+      title: 'Borrado Masivo',
+      message: `¿Estás seguro de que deseas eliminar a los ${selectedIds.size} miembros seleccionados? Esta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig(prev => ({ ...prev, show: false }));
+        await supabase.from('staff').delete().in('id', Array.from(selectedIds));
+        setSelectedIds(new Set());
+        fetchData(false);
+      }
+    });
   };
 
   const generateInitials = (first, last) => {
@@ -485,6 +501,41 @@ export default function Staff({ isNested = false }) {
           </table>
         </div>
       </div>
+
+      {/* CONFIRMATION MODAL */}
+      {confirmConfig.show && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface-soft border border-surface-edge w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`p-3 rounded-2xl ${confirmConfig.type === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-brand/10 text-brand'}`}>
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-black text-white">{confirmConfig.title}</h3>
+              </div>
+              <p className="text-gray-400 font-bold ml-16">{confirmConfig.message}</p>
+            </div>
+            <div className="bg-surface-edge/20 px-6 py-4 flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmConfig({ ...confirmConfig, show: false })}
+                className="px-4 py-2 rounded-xl text-sm font-black text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+                }}
+                className={`px-5 py-2 rounded-xl text-sm font-black text-white shadow-lg transition-all ${
+                  confirmConfig.type === 'danger' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20' : 'bg-brand hover:bg-brand-light shadow-brand/20'
+                }`}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Drawer */}
       <StaffDetailDrawer 

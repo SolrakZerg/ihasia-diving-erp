@@ -10,6 +10,8 @@ import Billing from './views/Billing';
 import Expenses from './views/Expenses';
 import SSIView from './views/SSIView';
 import StaffSettlement from './views/StaffSettlement';
+import PartnersPayouts from './views/PartnersPayouts';
+import SupplierPayout from './views/SupplierPayout';
 
 
 // Mock views for now
@@ -17,7 +19,9 @@ const Logs = () => <div className="p-10 text-gray-400">Próximamente: Diario de 
 const Attendance = () => <div className="p-10 text-gray-400">Próximamente: Asistencia</div>;
 
 export default function Dashboard({ user }) {
-  const [activeView, setActiveView] = useState('overview');
+  const [activeView, setActiveView] = useState(() => {
+    return localStorage.getItem('active-view') || 'overview';
+  });
   const [viewPayload, setViewPayload] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -34,6 +38,7 @@ export default function Dashboard({ user }) {
   const navigateTo = (view, payload = null) => {
     setViewPayload(payload);
     setActiveView(view);
+    localStorage.setItem('active-view', view);
   };
 
   const handleLogout = async () => {
@@ -51,7 +56,11 @@ export default function Dashboard({ user }) {
       case 'billing': return <Billing />;
       case 'expenses': return <Expenses />;
       case 'ssi': return <SSIView />;
-      case 'payouts': return <StaffSettlement />;
+      case 'staff-settlement': return <StaffSettlement />;
+      case 'partners-payouts': return <PartnersPayouts />;
+      case 'supplier-payout': return <SupplierPayout />;
+      case 'staff-payouts': return <Activities />; // This was likely meant for payout rules, using Activities or similar as placeholder or check actual mapping
+      case 'activities': return <Activities />;
 
       default: return <Overview />;
     }

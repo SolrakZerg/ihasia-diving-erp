@@ -12,23 +12,54 @@ import {
   Wallet,
   Receipt,
   Zap,
-  Banknote
+  Banknote,
+  UsersRound,
+  Ship
 } from 'lucide-react';
 
-import logoFull from '../assets/Logo_Ihasia.svg';
-import logoSmall from '../assets/logo-version-movil-ihasia.webp';
+import logoFullFallback from '../assets/Logo_Ihasia.svg';
+import logoSmallFallback from '../assets/logo-version-movil-ihasia.webp';
+import { supabase } from '../lib/supabaseClient';
+import { useEffect, useState } from 'react';
 
 export default function Sidebar({ activeView, onViewChange, user, onLogout, isCollapsed, onToggleCollapse }) {
+  const [logos, setLogos] = useState({ full: null, small: null });
+
+  useEffect(() => {
+    fetchLogos();
+  }, []);
+
+  const fetchLogos = async () => {
+    try {
+      const { data } = await supabase
+        .from('business_entities')
+        .select('logo_url, secondary_image_url')
+        .eq('is_own_company', true)
+        .single();
+      
+      if (data) {
+        setLogos({
+          full: data.logo_url,
+          small: data.secondary_image_url
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching sidebar logos:', error);
+    }
+  };
+
   const menuItems = [
     { id: 'overview', label: 'Panel Principal', icon: BarChart3 },
     { id: 'billing', label: 'Facturas', icon: Wallet },
-    { id: 'payouts', label: 'Sueldos Staff', icon: Banknote },
+    { id: 'staff-settlement', label: 'Liquidación Staff', icon: Banknote },
     { id: 'expenses', label: 'Gastos', icon: Receipt },
     { id: 'ssi', label: 'Pagos SSI', icon: Zap },
     { id: 'customers', label: 'Buceadores', icon: Users },
     { id: 'insurance', label: 'Seguros Diarios', icon: ShieldCheck },
     { id: 'logs', label: 'Diario de Buceo', icon: Waves },
     { id: 'attendance', label: 'Asistencia', icon: Calendar },
+    { id: 'supplier-payout', label: 'Carabao', icon: Ship },
+    { id: 'partners-payouts', label: 'CRBT', icon: UsersRound },
     { id: 'settings', label: 'Configuración', icon: SettingsIcon },
   ];
 
@@ -36,16 +67,20 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
     <aside className={`${isCollapsed ? 'w-20' : 'w-64'} bg-surface-soft border-r border-surface-edge flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out z-40`}>
       <div className={`p-4 flex items-center justify-center border-b border-surface-edge relative ${isCollapsed ? 'h-20' : 'h-48'}`}>
         {isCollapsed ? (
-          <img src={logoSmall} alt="Logo" className="w-10 h-10 object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert" />
+          <img 
+            src={logos.small || logoSmallFallback} 
+            alt="Logo" 
+            className="w-10 h-10 object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert" 
+          />
         ) : (
           <div className="flex flex-col items-center gap-4">
             <img 
-              src={logoFull} 
+              src={logos.full || logoFullFallback} 
               alt="Ihasia Logo" 
               className="h-28 w-auto object-contain animate-in fade-in slide-in-from-top-4 duration-500 brightness-0 invert" 
             />
             <img 
-              src={logoSmall} 
+              src={logos.small || logoSmallFallback} 
               alt="Ihasia Name" 
               className="h-10 w-auto object-contain animate-in fade-in slide-in-from-bottom-4 duration-700 brightness-0 invert opacity-90" 
             />

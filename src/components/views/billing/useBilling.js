@@ -99,7 +99,7 @@ export function useBilling() {
     const s = { ow: 0, sd: 0, aa: 0, dsd1: 0, dsd2: 0, sr1: 0, sr2: 0, fd1: 0, fd25: 0, fdAlum: 0, cancel: 0, deepAdv: 0, deepEsp: 0, ean: 0, totalTanks: 0 };
     allMonthInvoices.forEach(inv => {
       inv.invoice_items?.forEach(item => {
-        const qty = item.quantity || 1;
+        const qty = Number(item.quantity ?? 1);
         const n = (item.activities?.name || '').trim().toLowerCase();
         if (n.startsWith('cancel')) {
           s.cancel += qty;
@@ -412,22 +412,30 @@ export function useBilling() {
   };
 
   const handleDissolveGroup = async (invoiceId) => {
-    if (!window.confirm("¿Desagrupar todos los registros de esta factura?")) return;
-    const targetInv = invoices.find(inv => inv.id === invoiceId);
-    if (!targetInv) return;
-    const itemsToMove = [...(targetInv.invoice_items || [])];
-    setInvoices(prev => {
-      const filtered = prev.filter(inv => inv.id !== invoiceId);
-      const newStubs = itemsToMove.map((item, idx) => ({ id: `temp-dissolve-${idx}-${Date.now()}`, customer_id: item.customer_id, status: 'Open', invoice_items: [{ ...item, invoice_id: 'temp' }], customers: item.customers }));
-      return [...filtered, ...newStubs];
+    setConfirmConfig({
+      show: true,
+      title: 'Desagrupar Registros',
+      message: '¿Estás seguro de que deseas desagrupar todos los registros de esta factura?',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig(prev => ({ ...prev, show: false }));
+        const targetInv = invoices.find(inv => inv.id === invoiceId);
+        if (!targetInv) return;
+        const itemsToMove = [...(targetInv.invoice_items || [])];
+        setInvoices(prev => {
+          const filtered = prev.filter(inv => inv.id !== invoiceId);
+          const newStubs = itemsToMove.map((item, idx) => ({ id: `temp-dissolve-${idx}-${Date.now()}`, customer_id: item.customer_id, status: 'Open', invoice_items: [{ ...item, invoice_id: 'temp' }], customers: item.customers }));
+          return [...filtered, ...newStubs];
+        });
+        try {
+          const { data: newInvoices, error: invErr } = await supabase.from('invoices').insert(itemsToMove.map(item => ({ customer_id: item.customer_id, status: 'Open' }))).select();
+          if (invErr) throw invErr;
+          await Promise.all(itemsToMove.map((item, idx) => supabase.from('invoice_items').update({ invoice_id: newInvoices[idx].id }).eq('id', item.id)));
+          await supabase.from('invoices').delete().eq('id', invoiceId);
+          setToast("Grupo disuelto correctamente."); fetchInvoices(false);
+        } catch (err) { console.error('Error dissolving group:', err); fetchInvoices(true); }
+      }
     });
-    try {
-      const { data: newInvoices, error: invErr } = await supabase.from('invoices').insert(itemsToMove.map(item => ({ customer_id: item.customer_id, status: 'Open' }))).select();
-      if (invErr) throw invErr;
-      await Promise.all(itemsToMove.map((item, idx) => supabase.from('invoice_items').update({ invoice_id: newInvoices[idx].id }).eq('id', item.id)));
-      await supabase.from('invoices').delete().eq('id', invoiceId);
-      setToast("Grupo disuelto correctamente."); fetchInvoices(false);
-    } catch (err) { console.error('Error dissolving group:', err); fetchInvoices(true); }
   };
 
   const patchInvoiceItem = (itemId, field, value) => {

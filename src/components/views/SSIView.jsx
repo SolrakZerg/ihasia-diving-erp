@@ -163,7 +163,7 @@ export default function SSIView() {
         items.forEach(item => {
           const actId = item.activity_id;
           if (agg[actId]) {
-            agg[actId].count += parseInt(item.quantity) || 1;
+            agg[actId].count += Number(item.quantity ?? 1);
             agg[actId].items.push(item);
           }
         });
@@ -178,7 +178,7 @@ export default function SSIView() {
         .sort((a, b) => b.total - a.total);
 
       setData(result);
-      const totalPaid = items ? items.filter(i => i.is_ssi_paid).reduce((sum, i) => sum + (parseFloat(i.activities?.ssi_cost_thb || 0) * (parseInt(i.quantity) || 1)), 0) : 0;
+      const totalPaid = items ? items.filter(i => i.is_ssi_paid).reduce((sum, i) => sum + (parseFloat(i.activities?.ssi_cost_thb || 0) * (Number(i.quantity ?? 1))), 0) : 0;
       setSsiPaid(totalPaid);
 
     } catch (error) {
@@ -234,6 +234,8 @@ export default function SSIView() {
     if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const filteredData = sortedData.filter(act => act.count > 0);
 
   return (
     <div className="h-full flex flex-col bg-surface overflow-hidden relative">
@@ -375,10 +377,10 @@ export default function SSIView() {
               <tbody className="divide-y divide-surface-edge/10">
                 {loading ? (
                   <tr><td colSpan="6" className="py-32 text-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto opacity-30" /></td></tr>
-                ) : data.length === 0 ? (
-                  <tr><td colSpan="6" className="py-32 text-center text-gray-500 italic text-sm">No hay datos. Ajusta el filtro SSI si es necesario.</td></tr>
+                ) : filteredData.length === 0 ? (
+                  <tr><td colSpan="6" className="py-32 text-center text-gray-500 italic text-sm">No hay certificaciones con cantidad registrada este mes.</td></tr>
                 ) : (
-                  sortedData.map(act => (
+                  filteredData.map(act => (
                     <tr key={act.id} className="hover:bg-brand/5 border-b border-surface-edge/30 transition-colors group">
                       <td className="pl-8 pr-[10px] py-2.5 relative">
                         {/* Indicador de color vertical */}

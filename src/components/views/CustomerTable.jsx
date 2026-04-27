@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { Search, MapPin, Calendar, Award, Activity, Filter, User, ChevronRight, Phone, ChevronLeft, ChevronsLeft, ChevronsRight, Pencil, Trash2, Copy, LayoutList, LayoutGrid, Globe, Heart, Hash, CreditCard, Send, ShieldCheck, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, Calendar, Award, Activity, Filter, User, ChevronRight, Phone, ChevronLeft, ChevronsLeft, ChevronsRight, Pencil, Trash2, Copy, LayoutList, LayoutGrid, Globe, Heart, Hash, CreditCard, Send, ShieldCheck, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import CustomerDetailDrawer from './CustomerDetailDrawer';
 import CustomerFormModal from './CustomerFormModal';
 
@@ -61,6 +61,7 @@ export default function CustomerTable({ onNavigate }) {
   const [isProcessingBilling, setIsProcessingBilling] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [confirmConfig, setConfirmConfig] = useState({ show: false, title: '', message: '', type: 'danger', onConfirm: null });
 
   // Debounce search input: wait 400ms after user stops typing
   const searchDebounceRef = useRef(null);
@@ -194,15 +195,22 @@ export default function CustomerTable({ onNavigate }) {
 
   const handleDelete = async (e, id, name) => {
     e.stopPropagation();
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar a ${name}? Esta acción no se puede deshacer.`)) return;
-
-    try {
-      const { error } = await supabase.from('customers').delete().eq('id', id);
-      if (error) throw error;
-      fetchCustomers();
-    } catch (err) {
-      alert('Error eliminando: ' + err.message);
-    }
+    setConfirmConfig({
+      show: true,
+      title: 'Eliminar Registro',
+      message: `¿Estás seguro de que quieres eliminar a ${name}? Esta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig(prev => ({ ...prev, show: false }));
+        try {
+          const { error } = await supabase.from('customers').delete().eq('id', id);
+          if (error) throw error;
+          fetchCustomers();
+        } catch (err) {
+          alert('Error eliminando: ' + err.message);
+        }
+      }
+    });
   };
 
   const handleEdit = (e, customer) => {
@@ -687,6 +695,41 @@ export default function CustomerTable({ onNavigate }) {
           <div className="bg-emerald-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-emerald-400/50">
             <CheckCircle2 className="w-5 h-5" />
             <span className="font-bold text-sm tracking-wide">{toastMsg}</span>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL */}
+      {confirmConfig.show && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface-soft border border-surface-edge w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`p-3 rounded-2xl ${confirmConfig.type === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-brand/10 text-brand'}`}>
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-black text-white">{confirmConfig.title}</h3>
+              </div>
+              <p className="text-gray-400 font-bold ml-16">{confirmConfig.message}</p>
+            </div>
+            <div className="bg-surface-edge/20 px-6 py-4 flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmConfig({ ...confirmConfig, show: false })}
+                className="px-4 py-2 rounded-xl text-sm font-black text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+                }}
+                className={`px-5 py-2 rounded-xl text-sm font-black text-white shadow-lg transition-all ${
+                  confirmConfig.type === 'danger' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20' : 'bg-brand hover:bg-brand-light shadow-brand/20'
+                }`}
+              >
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}
