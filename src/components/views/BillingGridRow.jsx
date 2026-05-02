@@ -147,10 +147,10 @@ const DateCell = ({ item, handleItemUpdate, bLine, formatSmartDate }) => {
         className="flex items-center justify-center gap-1.5 h-full w-full hover:bg-white/10 transition-colors px-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:z-10 group/datebtn"
       >
         <Calendar className={`w-3.5 h-3.5 transition-colors ${
-          !item.date ? 'text-blue-500' : 'text-brand'
+          !item.date ? 'text-red-500 animate-pulse' : 'text-brand'
         } group-hover/datebtn:scale-110`} />
-        <span className={`text-[12px] font-black transition-colors whitespace-nowrap ${
-          !item.date ? 'text-blue-600 italic' : 'text-gray-900'
+        <span className={`text-[12px] font-black transition-all whitespace-nowrap ${
+          !item.date ? 'text-red-600 animate-pulse bg-red-50 px-1.5 py-0.5 rounded border border-red-200' : 'text-gray-900'
         }`}>
           {item.date ? formatSmartDate(item.date).toUpperCase() : "FECHA"}
         </span>

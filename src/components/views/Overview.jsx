@@ -357,12 +357,24 @@ export default function Overview() {
     else setMonth(m => m + 1);
   };
 
-  const commonTooltip = (
-    <Tooltip 
-      contentStyle={{backgroundColor: '#1a1c2d', borderRadius: '12px', border: '1px solid #2d2f3d', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'}}
-      itemStyle={{color: '#ffffff', fontSize: '10px', fontWeight: 800}}
-    />
-  );
+  const [activeStaff, setActiveStaff] = useState(null);
+  const [activeExpense, setActiveExpense] = useState(null);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#1a1c2d] border border-surface-edge p-3 rounded-xl shadow-2xl backdrop-blur-md min-w-[120px]">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{label}</p>
+          <p className="text-xl font-black text-white font-mono tracking-tighter">
+            {Math.round(payload[0].value).toLocaleString()} <span className="text-xs opacity-50 ml-0.5">฿</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const commonTooltip = <Tooltip content={<CustomTooltip />} cursor={false} />;
 
   if (loading && !staffData.length) {
     return (
@@ -374,15 +386,14 @@ export default function Overview() {
 
   return (
     <div className="p-2 md:p-3 space-y-3 w-full animate-in fade-in duration-700 overflow-hidden">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-soft/30 p-3 rounded-2xl border border-surface-edge shadow-xl backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-           <div className="p-2.5 bg-brand/10 rounded-xl text-brand border border-brand/20">
-              <BarChart3 className="w-6 h-6" />
-           </div>
-           <div>
-              <h1 className="text-2xl font-black text-white tracking-tighter">Financial Dashboard</h1>
-              <p className="text-gray-500 text-[14px] font-black uppercase tracking-widest mt-0.5">Relacional & Optimizado</p>
-           </div>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-soft/30 py-8 px-6 rounded-2xl border border-surface-edge shadow-2xl backdrop-blur-sm">
+        <div className="flex items-center gap-8">
+           <img src={logoFull} alt="Logo" className="w-28 h-28 object-contain brightness-0 invert opacity-100" />
+           <img 
+             src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo-ihasia-secondary.webp" 
+             alt="iHasia Financial" 
+             className="h-16 w-auto object-contain brightness-0 invert" 
+           />
         </div>
 
         <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
@@ -404,22 +415,7 @@ export default function Overview() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="bg-rose-500/5 border border-rose-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[180px] shadow-sm">
-             <span className="text-[13px] font-black text-rose-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
-                <TrendingDown className="w-4 h-4" /> GASTO MES
-             </span>
-             <span className="text-3xl font-black text-white tracking-tighter font-mono">
-                -{(metrics.grand_total_expenses || 0).toLocaleString()} <span className="text-sm font-black text-rose-500/50 ml-1">฿</span>
-             </span>
-          </div>
-          <div className="bg-amber-500/5 border border-amber-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[180px] shadow-sm">
-             <span className="text-[13px] font-black text-amber-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
-                <Coins className="w-4 h-4" /> PENDIENTE
-             </span>
-             <span className="text-3xl font-black text-white tracking-tighter font-mono">
-                {(metrics.grand_total_pending || 0).toLocaleString()} <span className="text-sm font-black text-amber-500/50 ml-1">฿</span>
-             </span>
-          </div>
+          {/* Espacio reservado para futuros widgets de cabecera */}
         </div>
       </div>
 
@@ -432,7 +428,21 @@ export default function Overview() {
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
                   {commonTooltip}
                   <Bar dataKey="totalEarned" radius={[4, 4, 0, 0]}>
-                    {staffData.map((entry, index) => (<Cell key={`cell-${index}`} fill={`hsl(260, 80%, ${70 - (index * 5)}%)`} />))}
+                    {staffData.map((entry, index) => {
+                      const isHovered = activeStaff === index;
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          onMouseEnter={() => setActiveStaff(index)}
+                          onMouseLeave={() => setActiveStaff(null)}
+                          fill={`hsl(260, 80%, ${70 - (index * 5)}%)`} 
+                          fillOpacity={isHovered ? 1 : 0.6}
+                          stroke={isHovered ? 'white' : 'transparent'}
+                          strokeWidth={isHovered ? 1 : 0}
+                          className="transition-all duration-300 cursor-pointer" 
+                        />
+                      );
+                    })}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -449,7 +459,19 @@ export default function Overview() {
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                     {expenseData.map((entry, index) => {
                       const colors = ['#3b82f6', '#ef4444', '#a855f7', '#6366f1', '#f59e0b'];
-                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                      const isHovered = activeExpense === index;
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          onMouseEnter={() => setActiveExpense(index)}
+                          onMouseLeave={() => setActiveExpense(null)}
+                          fill={colors[index % colors.length]} 
+                          fillOpacity={isHovered ? 1 : 0.6}
+                          stroke={isHovered ? 'white' : 'transparent'}
+                          strokeWidth={isHovered ? 1 : 0}
+                          className="transition-all duration-300 cursor-pointer" 
+                        />
+                      );
                     })}
                   </Bar>
                 </BarChart>
@@ -484,11 +506,15 @@ export default function Overview() {
                         </tr>
                      ))}
                   </tbody>
-                  <tfoot className="sticky bottom-0 bg-surface-soft border-t border-surface-edge shadow-xl">
-                     <tr className="h-8">
-                        <td className="text-[12px] font-black text-white uppercase italic">Total</td>
-                        <td className="text-[16px] font-black text-white text-right font-mono tracking-tighter">{Math.round(staffData.reduce((acc, s) => acc + s.totalEarned, 0)).toLocaleString()} ฿</td>
-                        <td className="text-[16px] font-black text-orange-500 text-right font-mono tracking-tighter">{Math.round(staffData.reduce((acc, s) => acc + s.pending, 0)).toLocaleString()} ฿</td>
+                  <tfoot className="sticky bottom-0 bg-surface-soft border-t-2 border-surface-edge/80 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
+                     <tr className="h-10">
+                        <td className="text-[13px] font-black text-gray-400 uppercase italic pl-2">Total</td>
+                        <td className="text-[18px] font-black text-cyan-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(34,211,238,0.2)]">
+                           {Math.round(staffData.reduce((acc, s) => acc + s.totalEarned, 0)).toLocaleString()} <span className="text-[10px] ml-0.5 opacity-60">฿</span>
+                        </td>
+                        <td className="text-[18px] font-black text-orange-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(251,146,60,0.2)] pr-2">
+                           {Math.round(staffData.reduce((acc, s) => acc + s.pending, 0)).toLocaleString()} <span className="text-[10px] ml-0.5 opacity-60">฿</span>
+                        </td>
                      </tr>
                   </tfoot>
                </table>
