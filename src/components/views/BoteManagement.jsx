@@ -23,7 +23,7 @@ import {
 export default function BoteManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [year] = useState(new Date().getFullYear());
+  const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   
   const [initialBote, setInitialBote] = useState(0);
@@ -37,6 +37,7 @@ export default function BoteManagement() {
     category: 'Material'
   });
 
+  const [isEditingInitial, setIsEditingInitial] = useState(false);
   const [inlineEditId, setInlineEditId] = useState(null);
   const [inlineForm, setInlineForm] = useState({ day: '', amount: '', concept: '', category: '' });
 
@@ -49,6 +50,16 @@ export default function BoteManagement() {
     fetchBoteData();
   }, [month, year]);
 
+  // AUTO-SAVE: Sincroniza el total a apartar con la BD para el Dashboard
+  useEffect(() => {
+    if (!loading && (stats.tshirts > 0 || stats.insurances > 0)) {
+      const timer = setTimeout(() => {
+        saveFinalBalance();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [stats]);
+
   const fetchBoteData = async () => {
     setLoading(true);
     try {
@@ -56,29 +67,29 @@ export default function BoteManagement() {
       const lastDay = new Date(year, month, 0).getDate();
       const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
 
-      // 1. Fetch Initial Bote for this month
-      const boteKey = `bote_initial_${year}_${month}`;
-      const { data: settingsData } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', boteKey)
+      // 1. Fetch Bote Stats for this month from NEW TABLE
+      const { data: boteData } = await supabase
+        .from('bote_monthly')
+        .select('*')
+        .eq('year', year)
+        .eq('month', month)
         .maybeSingle();
 
-      if (settingsData) {
-        setInitialBote(Number(settingsData.value));
+      if (boteData) {
+        setInitialBote(Number(boteData.initial_balance || 0));
       } else {
-        // Try to find previous month's final bote if current is not set
+        // Try to find previous month's final bote from the new table
         const prevMonth = month === 1 ? 12 : month - 1;
         const prevYear = month === 1 ? year - 1 : year;
-        const prevBoteKey = `bote_final_${prevYear}_${prevMonth}`;
         
         const { data: prevData } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', prevBoteKey)
+          .from('bote_monthly')
+          .select('final_balance')
+          .eq('year', prevYear)
+          .eq('month', prevMonth)
           .maybeSingle();
           
-        setInitialBote(prevData ? Number(prevData.value) : 0);
+        setInitialBote(prevData ? Number(prevData.final_balance) : 0);
       }
 
       // 2. Fetch T-shirt Income (from invoice_items where activity has tshirt_included)
@@ -120,6 +131,34 @@ export default function BoteManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveFinalBalance = async () => {
+    const incomeValue = (stats.tshirts * 160) + (stats.insurances * 75);
+    const totalExp = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
+    const final = initialBote + incomeValue - totalExp;
+    
+    await supabase.from('bote_monthly').upsert({ 
+      year, 
+      month, 
+      initial_balance: initialBote,
+      apartar_amount: incomeValue,
+      expenses_total: totalExp,
+      final_balance: final,
+      updated_at: new Date().toISOString() 
+    }, { onConflict: 'year, month' });
+  };
+
+  const updateInitialBote = async (val) => {
+    const num = Number(val);
+    setInitialBote(num);
+    await supabase.from('bote_monthly').upsert({ 
+      year, 
+      month, 
+      initial_balance: num,
+      updated_at: new Date().toISOString() 
+    }, { onConflict: 'year, month' });
+    saveFinalBalance();
   };
 
   const handleAddExpense = async () => {
@@ -203,20 +242,6 @@ export default function BoteManagement() {
     }
   };
 
-  const saveFinalBalance = async () => {
-    const final = initialBote + (stats.tshirts * 160) + (stats.insurances * 75) - expenses.reduce((acc, e) => acc + Number(e.amount), 0);
-    const boteKey = `bote_final_${year}_${month}`;
-    await supabase.from('settings').upsert({ key: boteKey, value: final.toString(), updated_at: new Date().toISOString() }, { onConflict: 'key' });
-  };
-
-  const updateInitialBote = async (val) => {
-    const num = Number(val);
-    setInitialBote(num);
-    const boteKey = `bote_initial_${year}_${month}`;
-    await supabase.from('settings').upsert({ key: boteKey, value: num.toString(), updated_at: new Date().toISOString() }, { onConflict: 'key' });
-    saveFinalBalance();
-  };
-
   const handlePrevMonth = () => {
     if (month === 1) {
       setMonth(12);
@@ -261,21 +286,44 @@ export default function BoteManagement() {
            </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner">
+        {/* HYBRID DATE SELECTOR */}
+        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
           <button 
             onClick={handlePrevMonth}
-            className="p-2 hover:bg-surface-edge rounded-xl text-gray-400 transition-colors"
+            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-white font-black text-sm min-w-[140px] text-center uppercase tracking-widest">
-            {months[month - 1]} {year}
-          </span>
+
+          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+            <select 
+              value={month} 
+              onChange={e => setMonth(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
+            >
+              {months.map((m, i) => (
+                <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
+              ))}
+            </select>
+            
+            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+            <select 
+              value={year} 
+              onChange={e => setYear(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
+            >
+              {[2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+              ))}
+            </select>
+          </div>
+
           <button 
             onClick={handleNextMonth}
-            className="p-2 hover:bg-surface-edge rounded-xl text-gray-400 transition-colors"
+            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -286,17 +334,32 @@ export default function BoteManagement() {
         {/* 1. Fondo Inicial (Amarillo) */}
         <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-[2.5rem] flex flex-col justify-between group hover:border-amber-500 transition-all shadow-lg shadow-amber-500/5">
            <div>
-             <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+             <p className="text-[13px] font-black text-amber-500 uppercase tracking-widest mb-1 flex items-center gap-2">
                 <Package className="w-4 h-4" /> Fondo Inicial
              </p>
-             <div className="flex items-center gap-2 mt-2">
-               <input 
-                 type="number"
-                 value={initialBote}
-                 onChange={(e) => updateInitialBote(e.target.value)}
-                 className="text-3xl font-black text-white bg-transparent border-none outline-none w-full no-spinner"
-               />
-               <span className="text-amber-500/50 font-black italic text-xl">฿</span>
+             <div className="mt-4 flex items-center justify-between group/val">
+               {isEditingInitial ? (
+                 <div className="flex items-center gap-2 w-full">
+                    <input 
+                      autoFocus
+                      type="number"
+                      value={initialBote}
+                      onBlur={() => setIsEditingInitial(false)}
+                      onChange={(e) => updateInitialBote(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && setIsEditingInitial(false)}
+                      className="text-3xl font-black text-white bg-white/5 border border-white/10 rounded-xl outline-none w-full px-3 py-1 no-spinner animate-in zoom-in-95 duration-200"
+                    />
+                 </div>
+               ) : (
+                 <div 
+                   onClick={() => setIsEditingInitial(true)}
+                   className="flex items-baseline gap-1 cursor-pointer group-hover:scale-105 transition-transform duration-300"
+                 >
+                   <h4 className="text-3xl font-black text-white">{Number(initialBote).toLocaleString()}</h4>
+                   <span className="text-sm font-black text-amber-500/80">฿</span>
+                   <Edit2 className="w-3 h-3 text-amber-500 opacity-0 group-hover/val:opacity-100 ml-2 transition-opacity" />
+                 </div>
+               )}
              </div>
            </div>
            <p className="text-[9px] text-amber-500/60 mt-2 font-bold uppercase italic">
@@ -307,22 +370,22 @@ export default function BoteManagement() {
         {/* 2. Bote Mensual (Ingresos Generados) */}
         <div className="bg-emerald-500/5 border border-emerald-500/20 p-6 rounded-[2.5rem] shadow-lg shadow-emerald-500/5 flex flex-col justify-between group hover:border-emerald-500/40 transition-all">
            <div>
-             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-               <TrendingUp className="w-4 h-4" /> Bote Mensual (A Apartar)
+             <p className="text-[13px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+               <TrendingUp className="w-4 h-4" /> BOTE {months[month-1].toUpperCase()}
              </p>
              <div className="mt-4">
-                <h4 className="text-3xl font-black text-white">{(incomeTshirts + incomeInsurances).toLocaleString()} <span className="text-sm">฿</span></h4>
-                <p className="text-[10px] text-emerald-500/60 mt-1 font-bold uppercase tracking-widest">Total a retirar de caja</p>
+                <h4 className="text-3xl font-black text-white">{(incomeTshirts + incomeInsurances).toLocaleString()} <span className="text-sm font-black text-emerald-500/50 ml-1">฿</span></h4>
+                <p className="text-[12px] text-emerald-500/60 mt-1 font-bold uppercase tracking-widest">Total a retirar de caja</p>
              </div>
            </div>
            
            <div className="space-y-2 mt-4 pt-4 border-t border-emerald-500/10">
               <div className="flex justify-between items-center">
-                 <span className="text-[9px] font-black text-gray-500 uppercase flex items-center gap-2"><Shirt className="w-3 h-3" /> Camisetas</span>
+                 <span className="text-[11px] font-black text-gray-500 uppercase flex items-center gap-2"><Shirt className="w-3 h-3" /> Camisetas</span>
                  <span className="text-[11px] font-black text-white/80">{(stats.tshirts * 160).toLocaleString()} ฿</span>
               </div>
               <div className="flex justify-between items-center">
-                 <span className="text-[9px] font-black text-gray-500 uppercase flex items-center gap-2"><ShieldCheck className="w-3 h-3" /> Seguros</span>
+                 <span className="text-[11px] font-black text-gray-500 uppercase flex items-center gap-2"><ShieldCheck className="w-3 h-3" /> Seguros</span>
                  <span className="text-[11px] font-black text-white/80">{(stats.insurances * 75).toLocaleString()} ฿</span>
               </div>
            </div>
@@ -331,11 +394,11 @@ export default function BoteManagement() {
         {/* 3. Gastos Material (Rojo) */}
         <div className="bg-rose-500/5 border border-rose-500/10 p-6 rounded-[2.5rem] shadow-lg shadow-rose-500/5 flex flex-col justify-between group hover:border-rose-500/30 transition-all">
            <div>
-             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+             <p className="text-[13px] font-black text-rose-400 uppercase tracking-widest mb-1 flex items-center gap-2">
                <TrendingDown className="w-4 h-4" /> Gastos Material
              </p>
              <div className="mt-4">
-                <h4 className="text-3xl font-black text-white">{totalExpenses.toLocaleString()} <span className="text-sm">฿</span></h4>
+                <h4 className="text-3xl font-black text-white">{totalExpenses.toLocaleString()} <span className="text-sm font-black text-rose-400/50 ml-1">฿</span></h4>
                 <p className="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest">
                    {expenses.length} facturas este mes
                 </p>
@@ -346,11 +409,11 @@ export default function BoteManagement() {
         {/* 4. Saldo Total Final (Azul/Brand - High Contrast) */}
         <div className="bg-brand rounded-[2.5rem] p-8 shadow-2xl shadow-brand/30 relative overflow-hidden group border border-white/10">
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/20 rounded-full blur-3xl group-hover:bg-white/30 transition-all duration-700"></div>
-          <p className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-1 opacity-90 relative z-10">Saldo Total Final</p>
+          <p className="text-[13px] font-black text-white uppercase tracking-[0.2em] mb-1 opacity-90 relative z-10">Saldo Total Final</p>
           <h2 className="text-4xl font-black text-white tracking-tighter relative z-10 drop-shadow-md">
-            {currentBalance.toLocaleString()} <span className="text-xl">฿</span>
+            {currentBalance.toLocaleString()} <span className="text-lg font-black text-white/40 ml-1">฿</span>
           </h2>
-          <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-center text-[10px] font-black text-white uppercase relative z-10">
+          <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-center text-[12px] font-black text-white uppercase relative z-10">
              <span className="opacity-80">Progreso Mes</span>
              <span className="bg-white/20 px-2 py-0.5 rounded-lg">{(incomeTshirts + incomeInsurances - totalExpenses).toLocaleString()} ฿</span>
           </div>

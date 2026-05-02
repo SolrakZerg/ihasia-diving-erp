@@ -1,10 +1,15 @@
-/* Dashboard Overview - Ultra Compact Version */
+/* Dashboard Overview - Relational & Optimized Version */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { 
   BarChart3, 
   ChevronLeft, 
-  ChevronRight
+  ChevronRight,
+  Loader2,
+  TrendingDown,
+  TrendingUp,
+  Coins,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -26,6 +31,7 @@ export default function Overview() {
   // Data states
   const [staffData, setStaffData] = useState([]);
   const [expenseData, setExpenseData] = useState([]);
+  const [metrics, setMetrics] = useState({});
   const [incomeData, setIncomeData] = useState({ 
     total: 0, 
     breakdown: {}, 
@@ -44,47 +50,47 @@ export default function Overview() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+    const lastDayNum = new Date(year, month, 0).getDate();
+    const lastDayStr = `${year}-${month.toString().padStart(2, '0')}-${lastDayNum}`;
 
     try {
-      const { data: allInvoices, error: invErr } = await supabase.from('invoices').select(`
-        *, 
-        invoice_items(id, quantity, total_thb, unit_price_thb, date, status, payment_method, activity_id, instructor_id,
-          activities(id, name, category, acronym, ssi_cost_thb))
-      `);
+      const [ 
+        { data: invoices }, 
+        { data: monthlyReport }, 
+        { data: staffSettlements },
+        { data: partnerSettlement },
+        { data: bExpenses },
+        { data: boteMonthly }, 
+        { data: fixedSettings },
+        { data: sSettlements },
+        metricsRes
+      ] = await Promise.all([
+        supabase.from('invoices').select('*, invoice_items(*, activities(*))').gte('created_at', firstDay).lte('created_at', lastDayStr),
+        supabase.from('monthly_reports').select('*').eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('staff_settlements').select('*, staff(initials)').eq('year', year).eq('month', month),
+        supabase.from('partner_settlements').select('*').eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('bote_expenses').select('*').gte('date', firstDay).lte('date', lastDayStr),
+        supabase.from('bote_monthly').select('*').eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('fixed_expenses').select('*').order('name'),
+        supabase.from('supplier_settlements').select('*').eq('year', year).eq('month', month),
+        supabase.from('monthly_metrics').select('metric_key, value').eq('year', year).eq('month', month)
+      ]);
 
-      if (invErr) throw invErr;
-
-      const monthInvoices = (allInvoices || []).filter(inv => {
-        const items = inv.invoice_items || [];
-        if (!items.length) return false;
-        return items.some(it => { 
-          if (!it.date) return true; 
-          const [y, m] = it.date.split('-').map(Number); 
-          return y === year && m === month; 
-        });
-      });
-
-      const { data: staffList } = await supabase.from('staff').select('id, first_name, last_name, base_salary, initials');
-      const { data: rules } = await supabase.from('instructor_payouts').select('*');
-      const { data: bExpenses } = await supabase.from('bote_expenses').select('*').gte('date', firstDay).lte('date', lastDay);
-
+      // 2. Process Invoices (Income & Courses)
+      const monthInvoices = (invoices || []);
       let facturado = 0, pendiente = 0, wiseBT = 0, wiseCR = 0, eurBT = 0, eurCR = 0, balanceCash = 0;
       let ssiTotal = 0;
-      const staffMap = {};
       const courseAcronyms = ['OW', 'AOW', 'SD', 'S&R'];
       let currentMonthCourses = 0;
 
       monthInvoices.forEach(inv => {
         inv.invoice_items?.forEach(item => {
           let isThisMonth = false;
-          if (!item.date) {
-            isThisMonth = true; 
-          } else {
+          if (!item.date) isThisMonth = true;
+          else {
             const [y, m] = item.date.split('-').map(Number);
             if (y === year && m === month) isThisMonth = true;
           }
-
           if (!isThisMonth) return;
 
           const total = Number(item.total_thb || 0);
@@ -102,88 +108,182 @@ export default function Overview() {
           }
 
           ssiTotal += (Number(item.activities?.ssi_cost_thb || 0) * Number(item.quantity || 1));
-
           if (courseAcronyms.includes(item.activities?.acronym) && Number(item.quantity ?? 1) > 0) {
             currentMonthCourses += Number(item.quantity || 1);
-          }
-
-          if (item.instructor_id) {
-            if (!staffMap[item.instructor_id]) staffMap[item.instructor_id] = { total: 0, pending: 0 };
-            const rule = rules?.find(r => r.activity_id === item.activity_id);
-            const comm = Number(item.quantity || 1) * (rule?.amount_thb || 0);
-            staffMap[item.instructor_id].total += comm;
-            if (item.status === 'Pending') staffMap[item.instructor_id].pending += comm;
           }
         });
       });
 
-      const partnerKey = `partner_payout_CRBT_${year}_${month}`;
-      const { data: partnerSetting } = await supabase.from('settings').select('value').eq('key', partnerKey).maybeSingle();
-      const partnerAdvances = partnerSetting?.value?.advances || [];
-      const totalCRAdvances = partnerAdvances.filter(a => a.partner === 'CR').reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
-      const totalBTAdvances = partnerAdvances.filter(a => a.partner === 'BT').reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+      const openingCash = monthlyReport?.mes_anterior || 0;
+      const boteTotal = Number(boteMonthly?.apartar_amount || 0);
+      const botePending = monthlyReport?.bote_xpagar ?? boteTotal;
+
+      const mObj = (metricsRes.data || []).reduce((acc, m) => ({ ...acc, [m.metric_key]: m.value }), {});
+      
+      // PRIORIDAD 1: monthly_reports (Persistencia centralizada)
+      // PRIORIDAD 2: metrics (Triggers antiguos)
+      // PRIORIDAD 3: Calculado al vuelo (Fallback)
+      const dbFacturado = monthlyReport?.facturado != null ? parseFloat(monthlyReport.facturado) : (mObj.total_billed != null ? parseFloat(mObj.total_billed) : facturado);
+      const dbPendiente = monthlyReport?.pendiente != null ? parseFloat(monthlyReport.pendiente) : (mObj.total_pending != null ? parseFloat(mObj.total_pending) : pendiente);
+      const dbCobrado = monthlyReport?.cobrado != null ? parseFloat(monthlyReport.cobrado) : (dbFacturado - dbPendiente);
+
+      const dbWiseBT = monthlyReport?.bt_wise != null ? parseFloat(monthlyReport.bt_wise) : wiseBT;
+      const dbWiseCR = monthlyReport?.cr_wise != null ? parseFloat(monthlyReport.cr_wise) : wiseCR;
+      const dbEurBT = monthlyReport?.bt_eur != null ? parseFloat(monthlyReport.bt_eur) : eurBT;
+      const dbEurCR = monthlyReport?.cr_eur != null ? parseFloat(monthlyReport.cr_eur) : eurCR;
+
+      const totalCRAdvances = Number(monthlyReport?.cr_cash || 0);
+      const totalBTAdvances = Number(monthlyReport?.bt_cash || 0);
 
       const crData = [
         { name: 'CASH', value: totalCRAdvances, color: '#3b82f6' },
-        { name: 'WISE', value: wiseCR, color: '#2563eb' },
-        { name: 'EUR', value: eurCR, color: '#1d4ed8' }
+        { name: 'WISE', value: dbWiseCR, color: '#2563eb' },
+        { name: 'EUR', value: dbEurCR, color: '#1d4ed8' }
       ].filter(d => d.value > 0);
 
       const btData = [
         { name: 'CASH', value: totalBTAdvances, color: '#f472b6' },
-        { name: 'WISE', value: wiseBT, color: '#db2777' },
-        { name: 'EUR', value: eurBT, color: '#9d174d' }
+        { name: 'WISE', value: dbWiseBT, color: '#db2777' },
+        { name: 'EUR', value: dbEurBT, color: '#9d174d' }
       ].filter(d => d.value > 0);
 
+      // 4. Process Expenses
+      const totalStaffCost = (staffSettlements || []).reduce((sum, s) => sum + (Number(s.total_commissions) || 0) + (Number(s.total_bonus) || 0), 0);
+      const totalStaffPending = (staffSettlements || []).reduce((sum, s) => sum + (Number(s.total_payout) || 0), 0);
+
+      const carabaoSettlement = (sSettlements || []).find(s => s.supplier_name?.toLowerCase().includes('carabao'));
+      const carabaoTotal = Number(carabaoSettlement?.total_amount || 0);
+      const carabaoPending = Number(carabaoSettlement?.pending_amount || 0);
+
+      const ssiSettlement = (sSettlements || []).find(s => s.supplier_name?.toLowerCase().includes('ssi'));
+      const ssiTotalFinal = ssiSettlement ? Number(ssiSettlement.total_amount) : ssiTotal;
+      const ssiPendingFinal = ssiSettlement ? Number(ssiSettlement.pending_amount) : ssiTotal;
+
+      const dynamicFixed = (fixedSettings || []).map(f => {
+        let col = null;
+        let displayName = f.name;
+        if (f.name.toLowerCase().includes('office')) { col = 'office_xpagar'; displayName = 'OFFICE'; }
+        else if (f.name.toLowerCase().includes('infinity')) { 
+          col = 'infinity_xpagar'; 
+          displayName = 'INFINITY';
+          f.color = 'text-fuchsia-400';
+        }
+        else if (f.name.toLowerCase().includes('pae') || f.name.toLowerCase().includes('p ae')) { 
+          col = 'pae_xpagar'; 
+          displayName = 'P AE'; 
+          f.color = 'text-emerald-400';
+        }
+        else if (f.name.toLowerCase().includes('poli')) { 
+          col = 'polimigra_xpagar'; 
+          displayName = 'POLI MIGRA'; 
+          f.color = 'text-purple-400';
+        }
+
+        return {
+          name: displayName,
+          value: Number(f.amount) || 0,
+          pending: col ? (monthlyReport?.[col] ?? Number(f.amount)) : Number(f.amount),
+          color: f.color || 'text-white',
+          isGeneric: !!col,
+          col: col,
+          isEditable: !!col
+        };
+      });
+
+      const fixedOrder = ['OFFICE', 'INFINITY', 'P AE', 'POLI MIGRA'];
+      const sortedDynamic = [...dynamicFixed].sort((a, b) => {
+        const idxA = fixedOrder.indexOf(a.name);
+        const idxB = fixedOrder.indexOf(b.name);
+        if (idxA === -1 && idxB === -1) return 0;
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      });
+
+      const realFinanceTotal = (mObj.total_expenses || 0) + (mObj.comm_paid || 0) + (mObj.comm_pending || 0) + (mObj.snorkel_paid || 0) + (mObj.snorkel_pending || 0);
+      const realFinancePending = (mObj.comm_pending || 0) + (mObj.snorkel_pending || 0);
+
+      const rukSettlement = (sSettlements || []).find(s => s.supplier_name?.toLowerCase().includes('ruk'));
+      const rukTotal = Number(rukSettlement?.total_amount || 0);
+      const rukPending = rukSettlement ? Number(rukSettlement.pending_amount) : 0;
+
+      const detailedExpenses = [
+        { name: 'CARABAO', value: carabaoTotal, pending: carabaoPending, color: 'text-blue-400' },
+        { name: 'SSI', value: ssiTotalFinal, pending: ssiPendingFinal, color: 'text-rose-400' },
+        { name: 'SUELDOS', value: totalStaffCost, pending: totalStaffPending, color: 'text-white' },
+        { name: 'GASTOS', value: realFinanceTotal, pending: realFinancePending, color: 'text-violet-300' },
+        { name: 'BOTE', value: boteTotal, pending: botePending, color: 'text-orange-400', isEditable: true, col: 'bote_xpagar' },
+        ...sortedDynamic,
+        { name: 'RUK', value: rukTotal, pending: rukPending, color: 'text-amber-400' }
+      ];
+
+      // Los totales se calculan ahora automáticamente en la BD vía Triggers.
+      // El Dashboard es ahora de solo lectura para los informes mensuales.
+
       setIncomeData({ 
-        total: facturado, 
-        collected: facturado - pendiente + totalCRAdvances + totalBTAdvances,
-        botes: totalCRAdvances + totalBTAdvances,
+        total: dbFacturado, 
+        collected: dbCobrado,
+        pending: dbPendiente,
+        openingCash,
+        boteTotal,
+        botePending,
+        expectedCash: monthlyReport?.deberia || 0,
+        diff: monthlyReport?.falta_o_sobra || 0,
+        bills_1000: monthlyReport?.bills_1000 || 0,
+        bills_500: monthlyReport?.bills_500 || 0,
+        bills_100: monthlyReport?.bills_100 || 0,
+        bills_50: monthlyReport?.bills_50 || 0,
+        bills_20: monthlyReport?.bills_20 || 0,
         crData,
         btData,
         breakdown: {
-          'POR COBRAR': pendiente,
-          'CASH': balanceCash,
-          'CR EUR': eurCR,
-          'CR Wise': wiseCR,
+          'CASH REAL': monthlyReport?.cash || 0,
+          'CR EUR': dbEurCR,
+          'CR Wise': dbWiseCR,
           'CR Cash': totalCRAdvances,
           'BT Cash': totalBTAdvances,
-          'BT Wise': wiseBT,
-          'BT EUR': eurBT
+          'BT Wise': dbWiseBT,
+          'BT EUR': dbEurBT,
+          '---': 'separator',
+          'DEBERÍA': monthlyReport?.deberia || 0,
+          'FALTA O SOBRA': monthlyReport?.falta_o_sobra || 0
         }
       });
-
-      setCourseStats(prev => ({ ...prev, count: currentMonthCourses }));
-
-      const expMap = { 'Bote': 0, 'Otros': 0 };
-      bExpenses?.forEach(e => {
-        const cat = e.category === 'Bote' ? 'Bote' : 'Otros';
-        expMap[cat] += Number(e.amount);
-      });
-
-      const { data: fixedSettings } = await supabase.from('settings').select('*').in('key', ['fixed_expense_office', 'fixed_expense_infinity', 'fixed_expense_pae', 'fixed_expense_polimigra']);
-      const getFixed = (key, def) => Number(fixedSettings?.find(s => s.key === key)?.value || def);
-
-      const detailedExpenses = [
-        { name: 'Carabao', value: 270000, pending: 120000, color: 'text-blue-400' },
-        { name: 'SSI', value: ssiTotal, pending: ssiTotal, color: 'text-rose-500' },
-        { name: 'Sueldos', value: Object.values(staffMap).reduce((sum, s) => sum + s.total, 0), pending: Object.values(staffMap).reduce((sum, s) => sum + s.pending, 0), color: 'text-white' },
-        { name: 'Office', value: getFixed('fixed_expense_office', 13500), pending: 0, color: 'text-blue-300' },
-        { name: 'Infinity', value: getFixed('fixed_expense_infinity', 6367), pending: 6367, color: 'text-fuchsia-500' },
-        { name: 'Bote', value: expMap['Bote'], pending: expMap['Bote'], color: 'text-orange-400' },
-        { name: 'Gastos', value: expMap['Otros'], pending: expMap['Otros'] * 0.4, color: 'text-white' },
-        { name: 'Ruk', value: 0, pending: 0, color: 'text-yellow-500' },
-        { name: 'P Ae', value: getFixed('fixed_expense_pae', 5000), pending: 0, color: 'text-emerald-500' },
-        { name: 'Poli migra', value: getFixed('fixed_expense_polimigra', 5000), pending: 0, color: 'text-purple-500' }
-      ];
       setExpenseData(detailedExpenses);
 
-      const finalStaff = staffList.map(s => ({
-        name: s.initials,
-        totalEarned: (s.base_salary || 0) + (staffMap[s.id]?.total || 0),
-        pending: (staffMap[s.id]?.pending || 0)
-      })).filter(s => s.totalEarned > 0);
+      setCourseStats(prev => ({ ...prev, count: currentMonthCourses }));
+      
+      // 5. Process Staff (Real-time reactive logic)
+      const activeInstructorIds = new Set();
+      monthInvoices.forEach(inv => {
+        inv.invoice_items?.forEach(item => {
+          let isThisMonth = false;
+          if (!item.date) isThisMonth = true;
+          else {
+            const [y, m] = item.date.split('-').map(Number);
+            if (y === year && m === month) isThisMonth = true;
+          }
+          if (isThisMonth && item.instructor_id) {
+            activeInstructorIds.add(String(item.instructor_id));
+          }
+        });
+      });
+
+      const finalStaff = (staffSettlements || []).map(s => {
+        const isActuallyActive = activeInstructorIds.has(String(s.staff_id));
+        // If they are not in this month's invoices, their commissions are 0 (stale data prevention)
+        const realComms = isActuallyActive ? (Number(s.total_commissions) || 0) : 0;
+        const totalBonus = Number(s.total_bonus) || 0;
+        
+        return {
+          name: s.staff?.initials || '??',
+          totalEarned: realComms + totalBonus,
+          pending: Number(s.total_payout) || 0
+        };
+      }).filter(s => s.totalEarned > 0).sort((a, b) => b.totalEarned - a.totalEarned);
+      
       setStaffData(finalStaff);
+      setMetrics(mObj);
 
     } catch (e) {
       console.error("Error fetching dashboard data:", e);
@@ -191,14 +291,55 @@ export default function Overview() {
     setLoading(false);
   }, [month, year]);
 
+  const updateOpeningCash = async (val) => {
+    const isBlank = val === '';
+    const num = isBlank ? 0 : Number(val);
+    setIncomeData(prev => ({ ...prev, openingCash: isBlank ? '' : num }));
+    
+    if (!isBlank) {
+      await supabase.from('monthly_reports').upsert({ 
+        year, 
+        month, 
+        mes_anterior: num,
+        updated_at: new Date().toISOString() 
+      }, { onConflict: 'year, month' });
+    }
+  };
+
+  const updateGenericPending = async (col, val) => {
+    const isBlank = val === '';
+    const num = isBlank ? null : Number(val);
+    
+    setExpenseData(prev => prev.map(e => {
+      if (e.col === col) {
+        return { ...e, pending: val }; 
+      }
+      return e;
+    }));
+
+    await supabase.from('monthly_reports').upsert({ 
+      year, 
+      month, 
+      [col]: num,
+      updated_at: new Date().toISOString() 
+    }, { onConflict: 'year, month' });
+
+    // Si es un reseteo (vacío), forzamos la recarga para que aparezca el valor original
+    if (isBlank) {
+      fetchDashboardData();
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
     const channel = supabase
       .channel('dashboard-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_items' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_settlements' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_settlements' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_expenses' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_monthly' }, () => fetchDashboardData())
       .subscribe();
 
     return () => {
@@ -216,15 +357,6 @@ export default function Overview() {
     else setMonth(m => m + 1);
   };
 
-  if (loading && !staffData.length) {
-    return (
-      <div className="p-10 flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-black text-xs uppercase tracking-[0.3em]">Cargando Dashboard...</p>
-      </div>
-    );
-  }
-
   const commonTooltip = (
     <Tooltip 
       contentStyle={{backgroundColor: '#1a1c2d', borderRadius: '12px', border: '1px solid #2d2f3d', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'}}
@@ -232,41 +364,75 @@ export default function Overview() {
     />
   );
 
+  if (loading && !staffData.length) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <Loader2 className="w-10 h-10 text-brand animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="p-2 md:p-3 space-y-3 w-full animate-in fade-in duration-700">
-      
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-soft/30 p-4 rounded-2xl border border-surface-edge shadow-xl backdrop-blur-sm">
+    <div className="p-2 md:p-3 space-y-3 w-full animate-in fade-in duration-700 overflow-hidden">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-soft/30 p-3 rounded-2xl border border-surface-edge shadow-xl backdrop-blur-sm">
         <div className="flex items-center gap-3">
-           <div className="p-2.5 bg-emerald-400/10 rounded-xl text-emerald-400 border border-emerald-400/20">
+           <div className="p-2.5 bg-brand/10 rounded-xl text-brand border border-brand/20">
               <BarChart3 className="w-6 h-6" />
            </div>
            <div>
               <h1 className="text-2xl font-black text-white tracking-tighter">Financial Dashboard</h1>
-              <p className="text-gray-500 text-[14px] font-black uppercase tracking-widest mt-0.5">iHasia Diving Center ERP v2.0</p>
+              <p className="text-gray-500 text-[14px] font-black uppercase tracking-widest mt-0.5">Relacional & Optimizado</p>
            </div>
         </div>
 
-        <div className="flex items-center bg-surface-soft/50 p-2 rounded-xl border border-surface-edge">
-          <button onClick={handlePrevMonth} className="p-1.5 hover:bg-surface-edge rounded-lg text-gray-400"><ChevronLeft className="w-5 h-5" /></button>
-          <span className="text-white font-black text-sm min-w-[140px] text-center uppercase tracking-widest italic">{months[month - 1]} {year}</span>
-          <button onClick={handleNextMonth} className="p-1.5 hover:bg-surface-edge rounded-lg text-gray-400"><ChevronRight className="w-5 h-5" /></button>
+        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
+          <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+            <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none text-center uppercase tracking-tighter">
+              {months.map((m, i) => (<option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>))}
+            </select>
+            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+            <select value={year} onChange={e => setYear(parseInt(e.target.value))} className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none text-center">
+              {[2024, 2025, 2026, 2027].map(y => (<option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>))}
+            </select>
+          </div>
+          <button onClick={handleNextMonth} className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="bg-rose-500/5 border border-rose-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[180px] shadow-sm">
+             <span className="text-[13px] font-black text-rose-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                <TrendingDown className="w-4 h-4" /> GASTO MES
+             </span>
+             <span className="text-3xl font-black text-white tracking-tighter font-mono">
+                -{(metrics.grand_total_expenses || 0).toLocaleString()} <span className="text-sm font-black text-rose-500/50 ml-1">฿</span>
+             </span>
+          </div>
+          <div className="bg-amber-500/5 border border-amber-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[180px] shadow-sm">
+             <span className="text-[13px] font-black text-amber-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                <Coins className="w-4 h-4" /> PENDIENTE
+             </span>
+             <span className="text-3xl font-black text-white tracking-tighter font-mono">
+                {(metrics.grand_total_pending || 0).toLocaleString()} <span className="text-sm font-black text-amber-500/50 ml-1">฿</span>
+             </span>
+          </div>
         </div>
       </div>
 
-      {/* TOP ROW: CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto lg:h-[260px]">
         <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
-           <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Sueldos Staff</h3>
+           <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Generado Staff</h3>
            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={staffData}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
                   {commonTooltip}
                   <Bar dataKey="totalEarned" radius={[4, 4, 0, 0]}>
-                    {staffData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={`hsl(260, 80%, ${70 - (index * 5)}%)`} />
-                    ))}
+                    {staffData.map((entry, index) => (<Cell key={`cell-${index}`} fill={`hsl(260, 80%, ${70 - (index * 5)}%)`} />))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -297,64 +463,92 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* BOTTOM SECTION - 24 COLUMN GRID FOR PRECISION */}
       <div className="grid grid-cols-1 lg:grid-cols-24 gap-4">
-         {/* 1. Staff Table */}
          <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl h-[480px] flex flex-col">
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Staff</h3>
+            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 px-2">Staff</h3>
             <div className="flex-1 overflow-auto custom-scrollbar">
                <table className="w-full text-left">
                   <thead>
                      <tr className="border-b border-surface-edge/50">
-                        <th className="text-[14px] font-black text-gray-500 uppercase py-2">Nombre</th>
-                        <th className="text-[14px] font-black text-gray-500 uppercase py-2 text-right">Sueldo</th>
-                        <th className="text-[14px] font-black text-gray-500 uppercase py-2 text-right">Pend.</th>
+                        <th className="text-[14px] font-black text-gray-500 uppercase py-0.5">Nombre</th>
+                        <th className="text-[14px] font-black text-gray-500 uppercase py-0.5 text-right">Sueldo</th>
+                        <th className="text-[14px] font-black text-gray-500 uppercase py-0.5 text-right">Pend.</th>
                      </tr>
                   </thead>
                   <tbody>
                      {staffData.map((s, idx) => (
                         <tr key={idx} className="border-b border-surface-edge/10">
-                           <td className="py-2 text-sm font-black text-white uppercase">{s.name}</td>
-                           <td className="py-2 text-right text-sm font-mono text-white">{Math.round(s.totalEarned).toLocaleString()}</td>
-                           <td className={`py-2 text-right text-sm font-mono ${s.pending > 0 ? 'text-amber-500' : 'text-emerald-500 opacity-30'}`}>{Math.round(s.pending).toLocaleString()}</td>
+                           <td className="py-0.5 text-sm font-black text-white uppercase">{s.name}</td>
+                           <td className="py-0.5 text-right text-sm font-mono text-white">{Math.round(s.totalEarned).toLocaleString()}</td>
+                           <td className={`py-0.5 text-right text-sm font-mono ${s.pending > 0 ? 'text-amber-500' : 'text-emerald-500 opacity-30'}`}>{Math.round(s.pending).toLocaleString()}</td>
                         </tr>
                      ))}
                   </tbody>
+                  <tfoot className="sticky bottom-0 bg-surface-soft border-t border-surface-edge shadow-xl">
+                     <tr className="h-8">
+                        <td className="text-[12px] font-black text-white uppercase italic">Total</td>
+                        <td className="text-[16px] font-black text-white text-right font-mono tracking-tighter">{Math.round(staffData.reduce((acc, s) => acc + s.totalEarned, 0)).toLocaleString()} ฿</td>
+                        <td className="text-[16px] font-black text-orange-500 text-right font-mono tracking-tighter">{Math.round(staffData.reduce((acc, s) => acc + s.pending, 0)).toLocaleString()} ฿</td>
+                     </tr>
+                  </tfoot>
                </table>
             </div>
          </div>
 
-         {/* 2. Cursos */}
-         <div className="lg:col-span-3 bg-[#0f111a] border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col justify-center items-center h-[480px]">
-            <span className="text-6xl font-black text-white tracking-tighter leading-none">{courseStats.count}</span>
-            <span className="text-[14px] font-black text-gray-600 uppercase tracking-widest mt-2 text-center leading-tight">Cursos<br/>Mes</span>
-         </div>
+         <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col justify-center items-center h-[480px]">
+             <span className="text-[13px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center leading-tight">Cursos<br/>este Mes</span>
+             <span className="text-8xl font-black text-white tracking-tighter leading-none">{courseStats.count}</span>
+             <div className="mt-8 p-3 bg-brand/10 rounded-2xl border border-brand/20"><TrendingUp className="w-6 h-6 text-brand" /></div>
+          </div>
 
-         {/* 3. Gastos X Pagar */}
          <div className="lg:col-span-6 bg-surface-soft border border-surface-edge rounded-2xl p-2 shadow-xl h-[480px] flex flex-col">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Gastos X Pagar</h3>
             <div className="flex-1 overflow-auto custom-scrollbar pr-1">
                <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-surface-soft z-10">
                      <tr className="border-b border-surface-edge/50">
-                        <th className="text-[12px] font-black text-gray-500 uppercase py-1">Categoría</th>
-                        <th className="text-[12px] font-black text-gray-500 uppercase py-1 text-right">Gastos</th>
-                        <th className="text-[12px] font-black text-gray-500 uppercase py-1 text-right">X Pagar</th>
-                        <th className="text-[12px] font-black text-gray-500 uppercase py-1 text-right">%</th>
+                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 w-20">Categoría</th>
+                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-right w-24">Gastos</th>
+                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-center w-8">Pag.</th>
+                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-right w-28">X Pagar</th>
+                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-right w-10">%</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-edge/10">
                      {expenseData.map((e, idx) => {
                         const totalExp = expenseData.reduce((acc, curr) => acc + curr.value, 0);
                         const perc = totalExp > 0 ? ((e.value / totalExp) * 100).toFixed(1) : 0;
+                        const isPaid = e.pending === 0 || e.pending === '0';
+
                         return (
                            <tr key={idx} className="group hover:bg-white/5 transition-colors">
-                              <td className="py-1">
-                                 <span className={`text-sm font-black uppercase tracking-tighter ${e.color || 'text-gray-300'}`}>{e.name}</span>
-                              </td>
-                              <td className="py-1 text-right font-mono text-sm text-gray-400 bg-white/5 px-1 rounded-lg">{Math.round(e.value).toLocaleString()}</td>
-                              <td className="py-1 text-right font-mono text-sm text-white font-bold bg-white/5 px-1 rounded-lg">{Math.round(e.pending).toLocaleString()}</td>
-                              <td className="py-1 text-right font-mono text-[10px] text-gray-600">{perc}%</td>
+                               <td className="py-1"><span className={`text-[12px] font-black uppercase tracking-tighter ${e.color || 'text-gray-300'}`}>{e.name}</span></td>
+                               <td className="py-1 text-right font-mono text-[18px] text-gray-400 bg-white/5 px-1 rounded-lg">{Math.round(e.value).toLocaleString()}</td>
+                               <td className="py-1 text-center">
+                                 {e.isEditable || e.isGeneric ? (
+                                   <button 
+                                     onClick={() => updateGenericPending(e.col, isPaid ? '' : '0')}
+                                     className={`p-0.5 rounded-lg transition-all ${isPaid ? 'text-emerald-500 bg-emerald-500/10' : 'text-gray-600 hover:text-gray-400 bg-white/5'}`}
+                                   >
+                                     <CheckCircle2 className={`w-4 h-4 ${isPaid ? 'fill-emerald-500/20' : ''}`} />
+                                   </button>
+                                 ) : null}
+                               </td>
+                               <td className="py-1 text-right font-mono text-[18px] text-white font-bold bg-white/5 px-1 rounded-lg">
+                                 {e.isEditable || e.isGeneric ? (
+                                   <input 
+                                     type="text"
+                                     inputMode="decimal"
+                                     value={e.pending} 
+                                     onChange={(evt) => updateGenericPending(e.col, evt.target.value)}
+                                     onBlur={() => fetchDashboardData()}
+                                     className="bg-transparent border-none text-right font-mono text-[18px] font-black w-20 outline-none focus:text-brand transition-colors no-spinner"
+                                   />
+                                 ) : (
+                                   Math.round(e.pending || 0).toLocaleString()
+                                 )}
+                               </td>
+                               <td className="py-1 text-right font-mono text-[10px] text-gray-600">{perc}%</td>
                            </tr>
                         );
                      })}
@@ -362,12 +556,13 @@ export default function Overview() {
                   <tfoot className="sticky bottom-0 bg-surface-soft border-t border-surface-edge shadow-xl">
                      <tr className="h-8">
                         <td className="text-[12px] font-black text-white uppercase italic">Total</td>
-                        <td className="text-sm font-black text-white text-right font-mono">
-                           {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0)).toLocaleString()}
-                        </td>
-                        <td className="text-[16px] font-black text-rose-500 text-right font-mono drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]">
-                           {Math.round(expenseData.reduce((acc, e) => acc + e.pending, 0)).toLocaleString()}
-                        </td>
+                         <td className="text-[20px] font-black text-white text-right font-mono tracking-tighter">
+                            {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0)).toLocaleString()} ฿
+                         </td>
+                         <td></td>
+                         <td className="text-[20px] font-black text-rose-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]">
+                            {Math.round(expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()} ฿
+                         </td>
                         <td className="text-[12px] font-black text-gray-500 text-right font-mono">100%</td>
                      </tr>
                   </tfoot>
@@ -375,90 +570,108 @@ export default function Overview() {
             </div>
          </div>
 
-         {/* 4. Cuentas (Nuevo Panel) */}
          <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center text-emerald-400">Cuentas</h3>
             <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-emerald-950 shadow-md">
-                  <span className="text-[12px] font-black uppercase tracking-wider">Facturado</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-gray-400 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Mes Anterior</span>
+                  <input type="number" value={incomeData.openingCash || 0} onChange={(e) => updateOpeningCash(e.target.value)} className="bg-transparent border-none text-right font-mono text-sm font-black w-24 outline-none focus:text-white transition-colors no-spinner" />
+               </div>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/20 text-emerald-400 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado</span>
                   <span className="text-sm font-black font-mono">{Math.round(incomeData.total || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-gray-400">
-                  <span className="text-[12px] font-black uppercase tracking-wider">Mes Anterior</span>
-                  <span className="text-sm font-black font-mono">0</span>
-               </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-indigo-500 text-indigo-950 shadow-md">
-                  <span className="text-[12px] font-black uppercase tracking-wider">Cobrado</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-emerald-400 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Cobrado</span>
                   <span className="text-sm font-black font-mono">{Math.round(incomeData.collected || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-500/70">
-                  <span className="text-[12px] font-black uppercase tracking-wider">Falta o Sobra</span>
-                  <span className="text-sm font-black font-mono">0</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-400 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Por Cobrar</span>
+                  <span className="text-sm font-black font-mono">{Math.round(incomeData.pending || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-emerald-400/70">
-                  <span className="text-[12px] font-black uppercase tracking-wider text-center leading-tight">Cobrado +<br/>Mes Ant.</span>
-                  <span className="text-sm font-black font-mono">0</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-400/70 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Pagado</span>
+                  <span className="text-sm font-black font-mono">
+                    {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0) - expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()}
+                  </span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/50">
-                  <span className="text-[12px] font-black uppercase tracking-wider text-center leading-tight">Facturado +<br/>Mes Ant.</span>
-                  <span className="text-sm font-black font-mono">0</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-emerald-400/50 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Cobrado + Mes Ant.</span>
+                  <span className="text-sm font-black font-mono">{Math.round((incomeData.collected || 0) + (incomeData.openingCash || 0)).toLocaleString()}</span>
                </div>
-               <div className="mt-4 flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-1">Hay o Habrá + Pagado</span>
-                  <span className="text-2xl font-black font-mono tracking-tighter">0</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado + Mes Ant.</span>
+                  <span className="text-sm font-black font-mono">{Math.round((incomeData.total || 0) + (incomeData.openingCash || 0)).toLocaleString()}</span>
+               </div>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Hay o Habrá + Pagado</span>
+                  <span className="text-sm font-black font-mono">
+                    {Math.round(
+                      (incomeData.breakdown?.['DEBERÍA'] || 0) + 
+                      (incomeData.breakdown?.['BT Wise'] || 0) + 
+                      (incomeData.breakdown?.['CR Wise'] || 0) + 
+                      (incomeData.breakdown?.['BT EUR'] || 0) + 
+                      (incomeData.breakdown?.['CR EUR'] || 0) + 
+                      (incomeData.breakdown?.['CR Cash'] || 0) + 
+                      (incomeData.breakdown?.['BT Cash'] || 0) + 
+                      (incomeData.pending || 0) + 
+                      (expenseData.reduce((acc, e) => acc + e.value, 0) - expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0))
+                    ).toLocaleString()}
+                  </span>
                </div>
             </div>
-         </div>
+          </div>
 
-         {/* 5. Ingresos */}
          <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Ingresos</h3>
-            <div className="space-y-2 flex-1 overflow-auto custom-scrollbar">
-               {Object.entries(incomeData.breakdown || {}).map(([label, value], idx) => (
-                  <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded-xl mb-1.5 transition-all ${
-                     label.startsWith('CR') ? 'bg-blue-600 text-white shadow-md' : 
-                     label.startsWith('BT') ? 'bg-pink-600 text-white shadow-md' : 
-                     label === 'POR COBRAR' ? 'bg-white/5 text-white/40' : 'bg-white/5 text-gray-400'
-                  }`}>
-                     <span className="text-[14px] font-black uppercase tracking-wider">{label}</span>
-                     <span className="text-sm font-black font-mono">{Math.round(value).toLocaleString()}</span>
-                  </div>
-               ))}
+            <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
+                {Object.entries(incomeData.breakdown || {}).map(([label, value], idx) => {
+                  if (label === '---') return <div key={idx} className="h-px bg-surface-edge/30 my-3 mx-2" />;
+                  
+                  const diff = incomeData.diff || 0;
+                   const diffColor = diff === 0 ? 'text-blue-400' : diff > 0 ? 'text-emerald-400' : 'text-rose-400';
+
+                  return (
+                    <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded-xl mb-1.5 transition-all ${
+                       label.startsWith('CR') ? 'bg-blue-600 text-white' : 
+                       label.startsWith('BT') ? 'bg-pink-600 text-white' : 
+                       label === 'CASH REAL' ? 'bg-white/10 text-emerald-400 border border-emerald-500/20' :
+                       label === 'FALTA O SOBRA' ? `bg-white/5 ${diffColor} font-bold` :
+                       label === 'DEBERÍA' ? 'bg-white/5 text-white/60 italic' : 'bg-white/5 text-gray-400'
+                    }`}>
+                       <span className="text-[12px] font-black uppercase tracking-wider">{label}</span>
+                       <span className="text-sm font-black font-mono">{Math.round(value).toLocaleString()}</span>
+                    </div>
+                  );
+                })}
             </div>
          </div>
 
-         {/* 6. Donuts */}
-         <div className="lg:col-span-3 flex flex-col gap-4 h-[480px]">
-            <div className="flex-1 bg-surface-soft border border-surface-edge rounded-2xl p-3 shadow-xl flex flex-col">
-               <h3 className="text-[14px] font-black text-gray-500 uppercase text-center mb-2">CR Cobrado</h3>
-               <div className="flex-1 w-full h-[120px]">
-                  <ResponsiveContainer width="100%" height={120}>
-                     <PieChart>
-                        <Pie data={incomeData.crData} innerRadius={35} outerRadius={50} paddingAngle={4} dataKey="value">
-                           {incomeData.crData.map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}
-                        </Pie>
-                        {commonTooltip}
-                     </PieChart>
-                  </ResponsiveContainer>
-               </div>
+         <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
+            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Saldos CR</h3>
+            <div className="flex-1 flex flex-col items-center justify-center">
+               <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                     <Pie data={incomeData.crData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                        {incomeData.crData?.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                     </Pie>
+                     <Tooltip />
+                  </PieChart>
+               </ResponsiveContainer>
             </div>
-            <div className="flex-1 bg-surface-soft border border-surface-edge rounded-2xl p-3 shadow-xl flex flex-col">
-               <h3 className="text-[14px] font-black text-gray-500 uppercase text-center mb-2">BT Cobrado</h3>
-               <div className="flex-1 w-full h-[120px]">
-                  <ResponsiveContainer width="100%" height={120}>
-                     <PieChart>
-                        <Pie data={incomeData.btData} innerRadius={35} outerRadius={50} paddingAngle={4} dataKey="value">
-                           {incomeData.btData.map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}
-                        </Pie>
-                        {commonTooltip}
-                     </PieChart>
-                  </ResponsiveContainer>
-               </div>
+            <div className="mt-4 pt-4 border-t border-surface-edge/30 flex-1 flex flex-col items-center justify-center">
+               <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Saldos BT</h3>
+               <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                     <Pie data={incomeData.btData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                        {incomeData.btData?.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                     </Pie>
+                     <Tooltip />
+                  </PieChart>
+               </ResponsiveContainer>
             </div>
          </div>
       </div>
-
-
     </div>
   );
 }

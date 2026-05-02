@@ -31,6 +31,8 @@ export function useBilling() {
   const [bulkInstructor, setBulkInstructor] = useState('');
   const [bulkGroupAction, setBulkGroupAction] = useState(null);
   const [isSavingCash, setIsSavingCash] = useState(false);
+  const [loadingCash, setLoadingCash] = useState(true);
+  const [dbExpectedCash, setDbExpectedCash] = useState(0);
   const dateInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
 
@@ -62,7 +64,8 @@ export function useBilling() {
         }
       });
     });
-    return { facturado, pendiente, wiseBT, wiseCR, eurBT, eurCR, balanceCash, dailyBalanceCash };
+    const cobrado = facturado - pendiente;
+    return { facturado, pendiente, cobrado, wiseBT, wiseCR, eurBT, eurCR, balanceCash, dailyBalanceCash };
   }, [allMonthInvoices, arrivalsDate]);
 
   const displayedInvoices = useMemo(() => {
@@ -123,7 +126,7 @@ export function useBilling() {
     return s;
   }, [allMonthInvoices]);
 
-  const expectedCash = stats.balanceCash;
+  const expectedCash = dbExpectedCash || stats.balanceCash;
   const diffCash = actualCash - expectedCash;
 
   const handleToggleSelection = (invoice, index, shiftKey) => {
@@ -153,41 +156,118 @@ export function useBilling() {
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => { fetchCatalogs(); fetchTodayArrivals(); fetchInvoices(true); }, []);
-  useEffect(() => { fetchTodayArrivals(); fetchCashControl(); }, [arrivalsDate]);
+  useEffect(() => { fetchTodayArrivals(); }, [arrivalsDate]);
+  useEffect(() => { fetchCashControl(); }, [selectedMonth, selectedYear]);
+  
   useEffect(() => {
-    if (loadingArrivals) return;
+    if (loadingCash) return; // NO GUARDAR hasta que hayamos terminado de CARGAR
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => saveCashControl(), 1000);
+    saveTimeoutRef.current = setTimeout(() => saveCashControl(), 1500);
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
   }, [bills50000, bills1000, bills500, bills100, bills50, bills20]);
 
+  useEffect(() => {
+    if (loadingInvoices || allMonthInvoices.length === 0) return;
+    
+    const syncReports = async () => {
+      console.log("[useBilling] Intentando sincronizar informe...", { 
+        year: selectedYear, month: selectedMonth + 1, stats 
+      });
+      try {
+        const { error } = await supabase.from('monthly_reports').upsert({
+          year: selectedYear,
+          month: selectedMonth + 1,
+          facturado: stats.facturado,
+          pendiente: stats.pendiente,
+          cobrado: stats.cobrado,
+          cr_eur: stats.eurCR,
+          cr_wise: stats.wiseCR,
+          bt_eur: stats.eurBT,
+          bt_wise: stats.wiseBT,
+          cr_cash: stats.crCash,
+          bt_cash: stats.btCash,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'year, month' });
+
+        if (error) throw error;
+        console.log("[useBilling] ✅ Informe sincronizado con éxito.");
+        
+        // Refrescamos el DEBERIA para que el widget de caja se actualice al momento
+        fetchCashControl();
+      } catch (err) {
+        console.error("[useBilling] ❌ Error sincronizando informe:", err);
+      }
+    };
+
+    const t = setTimeout(syncReports, 1000); // Bajamos a 1 segundo para que sea más rápido
+    return () => clearTimeout(t);
+  }, [stats, selectedMonth, selectedYear, loadingInvoices]); // Ahora depende de TODO el objeto stats
+
   const fetchCashControl = async () => {
     try {
-      const { data, error } = await supabase.from('daily_cash_control').select('*').eq('date', arrivalsDate).maybeSingle();
+      setLoadingCash(true);
+      const { data, error } = await supabase
+        .from('cash_control_monthly')
+        .select('*')
+        .eq('year', selectedYear)
+        .eq('month', selectedMonth + 1)
+        .maybeSingle();
+      
       if (error && error.code !== 'PGRST116') throw error;
       if (data) {
-        setBills50000(data.bills_50000 ?? ''); setBills1000(data.bills_1000 ?? ''); setBills500(data.bills_500 ?? '');
-        setBills100(data.bills_100 ?? ''); setBills50(data.bills_50 ?? ''); setBills20(data.bills_20 ?? '');
+        setBills50000(data.b_50000 ?? ''); setBills1000(data.b_1000 ?? ''); setBills500(data.b_500 ?? '');
+        setBills100(data.b_100 ?? ''); setBills50(data.b_50 ?? ''); setBills20(data.b_20 ?? '');
+      }
+      
+      // TAMBIÉN CARGAR EL DEBERÍA DE monthly_reports
+      const { data: reportData } = await supabase
+        .from('monthly_reports')
+        .select('deberia')
+        .eq('year', selectedYear)
+        .eq('month', selectedMonth + 1)
+        .maybeSingle();
+      
+      if (reportData) {
+        setDbExpectedCash(reportData.deberia || 0);
       } else {
-        setBills50000(''); setBills1000(''); setBills500(''); setBills100(''); setBills50(''); setBills20('');
+        setDbExpectedCash(0);
       }
     } catch (err) { console.error('Error fetching cash control:', err); }
+    finally { setLoadingCash(false); }
   };
 
   const saveCashControl = async () => {
     try {
       setIsSavingCash(true);
-      const { error } = await supabase.from('daily_cash_control').upsert({
-        date: arrivalsDate,
-        bills_50000: bills50000 === '' ? 0 : Number(bills50000),
-        bills_1000: bills1000 === '' ? 0 : Number(bills1000),
-        bills_500: bills500 === '' ? 0 : Number(bills500),
-        bills_100: bills100 === '' ? 0 : Number(bills100),
-        bills_50: bills50 === '' ? 0 : Number(bills50),
-        bills_20: bills20 === '' ? 0 : Number(bills20),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'date' });
-      if (error) throw error;
+      const b50000 = bills50000 === '' ? 0 : Number(bills50000);
+      const b1000 = bills1000 === '' ? 0 : Number(bills1000);
+      const b500 = bills500 === '' ? 0 : Number(bills500);
+      const b100 = bills100 === '' ? 0 : Number(bills100);
+      const b50 = bills50 === '' ? 0 : Number(bills50);
+      const b20 = bills20 === '' ? 0 : Number(bills20);
+      const total = (b50000 * 50000) + (b1000 * 1000) + (b500 * 500) + (b100 * 100) + (b50 * 50) + (b20 * 20);
+
+      const [res1, res2] = await Promise.all([
+        supabase.from('cash_control_monthly').upsert({
+          year: selectedYear,
+          month: selectedMonth + 1,
+          b_50000: b50000,
+          b_1000: b1000,
+          b_500: b500,
+          b_100: b100,
+          b_50: b50,
+          b_20: b20
+        }, { onConflict: 'year, month' }),
+        supabase.from('monthly_reports').upsert({
+          year: selectedYear,
+          month: selectedMonth + 1,
+          cash: total,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'year, month' })
+      ]);
+
+      if (res1.error) throw res1.error;
+      if (res2.error) throw res2.error;
     } catch (err) { console.error('Error saving cash control:', err); }
     finally { setTimeout(() => setIsSavingCash(false), 800); }
   };

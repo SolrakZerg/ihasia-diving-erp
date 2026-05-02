@@ -35,12 +35,25 @@ export default function Billing() {
 
   useEffect(() => {
     if (!billing.loadingInvoices && scrollRef.current) {
+      // 1. Prioridad: Scroll al fondo si acabamos de crear una fila
+      const shouldScroll = sessionStorage.getItem('shouldScrollToBottom');
+      if (shouldScroll === 'true') {
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            sessionStorage.removeItem('shouldScrollToBottom');
+          }
+        }, 300); // Pequeño delay para dejar que la tabla renderice
+        return;
+      }
+
+      // 2. Si no, restaurar posición guardada
       const savedScroll = sessionStorage.getItem('billingScrollPos');
       if (savedScroll) {
         scrollRef.current.scrollTop = Number(savedScroll);
       }
     }
-  }, [billing.loadingInvoices]);
+  }, [billing.loadingInvoices, billing.invoices.length]);
 
   // 🐛 DEBUG: log column widths vs minimums every time widths change
   useEffect(() => {

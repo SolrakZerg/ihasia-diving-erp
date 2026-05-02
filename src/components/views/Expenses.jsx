@@ -19,6 +19,7 @@ import {
   TrendingUp,
   CreditCard,
   ChevronRight,
+  ChevronLeft,
   User,
   Search,
   Wallet,
@@ -204,8 +205,31 @@ export default function Expenses() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configTab, setConfigTab] = useState('categories'); // 'categories' | 'promoters' | 'courses'
   const [categories, setCategories] = useState([]);
+  const [editingCat, setEditingCat] = useState(null);
   const [catForm, setCatForm] = useState({ name: '', color: 'text-brand-light' });
   const [promoterForm, setPromoterForm] = useState({ name: '', phone: '' });
+
+  const colorPresets = [
+    'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+    'bg-sky-500/10 text-sky-400 border border-sky-500/20',
+    'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
+    'bg-teal-500/10 text-teal-400 border border-teal-500/20',
+    'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+    'bg-green-500/10 text-green-400 border border-green-500/20',
+    'bg-lime-500/10 text-lime-400 border border-lime-500/20',
+    'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+    'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+    'bg-red-500/10 text-red-400 border border-red-500/20',
+    'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+    'bg-pink-500/10 text-pink-400 border border-pink-500/20',
+    'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20',
+    'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+    'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+    'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+    'bg-slate-500/10 text-slate-400 border border-slate-500/20',
+    'bg-gray-500/10 text-gray-400 border border-gray-500/20',
+  ];
 
   // Inline Controls
   const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -220,6 +244,24 @@ export default function Expenses() {
   const showNotify = (msg, type = 'success') => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(prev => prev - 1);
+    } else {
+      setSelectedMonth(prev => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(prev => prev + 1);
+    } else {
+      setSelectedMonth(prev => prev + 1);
+    }
   };
 
   useEffect(() => {
@@ -243,7 +285,7 @@ export default function Expenses() {
     const lastDayNum = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     const lastDay = `${selectedYear}-${mm}-${String(lastDayNum).padStart(2, '0')}`;
 
-    const [expRes, commRes, oxyRes, staffRes, promoRes, actRes, setRes] = await Promise.all([
+    const [expRes, commRes, oxyRes, staffRes, promoRes, actRes, setRes, metricsRes] = await Promise.all([
       supabase.from('daily_expenses').select('*').gte('date', firstDay).lte('date', lastDay).order('date', { ascending: true }).order('id', { ascending: true }),
       supabase.from('invoice_items')
         .select(`*, customers(id, first_name, last_name, email), activities!inner(id, name, color, category, price_thb)`)
@@ -260,7 +302,8 @@ export default function Expenses() {
       supabase.from('staff').select('id, first_name, last_name').eq('active', true),
       supabase.from('external_promoters').select('*').order('name'),
       supabase.from('activities').select('*').order('name'),
-      supabase.from('settings').select('*').eq('key', 'expense_categories')
+      supabase.from('expense_categories').select('*').order('sort_order', { ascending: true }),
+      supabase.from('monthly_metrics').select('metric_key, value').eq('year', selectedYear).eq('month', selectedMonth + 1)
     ]);
 
     if (expRes.data) setExpenses(expRes.data);
@@ -269,28 +312,89 @@ export default function Expenses() {
     if (staffRes.data) setStaff(staffRes.data);
     if (promoRes.data) setPromoters(promoRes.data);
     if (actRes.data) setAllActivities(actRes.data);
+    if (setRes.data) setCategories(setRes.data);
 
-    const { data: mExp } = await supabase.from('daily_expenses').select('amount').gte('date', firstDay).lte('date', lastDay);
-    
-    if (mExp) setMonthlyTotal(mExp.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0));
-    
-    if (commRes.data) {
-      setCommissionsPaid(commRes.data.filter(c => c.is_comm_paid).reduce((sum, i) => sum + (i.comm_amount_thb != null ? parseFloat(i.comm_amount_thb) : parseFloat(i.activities?.price_thb || 0) * 0.1), 0));
-      setCommissionsPending(commRes.data.filter(c => !c.is_comm_paid).reduce((sum, i) => sum + (i.comm_amount_thb != null ? parseFloat(i.comm_amount_thb) : parseFloat(i.activities?.price_thb || 0) * 0.1), 0));
+    // Prioridad a las métricas pre-calculadas en DB para velocidad de los widgets
+    if (metricsRes.data && metricsRes.data.length > 0) {
+        const mData = metricsRes.data;
+        const findVal = (key) => parseFloat(mData.find(m => m.metric_key === key)?.value || 0);
+        
+        setMonthlyTotal(findVal('total_expenses'));
+        setCommissionsPaid(findVal('comm_paid'));
+        setCommissionsPending(findVal('comm_pending'));
+        setOxygenTotal(findVal('snorkel_paid') + findVal('snorkel_pending'));
+        setOxygenPending(findVal('snorkel_pending'));
+    } else {
+        // Fallback manual si no hay métricas en la tabla (meses antiguos o recién creados)
+        if (expRes.data) setMonthlyTotal(expRes.data.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0));
+        
+        if (commRes.data) {
+          setCommissionsPaid(commRes.data.filter(c => c.is_comm_paid).reduce((sum, i) => sum + (i.comm_amount_thb != null ? parseFloat(i.comm_amount_thb) : parseFloat(i.activities?.price_thb || 0) * 0.1), 0));
+          setCommissionsPending(commRes.data.filter(c => !c.is_comm_paid).reduce((sum, i) => sum + (i.comm_amount_thb != null ? parseFloat(i.comm_amount_thb) : parseFloat(i.activities?.price_thb || 0) * 0.1), 0));
+        }
+        
+        if (oxyRes.data) {
+          const pending = oxyRes.data.filter(o => !o.is_prov_paid).reduce((sum, o) => sum + (Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)), 0);
+          const total = oxyRes.data.reduce((sum, o) => sum + (Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)), 0);
+          setOxygenPending(pending);
+          setOxygenTotal(total);
+        }
     }
-    
-    if (oxyRes.data) {
-      const pending = oxyRes.data.filter(o => !o.is_prov_paid).reduce((sum, o) => sum + (Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)), 0);
-      const total = oxyRes.data.reduce((sum, o) => sum + (Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)), 0);
-      setOxygenPending(pending);
-      setOxygenTotal(total);
-    }
-
-    const catSet = setRes.data?.find(s => s.key === 'expense_categories');
-    if (catSet) setCategories(JSON.parse(catSet.value));
 
     setNewDataExp(prev => ({ ...prev, date: dateFilter }));
     setLoading(false);
+  };
+
+  const handleAddCategory = async () => {
+    if (!catForm.name.trim()) return;
+    
+    if (editingCat) {
+      const { error } = await supabase.from('expense_categories').update({
+        name: catForm.name.trim(),
+        color: catForm.color
+      }).eq('id', editingCat.id);
+      
+      if (!error) {
+        fetchData(false);
+        setCatForm({ name: '', color: colorPresets[0] });
+        setEditingCat(null);
+      }
+    } else {
+      const { error } = await supabase.from('expense_categories').insert({
+        name: catForm.name.trim(),
+        color: catForm.color,
+        sort_order: (categories.length + 1) * 10
+      });
+      
+      if (!error) {
+        fetchData(false);
+        setCatForm({ name: '', color: colorPresets[0] });
+      }
+    }
+  };
+
+  const handleDeleteCategory = async (id, catName) => {
+    setConfirmConfig({
+      show: true,
+      title: 'Eliminar Categoría',
+      message: `¿Eliminar categoría '${catName}'? Esto NO borrará los gastos asociados, pero perderán su color.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig(prev => ({ ...prev, show: false }));
+        await supabase.from('expense_categories').delete().eq('id', id);
+        fetchData(false);
+      }
+    });
+  };
+
+  const startEditingCat = (cat) => {
+    setEditingCat(cat);
+    setCatForm({ name: cat.name, color: cat.color });
+  };
+
+  const cancelEditingCat = () => {
+    setEditingCat(null);
+    setCatForm({ name: '', color: colorPresets[0] });
   };
 
   const handleAddExpense = async () => {
@@ -428,28 +532,46 @@ export default function Expenses() {
               </div>
             </div>
 
+            {/* HYBRID DATE SELECTOR */}
             <div className="flex items-center gap-3">
-              {/* MONTH / YEAR SELECTOR */}
-              <div className="flex items-center gap-2 bg-surface-soft/50 p-1.5 rounded-2xl border border-surface-edge/30 w-fit">
-                <Calendar className="w-4 h-4 text-gray-500 ml-2" />
-                <select 
-                  value={selectedMonth} 
-                  onChange={e => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-transparent text-sm font-bold text-white outline-none px-2 py-1 cursor-pointer"
+              <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
+                <button 
+                  onClick={handlePrevMonth}
+                  className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
                 >
-                  {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m, i) => (
-                    <option key={m} value={i} className="bg-[#1a1c2d]">{m}</option>
-                  ))}
-                </select>
-                <select 
-                  value={selectedYear} 
-                  onChange={e => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-transparent text-sm font-bold text-white outline-none px-2 py-1 cursor-pointer border-l border-surface-edge/30"
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+                  <select 
+                    value={selectedMonth} 
+                    onChange={e => setSelectedMonth(parseInt(e.target.value))}
+                    className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
+                  >
+                    {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map((m, i) => (
+                      <option key={m} value={i} className="bg-[#1a1c2d]">{m}</option>
+                    ))}
+                  </select>
+                  
+                  <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+                  <select 
+                    value={selectedYear} 
+                    onChange={e => setSelectedYear(parseInt(e.target.value))}
+                    className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center"
+                  >
+                    {[2024, 2025, 2026, 2027].map(y => (
+                      <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button 
+                  onClick={handleNextMonth}
+                  className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
                 >
-                  {[2024, 2025, 2026, 2027].map(y => (
-                    <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-                  ))}
-                </select>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
               
               <button 
@@ -466,27 +588,27 @@ export default function Expenses() {
           <div className="hidden md:flex flex-1 items-center gap-8 self-stretch py-0">
             <div className="w-px h-full bg-surface-edge/40" />
             
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              {/* TOTAL GASTOS MES */}
-              <div className="bg-rose-500/10 border border-rose-500/20 px-6 py-5 rounded-2xl flex items-center justify-between gap-8 shadow-lg shadow-rose-500/5 min-w-[280px]">
-                  <div className="flex flex-col">
-                      <span className="text-[11px] font-black text-rose-400 uppercase tracking-[0.1em] leading-none mb-2 whitespace-nowrap">Gasto Mes</span>
-                      <span className="text-2xl font-black text-rose-400 mt-0.5 leading-none">
-                        -{(monthlyTotal + commissionsPaid + commissionsPending + oxygenTotal).toLocaleString()} ฿
-                      </span>
-                  </div>
-                  <TrendingDown className="w-6 h-6 text-rose-400 opacity-80" />
+            <div className="grid grid-cols-2 gap-x-4">
+              <div className="bg-rose-500/5 border border-rose-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-rose-500/10 transition-all">
+                 <div className="p-2 rounded-2xl bg-rose-500/10 mb-2 text-rose-400 group-hover:scale-110 transition-transform">
+                    <TrendingDown className="w-4 h-4" />
+                 </div>
+                 <span className="text-[11px] font-black text-rose-400/60 uppercase tracking-[0.2em] leading-none mb-2">GASTO MES</span>
+                 <span className="text-3xl font-black text-white tracking-tighter">
+                    -{(monthlyTotal + commissionsPaid + commissionsPending + oxygenTotal).toLocaleString()} 
+                    <span className="text-sm font-black text-rose-500/40 ml-1 italic font-mono">฿</span>
+                 </span>
               </div>
 
-              {/* GASTO MES POR PAGAR (TOTAL PENDIENTE) */}
-              <div className="bg-amber-500/10 border border-amber-500/25 px-6 py-5 rounded-2xl flex items-center justify-between gap-8 group relative min-w-[280px]">
-                  <div className="flex flex-col">
-                      <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.1em] leading-none mb-2 whitespace-nowrap">Pendiente de Pagar</span>
-                      <span className="text-2xl font-black text-amber-400 mt-0.5 font-mono tracking-tighter leading-none">
-                        {(commissionsPending + oxygenPending).toLocaleString()} ฿
-                      </span>
-                  </div>
-                  <Coins className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform opacity-80" />
+              <div className="bg-amber-500/5 border border-amber-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-amber-500/10 transition-all">
+                 <div className="p-2 rounded-2xl bg-amber-500/10 mb-2 text-amber-400 group-hover:scale-110 transition-transform">
+                    <TrendingDown className="w-4 h-4" />
+                 </div>
+                 <span className="text-[11px] font-black text-amber-400/60 uppercase tracking-[0.2em] leading-none mb-2">PENDIENTE</span>
+                 <span className="text-3xl font-black text-white tracking-tighter">
+                    {(commissionsPending + oxygenPending).toLocaleString()} 
+                    <span className="text-sm font-black text-amber-500/40 ml-1 italic font-mono">฿</span>
+                 </span>
               </div>
             </div>
 
@@ -542,7 +664,9 @@ export default function Expenses() {
                      </button>
                      <div className="bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl flex items-center gap-3 shrink-0">
                         <span className="text-xs font-black text-rose-400 uppercase tracking-widest">Total:</span>
-                        <span className="text-lg font-black text-rose-400 font-mono leading-none">-{monthlyTotal.toLocaleString()} ฿</span>
+                        <span className="text-xl font-black text-white leading-none tracking-tighter">
+                          -{monthlyTotal.toLocaleString()} <span className="text-xs font-black text-rose-500/40 ml-0.5">฿</span>
+                        </span>
                      </div>
                    </div>
                 </div>
@@ -597,7 +721,7 @@ export default function Expenses() {
                                onChange={(ev) => handleExpenseUpdate(e.id, 'category', ev.target.value)} 
                                className={`appearance-none text-xs font-bold uppercase px-2.5 py-1 rounded-lg bg-surface border border-transparent hover:border-surface-edge/50 focus:border-brand shadow-sm outline-none cursor-pointer transition-colors text-center w-full ${categories.find(c => c.name === e.category)?.color || 'text-gray-400'}`}
                              >
-                               {categories.map(c => <option key={c.name} value={c.name} className="bg-surface text-white">{c.name}</option>)}
+                               {categories.map(c => <option key={c.id} value={c.name} className="bg-surface text-white">{c.name}</option>)}
                              </select>
                           </td>
                           <td className="px-3 py-1.5 text-right flex items-center justify-end h-full">
@@ -671,11 +795,15 @@ export default function Expenses() {
                    <div className="flex items-center gap-4">
                      <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl flex items-center gap-3">
                         <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">Pagado:</span>
-                        <span className="text-lg font-black text-emerald-400 font-mono leading-none">{commissionsPaid.toLocaleString()} ฿</span>
+                        <span className="text-xl font-black text-white leading-none tracking-tighter">
+                           {commissionsPaid.toLocaleString()} <span className="text-xs font-black text-emerald-500/40 ml-0.5">฿</span>
+                        </span>
                      </div>
                      <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl flex items-center gap-3">
                         <span className="text-xs font-black text-amber-400 uppercase tracking-widest">Por Pagar:</span>
-                        <span className="text-lg font-black text-amber-400 font-mono leading-none">{commissionsPending.toLocaleString()} ฿</span>
+                        <span className="text-xl font-black text-white leading-none tracking-tighter">
+                           {commissionsPending.toLocaleString()} <span className="text-xs font-black text-amber-500/40 ml-0.5">฿</span>
+                        </span>
                      </div>
                    </div>
                 </div>
@@ -890,17 +1018,62 @@ export default function Expenses() {
                <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
                   {configTab === 'categories' && (
                     <div className="space-y-6">
-                       <div className="flex gap-2">
-                          <input required placeholder="Nueva categoría..." value={catForm.name} onChange={e=>setCatForm({...catForm, name: e.target.value})} className="flex-1 bg-surface border border-surface-edge rounded-2xl px-4 py-2.5 text-sm text-white" />
-                          <button onClick={() => { if(catForm.name){ const up = [...categories, {...catForm}]; setCategories(up); supabase.from('settings').upsert({key: 'expense_categories', value: JSON.stringify(up)}).then(()=>setCatForm({name:'', color:'text-brand-light'})); } }} className="bg-brand hover:bg-brand-light px-5 rounded-2xl text-white"><Plus className="w-5 h-5" /></button>
-                       </div>
-                       <div className="grid grid-cols-1 gap-2">
-                          {categories.map((c, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-surface-edge group">
-                               <span className={`text-sm font-black ${c.color}`}>{c.name}</span>
-                               <button onClick={() => { const up = categories.filter((_, i) => i !== idx); setCategories(up); supabase.from('settings').upsert({key: 'expense_categories', value: JSON.stringify(up)}); }} className="p-2 text-gray-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
+                       {/* Categories List */}
+                       <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                          {categories.length === 0 ? <p className="text-xs text-gray-500 italic text-center py-4">No hay categorías configuradas.</p> : null}
+                          {categories.map((c) => (
+                            <div key={c.id} className="flex items-center justify-between p-3.5 bg-surface rounded-2xl border border-surface-edge group hover:border-surface-edge/80 transition-colors">
+                               <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${c.color}`}>
+                                 {c.name}
+                               </span>
+                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => startEditingCat(c)} className="p-2 text-gray-500 hover:text-brand hover:bg-brand/10 rounded-xl transition-all">
+                                     <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => handleDeleteCategory(c.id, c.name)} className="p-2 text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all">
+                                     <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                               </div>
                             </div>
                           ))}
+                       </div>
+
+                       {/* Add/Edit Form */}
+                       <div className={`p-6 rounded-[32px] border transition-all ${editingCat ? 'bg-brand/5 border-brand/30 ring-1 ring-brand/20' : 'bg-surface border-surface-edge'}`}>
+                          <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-[10px] text-brand uppercase font-black tracking-widest">
+                              {editingCat ? 'Editando Categoría' : 'Añadir Nueva Categoría'}
+                            </h4>
+                            {editingCat && (
+                              <button onClick={cancelEditingCat} className="text-[10px] font-black text-rose-500 uppercase hover:underline">Cancelar</button>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-5">
+                             <input 
+                                value={catForm.name} 
+                                onChange={e=>setCatForm({...catForm, name: e.target.value})}
+                                placeholder="Nombre (Ej: Alquiler, Barcos...)" 
+                                className="w-full bg-surface-soft border border-surface-edge rounded-2xl px-4 py-2.5 text-sm text-white focus:border-brand focus:outline-none transition-all"
+                             />
+                             
+                             <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5">
+                                {colorPresets.map((colorClass, idx) => (
+                                  <button 
+                                    key={idx} onClick={() => setCatForm({...catForm, color: colorClass})}
+                                    className={`w-7 h-7 rounded-full ${colorClass.split(' ')[0]} border transition-transform ${catForm.color === colorClass ? 'scale-125 border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-transparent hover:scale-110'}`}
+                                  />
+                                ))}
+                             </div>
+
+                             <button 
+                                onClick={handleAddCategory} 
+                                disabled={!catForm.name.trim()}
+                                className={`w-full text-white text-xs font-black uppercase tracking-widest py-3.5 rounded-2xl transition-all ${editingCat ? 'bg-brand hover:bg-brand-light shadow-xl shadow-brand/20' : 'bg-surface-edge hover:bg-surface-edge/80'}`}
+                             >
+                                {editingCat ? 'Actualizar Cambios' : 'Crear Categoría'}
+                             </button>
+                          </div>
                        </div>
                     </div>
                   )}

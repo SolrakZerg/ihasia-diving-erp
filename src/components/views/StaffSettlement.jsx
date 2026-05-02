@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { 
   Users, 
@@ -15,8 +15,12 @@ import {
   DollarSign,
   Briefcase,
   Timer,
+  X,
+  Loader2,
+  Search,
   Check,
-  Search
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export default function StaffSettlement() {
@@ -28,14 +32,15 @@ export default function StaffSettlement() {
   const [payoutRules, setPayoutRules] = useState([]);
   const [allActivities, setAllActivities] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [activeStaffIds, setActiveStaffIds] = useState(new Set());
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   
-  // Manual Adjustments & Advances (stored in settings for now)
+  // Manual Adjustments & Advances
   const [manualAdj, setManualAdj] = useState({}); // { day: amount }
   const [assists, setAssists] = useState({}); // { day: count }
   const [attendanceOverrides, setAttendanceOverrides] = useState({}); // { day: 'OFF' | 'HALF' | 'WORK' }
-  const [advances, setAdvances] = useState([]); // [ { amount, date, concept } ]
+  const [advances, setAdvances] = useState([]); // [ { id, amount, date, concept } ]
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -62,7 +67,7 @@ export default function StaffSettlement() {
   }, [selectedStaffId, month, year]);
 
   const fetchStaff = async () => {
-    const { data } = await supabase.from('staff').select('id, first_name, last_name, initials, role, base_salary, commission_rate').order('first_name');
+    const { data } = await supabase.from('staff').select('id, first_name, last_name, initials, role, commission_rate').order('first_name');
     if (data) {
       setStaff(data);
     }
@@ -82,7 +87,6 @@ export default function StaffSettlement() {
       const ids = new Set(data.map(i => i.instructor_id).filter(Boolean));
       setActiveStaffIds(ids);
       
-      // If current selection is not in active list, select the first active one
       if (ids.size > 0 && (!selectedStaffId || !ids.has(selectedStaffId))) {
         setSelectedStaffId(Array.from(ids)[0]);
       }
@@ -114,8 +118,6 @@ export default function StaffSettlement() {
 
     const selectedMember = staff.find(s => s.id === selectedStaffId);
 
-    // DEBUG: Let's see EVERY record for a moment to find the missing one
-    // Filter by initials OR ID
     const filteredItems = (items || []).filter(it => {
       const itInstId = typeof it.instructor_id === 'object' ? it.instructor_id?.id : it.instructor_id;
       const itInitials = it.instructor?.initials;
@@ -127,78 +129,101 @@ export default function StaffSettlement() {
     });
     setInvoiceItems(filteredItems);
 
-    // Fetch Adjustments/Advances from settings
-    const settingsKey = `staff_payout_${selectedStaffId}_${year}_${month}`;
-    const { data: setting } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', settingsKey)
-      .single();
+    const [ { data: settlement }, { data: sAdvances }, { data: sActivity }, { data: sAdjs } ] = await Promise.all([
+      supabase.from('staff_settlements').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId).maybeSingle(),
+      supabase.from('staff_advances').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId),
+      supabase.from('staff_daily_activity').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId),
+      supabase.from('staff_adjustments').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId)
+    ]);
 
-    if (setting?.value) {
-      setManualAdj(setting.value.adjustments || {});
-      setAssists(setting.value.assists || {});
-      setAttendanceOverrides(setting.value.attendanceOverrides || {});
-      setAdvances(setting.value.advances || []);
-    } else {
-      setManualAdj({});
-      setAssists({});
-      setAttendanceOverrides({});
-      setAdvances([]);
-    }
+    setAdvances(sAdvances || []);
+    
+    const assistMap = {};
+    const attMap = {};
+    sActivity?.forEach(row => {
+      if (row.assists > 0) assistMap[row.day] = row.assists;
+      if (row.attendance_status !== 'AUTO') attMap[row.day] = row.attendance_status;
+    });
+    setAssists(assistMap);
+    setAttendanceOverrides(attMap);
+
+    const adjMap = {};
+    sAdjs?.forEach(row => { if (row.amount !== 0) adjMap[row.day] = row.amount; });
+    setManualAdj(adjMap);
     
     setLoading(false);
   };
 
-  const saveToSettings = async (newAdj, newAdv, newAss, newAtt) => {
-    const settingsKey = `staff_payout_${selectedStaffId}_${year}_${month}`;
-    const payload = { adjustments: newAdj, advances: newAdv, assists: newAss, attendanceOverrides: newAtt || attendanceOverrides };
+  const updateDailyActivity = async (day, updates) => {
+    const { data: existing } = await supabase.from('staff_daily_activity').select('*').eq('year', year).eq('month', month).eq('day', day).eq('staff_id', selectedStaffId).maybeSingle();
     
-    const { error } = await supabase
-      .from('settings')
-      .upsert({ key: settingsKey, value: payload }, { onConflict: 'key' });
-      
-    if (error) console.error('Error saving settings:', error);
+    const payload = {
+      year, month, day, staff_id: selectedStaffId,
+      assists: updates.assists !== undefined ? updates.assists : (existing?.assists || 0),
+      attendance_status: updates.attendance_status !== undefined ? updates.attendance_status : (existing?.attendance_status || 'AUTO')
+    };
+
+    await supabase.from('staff_daily_activity').upsert(payload, { onConflict: 'year, month, day, staff_id' });
   };
 
-  const handleAdjChange = (day, value) => {
-    const val = parseFloat(value) || 0;
-    const nextAdj = { ...manualAdj, [day]: val };
-    setManualAdj(nextAdj);
-    saveToSettings(nextAdj, advances, assists);
+  const handleAdjChange = async (day, value) => {
+    if (value === '') {
+      setManualAdj(prev => {
+        const newMap = { ...prev };
+        delete newMap[day];
+        return newMap;
+      });
+      await supabase.from('staff_adjustments').delete().eq('year', year).eq('month', month).eq('day', day).eq('staff_id', selectedStaffId);
+    } else {
+      const val = parseFloat(value) || 0;
+      setManualAdj(prev => ({ ...prev, [day]: val }));
+      await supabase.from('staff_adjustments').upsert({
+        year, month, day, staff_id: selectedStaffId, amount: val
+      }, { onConflict: 'year, month, day, staff_id' });
+    }
   };
   
-  const handleAssChange = (day, value) => {
-    const val = parseInt(value) || 0;
-    const nextAss = { ...assists, [day]: val };
-    setAssists(nextAss);
-    saveToSettings(manualAdj, advances, nextAss, attendanceOverrides);
+  const handleAssChange = async (day, value) => {
+    if (value === '') {
+      setAssists(prev => {
+        const newMap = { ...prev };
+        delete newMap[day];
+        return newMap;
+      });
+      await updateDailyActivity(day, { assists: 0 });
+    } else {
+      const val = parseInt(value) || 0;
+      setAssists(prev => ({ ...prev, [day]: val }));
+      await updateDailyActivity(day, { assists: val });
+    }
   };
 
-  const handleAttendanceToggle = (day) => {
+  const handleAttendanceToggle = async (day) => {
     const current = attendanceOverrides[day] || 'AUTO';
     const states = ['AUTO', 'OFF', 'HALF', 'WORK'];
     const next = states[(states.indexOf(current) + 1) % states.length];
     
-    const nextAtt = { ...attendanceOverrides, [day]: next };
-    setAttendanceOverrides(nextAtt);
-    saveToSettings(manualAdj, advances, assists, nextAtt);
+    setAttendanceOverrides(prev => ({ ...prev, [day]: next }));
+    await updateDailyActivity(day, { attendance_status: next });
   };
 
-  const addAdvance = (amount, concept = 'Adelanto') => {
-    const newAdv = [...advances, { amount: parseFloat(amount) || 0, date: new Date().toISOString(), concept }];
-    setAdvances(newAdv);
-    saveToSettings(manualAdj, newAdv, assists);
+  const addAdvance = async (amount, concept = 'Adelanto') => {
+    const { data: newAdv } = await supabase.from('staff_advances').insert({
+      year, month, staff_id: selectedStaffId, amount: parseFloat(amount) || 0, concept, date: new Date().toISOString()
+    }).select().single();
+
+    if (newAdv) setAdvances(prev => [...prev, newAdv]);
   };
 
-  const removeAdvance = (idx) => {
-    const newAdv = advances.filter((_, i) => i !== idx);
-    setAdvances(newAdv);
-    saveToSettings(manualAdj, newAdv, assists);
+  const removeAdvance = async (idx) => {
+    const actualId = advances[idx]?.id;
+    if (actualId) {
+      const { error } = await supabase.from('staff_advances').delete().eq('id', actualId);
+      if (!error) setAdvances(prev => prev.filter(a => a.id !== actualId));
+    }
   };
 
   // Matrix Processing
-  // Identify and group fixed columns based on ALL activities
   const fixedColumns = useMemo(() => {
     if (!allActivities.length) return fixedKeys.map(key => ({ key, label: key, activityIds: [] }));
 
@@ -207,8 +232,6 @@ export default function StaffSettlement() {
         const acro = (a?.acronym || '').toUpperCase().trim();
         const name = (a?.name || '').toUpperCase().trim();
         const cleanK = key.toUpperCase().trim();
-        
-        // Grouping logic by acronym OR name patterns
         if (cleanK === 'FD') return acro.startsWith('FD') || name.startsWith('FUNDIVE');
         if (cleanK === 'SR1') return name.includes('REFRESH') && (name.includes('1') || !name.includes('2'));
         if (cleanK === 'SR2') return name.includes('REFRESH') && name.includes('2');
@@ -217,171 +240,119 @@ export default function StaffSettlement() {
         if (cleanK === 'OW') return acro === 'OW' || name.includes('OPEN WATER');
         if (cleanK === 'AOW') return acro === 'AOW' || name.includes('ADVANCED');
         if (cleanK === 'CAN') return acro === 'CAN' || acro === 'CAN2' || name.includes('CAN');
-        
         return acro === cleanK || name === cleanK;
       });
-      
-      return {
-        key,
-        label: key,
-        activityIds: matches.map(m => m.id)
-      };
+      return { key, label: key, activityIds: matches.map(m => m.id) };
     });
   }, [allActivities]);
 
-  // Identify dynamic columns (activities done this month that aren't in fixedColumns)
   const dynamicActivities = useMemo(() => {
     const fixedIds = new Set(fixedColumns.flatMap(c => c.activityIds).map(String));
     const seenIds = new Set();
-
     invoiceItems.forEach(item => {
       const actId = String(item.activity_id || '');
-      if (actId && !fixedIds.has(actId)) {
-        seenIds.add(actId);
-      }
+      if (actId && !fixedIds.has(actId)) seenIds.add(actId);
     });
-
-    return Array.from(seenIds)
-      .map(id => {
-        const act = allActivities.find(a => String(a.id) === id);
-        return act;
-      })
-      .filter(Boolean);
+    return Array.from(seenIds).map(id => allActivities.find(a => String(a.id) === id)).filter(Boolean);
   }, [invoiceItems, fixedColumns, allActivities]);
 
   const matrixData = useMemo(() => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const data = {};
-    
-    // Initialize days
-    for (let i = 1; i <= daysInMonth; i++) {
-      data[i] = { items: {}, total: 0 };
-    }
-
-    // Process invoice items
+    for (let i = 1; i <= daysInMonth; i++) data[i] = { items: {}, total: 0 };
     invoiceItems.forEach(item => {
       if (!item.date) return;
-      const cleanDate = item.date.substring(0, 10);
-      const [y, m, d] = cleanDate.split('-').map(Number);
-      const day = d;
-      if (y !== year || m !== month) return; 
-      
+      const [y, m, d] = item.date.substring(0, 10).split('-').map(Number);
+      if (y !== year || m !== month || !data[d]) return;
       const actId = String(item.activity_id || '');
-      const activity = item.activities;
-      
-      // Find the right column key (Fixed or Dynamic)
       let colKey = null;
       const fixedCol = fixedColumns.find(c => c.activityIds.map(String).includes(actId));
-      if (fixedCol) {
-        colKey = fixedCol.key;
-      } else {
-        // Fallback: If not found by ID, try matching by name for common categories
-        const name = (activity?.name || '').toUpperCase();
-        if (name.includes('OPEN WATER')) colKey = 'OW';
-        else if (name.includes('ADVANCED')) colKey = 'AOW';
-        else if (name.includes('FUNDIVE') || name.startsWith('FD')) colKey = 'FD';
-        
-        if (!colKey) {
-          const dynCol = dynamicActivities.find(a => String(a.id) === actId);
-          if (dynCol) colKey = `dyn_${actId}`;
-        }
+      if (fixedCol) colKey = fixedCol.key;
+      else {
+        const dynCol = dynamicActivities.find(a => String(a.id) === actId);
+        if (dynCol) colKey = `dyn_${actId}`;
       }
-
-      if (!colKey || !data[day]) return;
-
-      const qty = Number(item.quantity ?? 1);
-      if (!data[day].items[colKey]) data[day].items[colKey] = 0;
-      data[day].items[colKey] += qty;
-
-      // Calculate value based on rules
-      // Look for rule by activity ID OR by name if it's a fixed category
-      const rule = payoutRules.find(r => String(r.activity_id) === actId);
-      if (rule) {
-        data[day].total += qty * rule.amount_thb;
+      if (colKey) {
+        const qty = Number(item.quantity ?? 1);
+        data[d].items[colKey] = (data[d].items[colKey] || 0) + qty;
+        const rule = payoutRules.find(r => String(r.activity_id) === actId);
+        if (rule) data[d].total += qty * rule.amount_thb;
       }
     });
-
     return data;
   }, [invoiceItems, payoutRules, month, year, fixedColumns, dynamicActivities]);
 
-  // Attendance & Free Days Engine
   const attendanceData = useMemo(() => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const map = {};
-    for (let i = 1; i <= daysInMonth; i++) {
-      map[i] = { morning: false, afternoon: false };
-    }
-
+    for (let i = 1; i <= daysInMonth; i++) map[i] = { morning: false, afternoon: false };
     invoiceItems.forEach(item => {
       const duration = item.activities?.duration_days || 0.5;
       const [y, m, d] = (item.date || '').split('-').map(Number);
-      if (y !== year || m !== month) return;
-
-      // Day 0 Logic
-      if (duration % 1 !== 0) {
-        map[d].morning = true;
-      } else {
-        map[d].morning = true;
-        map[d].afternoon = true;
-      }
-
-      // Previous Days Logic
+      if (y !== year || m !== month || !map[d]) return;
+      if (duration % 1 !== 0) map[d].morning = true;
+      else { map[d].morning = true; map[d].afternoon = true; }
       const fullDaysBefore = (duration % 1 !== 0) ? Math.floor(duration) : (duration - 1);
       for (let i = 1; i <= fullDaysBefore; i++) {
         const prevDate = new Date(year, month - 1, d - i);
         if (prevDate.getMonth() + 1 === month && prevDate.getFullYear() === year) {
           const prevDay = prevDate.getDate();
-          map[prevDay].morning = true;
-          map[prevDay].afternoon = true;
+          if (map[prevDay]) { map[prevDay].morning = true; map[prevDay].afternoon = true; }
         }
       }
     });
-
-    // Process Overrides and calculate final status
     const result = {};
     let fullOffCount = 0;
     let halfOffCount = 0;
-
     for (let d = 1; d <= daysInMonth; d++) {
       const override = attendanceOverrides[d] || 'AUTO';
-      let status = 'WORK'; // Default
-
+      let status = 'WORK';
       if (override === 'AUTO') {
         if (!map[d].morning && !map[d].afternoon) status = 'OFF';
         else if (!map[d].afternoon) status = 'HALF';
-      } else {
-        status = override;
-      }
-
+      } else status = override;
       result[d] = status;
       if (status === 'OFF') fullOffCount++;
       if (status === 'HALF') halfOffCount++;
     }
-
     return { grid: result, summary: { fullOff: fullOffCount, halfOff: halfOffCount, totalOff: fullOffCount + (halfOffCount * 0.5) } };
   }, [invoiceItems, attendanceOverrides, month, year]);
 
-
-
-  const selectedMember = staff.find(s => s.id === selectedStaffId);
-
-  // Totals
   const totalComm = Object.values(matrixData).reduce((acc, d) => acc + d.total, 0);
   const totalAssists = Object.values(assists).reduce((acc, val) => acc + (val * 2000), 0);
   const totalAdj = Object.values(manualAdj).reduce((acc, val) => acc + val, 0);
   const totalAdvances = advances.reduce((acc, a) => acc + a.amount, 0);
-  const baseSalary = selectedMember?.base_salary || 0;
-  const finalBalance = baseSalary + totalComm + totalAssists + totalAdj - totalAdvances;
+  const finalBalance = totalComm + totalAssists + totalAdj - totalAdvances;
+
+  // AUTO-SAVE LOGIC
+  useEffect(() => {
+    if (!selectedStaffId || loading) return;
+
+    const sync = async () => {
+      setSyncing(true);
+      await supabase.from('staff_settlements').upsert({
+        year, month, staff_id: selectedStaffId,
+        total_commissions: totalComm,
+        total_bonus: totalAssists + totalAdj,
+        total_advances: totalAdvances,
+        days_off: attendanceData.summary.totalOff,
+        assists_count: Object.values(assists).reduce((acc, v) => acc + v, 0),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'year, month, staff_id' });
+      setSyncing(false);
+    };
+
+    const timer = setTimeout(sync, 1000); // Debounce to avoid too many writes
+    return () => clearTimeout(timer);
+  }, [totalComm, totalAssists, totalAdj, totalAdvances, finalBalance, attendanceData.summary.totalOff, selectedStaffId, loading]);
+
+  const selectedMember = staff.find(s => s.id === selectedStaffId);
 
   return (
     <div className="flex flex-col h-full bg-surface animate-in fade-in duration-700">
-      
-      {/* Top Header Selector */}
       <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-brand/10 rounded-2xl text-brand">
-            <Users className="w-6 h-6" />
-          </div>
+          <div className="p-3 bg-brand/10 rounded-2xl text-brand"><Users className="w-6 h-6" /></div>
           <div>
             <h1 className="text-2xl font-black text-white leading-tight">Liquidación de Staff</h1>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Panel de Control de Sueldos</p>
@@ -389,20 +360,12 @@ export default function StaffSettlement() {
         </div>
 
         <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner relative">
-          {/* Custom Staff Dropdown */}
           <div className="relative">
-            <button 
-              onClick={() => setShowStaffDropdown(!showStaffDropdown)}
-              className="flex items-center gap-3 px-4 py-2 bg-surface-soft/50 hover:bg-surface-soft rounded-xl border border-surface-edge/50 transition-all min-w-[240px] group"
-            >
-              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-black text-xs">
-                {selectedMember?.initials || '??'}
-              </div>
+            <button onClick={() => setShowStaffDropdown(!showStaffDropdown)} className="flex items-center gap-3 px-4 py-2 bg-surface-soft/50 hover:bg-surface-soft rounded-xl border border-surface-edge/50 transition-all min-w-[240px] group">
+              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-black text-xs">{selectedMember?.initials || '??'}</div>
               <div className="flex-1 text-left">
                 <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest leading-none mb-1">Instructor</p>
-                <p className="text-sm font-black text-white leading-none truncate">
-                  {selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Seleccionar...'}
-                </p>
+                <p className="text-sm font-black text-white leading-none truncate">{selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Seleccionar...'}</p>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${showStaffDropdown ? 'rotate-180' : ''}`} />
             </button>
@@ -411,343 +374,189 @@ export default function StaffSettlement() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowStaffDropdown(false)} />
                 <div className="absolute top-full left-0 mt-2 w-full bg-[#1a1c2d]/95 backdrop-blur-xl border border-surface-edge rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="p-2 border-b border-surface-edge/50 flex items-center gap-2 bg-white/5">
-                    <Search className="w-3.5 h-3.5 text-gray-500 ml-2" />
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Filtrado por facturación</span>
-                  </div>
+                  <div className="p-2 border-b border-surface-edge/50 flex items-center gap-2 bg-white/5"><Search className="w-3.5 h-3.5 text-gray-500 ml-2" /><span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Filtrado por facturación</span></div>
                   <div className="max-h-[500px] overflow-auto custom-scrollbar">
-                    {staff.filter(s => activeStaffIds.has(s.id)).length === 0 ? (
-                      <div className="p-6 text-center text-gray-500 text-xs italic">
-                        No hay instructores con actividad este mes
-                      </div>
-                    ) : (
-                      staff.filter(s => activeStaffIds.has(s.id)).map(s => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setSelectedStaffId(s.id);
-                            setShowStaffDropdown(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 transition-colors text-left group ${selectedStaffId === s.id ? 'bg-brand/5' : ''}`}
-                        >
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black ${selectedStaffId === s.id ? 'bg-brand text-[#1a1c2d]' : 'bg-surface-edge text-gray-400 group-hover:bg-brand/20 group-hover:text-brand'}`}>
-                            {s.initials}
-                          </div>
-                          <div className="flex-1">
-                            <p className={`text-sm font-black transition-colors ${selectedStaffId === s.id ? 'text-brand' : 'text-gray-300 group-hover:text-white'}`}>
-                              {s.first_name} {s.last_name}
-                            </p>
-                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{s.role}</p>
-                          </div>
-                          {selectedStaffId === s.id && <Check className="w-4 h-4 text-brand" />}
-                        </button>
-                      ))
-                    )}
+                    {staff.filter(s => activeStaffIds.has(s.id)).map(s => (
+                      <button key={s.id} onClick={() => { setSelectedStaffId(s.id); setShowStaffDropdown(false); }} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 transition-colors text-left group ${selectedStaffId === s.id ? 'bg-brand/5' : ''}`}>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black ${selectedStaffId === s.id ? 'bg-brand text-[#1a1c2d]' : 'bg-surface-edge text-gray-400 group-hover:bg-brand/20 group-hover:text-brand'}`}>{s.initials}</div>
+                        <div className="flex-1">
+                          <p className={`text-sm font-black transition-colors ${selectedStaffId === s.id ? 'text-brand' : 'text-gray-300 group-hover:text-white'}`}>{s.first_name} {s.last_name}</p>
+                          <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{s.role}</p>
+                        </div>
+                        {selectedStaffId === s.id && <Check className="w-4 h-4 text-brand" />}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-1 px-3 border-l border-surface-edge/50">
-            <button onClick={() => setMonth(m => m === 1 ? 12 : m - 1)} className="p-2 hover:bg-surface-edge rounded-xl text-gray-400 transition-colors hover:text-brand"><ArrowLeft className="w-4 h-4" /></button>
-            <span className="text-white font-black text-sm min-w-[110px] text-center uppercase tracking-tighter">
-              {months[month - 1]} {year}
-            </span>
-            <button onClick={() => setMonth(m => m === 12 ? 1 : m + 1)} className="p-2 hover:bg-surface-edge rounded-xl text-gray-400 transition-colors hover:text-brand"><ArrowRight className="w-4 h-4" /></button>
+          {/* HYBRID DATE SELECTOR */}
+          <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
+            <button 
+              onClick={() => {
+                if (month === 1) {
+                  setMonth(12);
+                  setYear(prev => prev - 1);
+                } else {
+                  setMonth(prev => prev - 1);
+                }
+              }}
+              className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+              <select 
+                value={month} 
+                onChange={e => setMonth(parseInt(e.target.value))}
+                className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
+              >
+                {months.map((m, i) => (
+                  <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
+                ))}
+              </select>
+              
+              <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+              <select 
+                value={year} 
+                onChange={e => setYear(parseInt(e.target.value))}
+                className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
+              >
+                {[2024, 2025, 2026, 2027].map(y => (
+                  <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+                ))}
+              </select>
+            </div>
+
+            <button 
+              onClick={() => {
+                if (month === 12) {
+                  setMonth(1);
+                  setYear(prev => prev + 1);
+                } else {
+                  setMonth(prev => prev + 1);
+                }
+              }}
+              className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        
-        {/* Main Matrix Table */}
         <div className="flex-1 px-6 py-2 min-h-0 flex flex-col">
-          {/* Outer container for rounding and border */}
           <div className="h-fit max-h-full bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden max-w-[850px] flex flex-col mx-auto">
-            {/* Inner scrollable container */}
             <div className="flex-1 overflow-auto custom-scrollbar">
               <table className="w-full text-left border-collapse table-fixed">
-              <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
-                <tr className="border-b border-surface-edge">
-                  <th className="p-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-12 bg-surface-soft">Día</th>
-                  
-                  {/* Common Columns */}
-                  {fixedColumns.map(col => (
-                    <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 transition-colors hover:text-white w-[35px] h-[70px]" title={`Actividades tipo ${col.label}`}>
-                      <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">
-                        {col.label.split('').map((char, i) => (
-                          <span key={i}>{char}</span>
-                        ))}
-                      </div>
+                <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
+                  <tr className="border-b border-surface-edge">
+                    <th className="p-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-12 bg-surface-soft">Día</th>
+                    {fixedColumns.map(col => (
+                      <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 transition-colors hover:text-white w-[35px] h-[70px]">
+                        <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
+                      </th>
+                    ))}
+                    {dynamicActivities.map(act => (
+                      <th key={act.id} className="p-0 text-[16px] font-black text-amber-500/80 uppercase tracking-tighter text-center border-l border-surface-edge/30 bg-amber-500/5 w-[35px] h-[70px]">
+                        <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{(act.acronym || act.name).split('').slice(0, 8).map((char, i) => <span key={i}>{char}</span>)}</div>
+                      </th>
+                    ))}
+                    <th className="p-0 text-[16px] font-black text-cyan-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-[35px] bg-cyan-500/5 h-[70px]">
+                      <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{'ASS'.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
                     </th>
-                  ))}
-
-                  {/* Dynamic Columns */}
-                  {dynamicActivities.map(act => (
-                    <th key={act.id} className="p-0 text-[16px] font-black text-amber-500/80 uppercase tracking-tighter text-center border-l border-surface-edge/30 bg-amber-500/5 w-[35px] h-[70px]" title={act.name}>
-                      <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">
-                        {(act.acronym || act.name).split('').slice(0, 8).map((char, i) => (
-                          <span key={i}>{char}</span>
-                        ))}
-                      </div>
-                    </th>
-                  ))}
-
-                  <th className="p-0 text-[16px] font-black text-cyan-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-[35px] bg-cyan-500/5 h-[70px]">
-                    <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">
-                      {'ASS'.split('').map((char, i) => <span key={i}>{char}</span>)}
-                    </div>
-                  </th>
-                  <th className="p-1 text-[16px] font-black text-brand uppercase tracking-widest text-center border-l border-surface-edge/30 w-16 bg-brand/5 min-w-[64px]">Extra</th>
-                  <th className="p-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
-                  <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-edge/40">
-                {Object.keys(matrixData).map(day => (
-                  <tr key={day} className="group hover:bg-white/5 transition-colors h-9">
-                    <td className="p-0 text-center font-black text-gray-600 text-sm">{day}</td>
-                    
-                    {/* Common Activity Cells */}
-                    {fixedColumns.map(col => {
-                       const count = matrixData[day].items[col.key] || 0;
-                       return (
-                          <td key={col.key} className="p-0 border-l border-surface-edge/10 text-center w-[35px] min-w-[35px]">
-                            <span className={`text-base font-black ${count > 0 ? 'text-white' : 'text-gray-800'}`}>
-                              {count || ''}
-                            </span>
-                          </td>
-                       );
-                    })}
-
-                    {/* Dynamic Activity Cells */}
-                    {dynamicActivities.map(act => {
-                        const count = matrixData[day].items[`dyn_${act.id}`] || 0;
-                        return (
-                          <td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]">
-                            <span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>
-                              {count || ''}
-                            </span>
-                          </td>
-                        );
-                     })}
-
-                    {/* Assistance Column (Manual) */}
-                    <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5">
-                      <input 
-                        type="number" 
-                        value={assists[day] || ''}
-                        onChange={(e) => handleAssChange(day, e.target.value)}
-                        className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="0"
-                      />
-                    </td>
-
-                    {/* Extra / Manual Adjustment Cell */}
-                    <td className="p-0 border-l border-surface-edge/10 bg-brand/5">
-                      <input 
-                        type="number" 
-                        value={manualAdj[day] || ''}
-                        onChange={(e) => handleAdjChange(day, e.target.value)}
-                        className="w-full bg-transparent text-center text-brand font-black text-sm outline-none focus:bg-brand/10 rounded py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="0"
-                      />
-                    </td>
-
-                    {/* Attendance / OFF Column */}
-                    <td 
-                      className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${
-                        attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : 
-                        attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''
-                      }`}
-                      onClick={() => handleAttendanceToggle(day)}
-                    >
-                      <span className={`text-[11px] font-black ${
-                        attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : 
-                        attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-gray-800'
-                      }`}>
-                        {attendanceData.grid[day] === 'OFF' ? 'OFF' : 
-                         attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}
-                      </span>
-                    </td>
-
-                    {/* Daily Total */}
-                    <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4">
-                      <span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>
-                        {(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿
-                      </span>
-                    </td>
+                    <th className="p-1 text-[16px] font-black text-brand uppercase tracking-widest text-center border-l border-surface-edge/30 w-16 bg-brand/5 min-w-[64px]">Extra</th>
+                    <th className="p-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
+                    <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
                   </tr>
-                ))}
-              </tbody>
-              {/* Table Footer (Matrix Totals) */}
-              <tfoot className="sticky bottom-0 z-30 bg-surface-soft border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
-                <tr className="h-9 font-black">
-                  <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOT</td>
-                  {fixedColumns.map(col => (
-                    <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-sm text-gray-300">
-                      {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
-                    </td>
+                </thead>
+                <tbody className="divide-y divide-surface-edge/40">
+                  {Object.keys(matrixData).map(day => (
+                    <tr key={day} className="group hover:bg-white/5 transition-colors h-9">
+                      <td className="p-0 text-center font-black text-gray-600 text-sm">{day}</td>
+                      {fixedColumns.map(col => {
+                         const count = matrixData[day].items[col.key] || 0;
+                         return (<td key={col.key} className="p-0 border-l border-surface-edge/10 text-center w-[35px] min-w-[35px]"><span className={`text-base font-black ${count > 0 ? 'text-white' : 'text-gray-800'}`}>{count || ''}</span></td>);
+                      })}
+                      {dynamicActivities.map(act => {
+                          const count = matrixData[day].items[`dyn_${act.id}`] || 0;
+                          return (<td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]"><span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>{count || ''}</span></td>);
+                       })}
+                      <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5"><input type="number" value={assists[day] || ''} onChange={(e) => handleAssChange(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0" /></td>
+                      <td className="p-0 border-l border-surface-edge/10 bg-brand/5"><input type="number" value={manualAdj[day] || ''} onChange={(e) => handleAdjChange(day, e.target.value)} className="w-full bg-transparent text-center text-brand font-black text-sm outline-none focus:bg-brand/10 rounded py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /></td>
+                      <td className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => handleAttendanceToggle(day)}>
+                        <span className={`text-[11px] font-black ${attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-gray-800'}`}>{attendanceData.grid[day] === 'OFF' ? 'OFF' : attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}</span>
+                      </td>
+                      <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
+                    </tr>
                   ))}
-                  {dynamicActivities.map(act => (
-                    <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[13px] text-amber-500/60 bg-amber-500/5">
-                      {Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}
-                    </td>
-                  ))}
-                  <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-sm bg-cyan-500/5">
-                    {Object.values(assists).reduce((acc, val) => acc + val, 0)}
-                  </td>
-                  <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-sm bg-brand/5">
-                    {totalAdj.toLocaleString()} ฿
-                  </td>
-                  <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5">
-                     <div className="flex flex-col items-center leading-none">
-                        <span className="text-[12px] font-black text-emerald-400">{attendanceData.summary.fullOff}F</span>
-                        <span className="text-[12px] font-black text-amber-400 mt-1">{attendanceData.summary.halfOff}H</span>
-                     </div>
-                  </td>
-                  <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">
-                    {(totalComm + totalAssists + totalAdj).toLocaleString()} ฿
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                </tbody>
+                <tfoot className="sticky bottom-0 z-30 bg-surface-soft border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+                  <tr className="h-9 font-black">
+                    <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOT</td>
+                    {fixedColumns.map(col => (<td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-sm text-gray-300">{Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}</td>))}
+                    {dynamicActivities.map(act => (<td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[13px] text-amber-500/60 bg-amber-500/5">{Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}</td>))}
+                    <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-sm bg-cyan-500/5">{Object.values(assists).reduce((acc, val) => acc + val, 0)}</td>
+                    <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-sm bg-brand/5">{totalAdj.toLocaleString()} ฿</td>
+                    <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5"><div className="flex flex-col items-center leading-none"><span className="text-[12px] font-black text-emerald-400">{attendanceData.summary.fullOff}F</span><span className="text-[12px] font-black text-amber-400 mt-1">{attendanceData.summary.halfOff}H</span></div></td>
+                    <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">{(totalComm + totalAssists + totalAdj).toLocaleString()} ฿</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
 
-        {/* Right Sidebar: Summary & Payouts */}
         <div className="w-[380px] bg-surface-soft border-l border-surface-edge flex flex-col p-8 space-y-10 overflow-auto shadow-2xl z-10">
-          
-          {/* Main Card: Green Summary */}
-          <div className="bg-emerald-500 rounded-[32px] p-8 shadow-xl shadow-emerald-500/20 relative overflow-hidden group">
+          <div className="bg-emerald-600 rounded-[32px] p-8 shadow-xl shadow-emerald-900/20 relative overflow-hidden group border border-emerald-400/20">
             <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-            <p className="text-[10px] font-black text-emerald-100 uppercase tracking-[0.2em] mb-2 opacity-80">Saldo Acumulado</p>
-            <h3 className="text-5xl font-black text-white tracking-tighter leading-none mb-1">
-              {finalBalance.toLocaleString()}<span className="text-xl ml-1 opacity-60 italic">฿</span>
-            </h3>
-            <div className="flex items-center gap-3 mt-4">
-               <div className="flex flex-col">
-                  <span className="text-[11px] font-black text-emerald-950/40 uppercase tracking-widest">Días Libres</span>
-                  <span className="text-base font-black text-white leading-none">{attendanceData.summary.totalOff}</span>
-               </div>
-               <div className="w-px h-6 bg-emerald-950/20" />
-               <div className="flex flex-col">
-                  <span className="text-[11px] font-black text-emerald-950/40 uppercase tracking-widest">Asistencias</span>
-                  <span className="text-base font-black text-white leading-none">{Object.values(assists).reduce((acc, v) => acc + v, 0)}</span>
-               </div>
+            <div className="flex justify-between items-start relative z-10">
+               <p className="text-[11px] font-black text-emerald-100 uppercase tracking-[0.2em] mb-4 opacity-80">Sueldo Acumulado</p>
+               {syncing && <Loader2 className="w-4 h-4 text-white/50 animate-spin" />}
             </div>
-            <div className="flex items-center gap-2 text-emerald-950/40 text-[10px] font-black uppercase tracking-wider mt-4">
-              <TrendingUp className="w-3 h-3" />
-              <span>Actualizado al {new Date().toLocaleDateString()}</span>
+            <div className="relative z-10">
+               <h3 className="text-6xl font-black text-white tracking-tighter leading-none mb-2">
+                 {finalBalance.toLocaleString()}
+                 <span className="text-xl font-black text-emerald-300/40 ml-2 italic">฿</span>
+               </h3>
+               <div className="flex items-center gap-4 mt-6">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Días Libres</span>
+                    <span className="text-xl font-black text-white leading-none">{attendanceData.summary.totalOff}</span>
+                  </div>
+                  <div className="w-px h-8 bg-emerald-950/10" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Asistencias</span>
+                    <span className="text-xl font-black text-white leading-none">{Object.values(assists).reduce((acc, v) => acc + v, 0)}</span>
+                  </div>
+               </div>
+               <div className="flex items-center gap-2 text-emerald-950/30 text-[10px] font-black uppercase tracking-[0.2em] mt-6 border-t border-emerald-950/5 pt-4">
+                 <TrendingUp className="w-3.5 h-3.5" />
+                 <span>Sincronizado en Tiempo Real</span>
+               </div>
             </div>
           </div>
 
-          {/* Breakdown Section */}
           <section className="space-y-4">
-            <h4 className="text-[12px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-              <Receipt className="w-4 h-4" /> Desglose Económico
-            </h4>
+            <h4 className="text-[12px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4" /> Desglose Económico</h4>
             <div className="bg-surface p-6 rounded-2xl border border-surface-edge space-y-4">
-              <div className="flex justify-between items-center group/item">
-                <span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Sueldo Base</span>
-                <span className="text-base font-black text-white">{baseSalary.toLocaleString()} ฿</span>
-              </div>
-              <div className="flex justify-between items-center group/item">
-                <span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Comisiones Cursos</span>
-                <span className="text-base font-black text-white">{totalComm.toLocaleString()} ฿</span>
-              </div>
-              <div className="flex justify-between items-center group/item">
-                <span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Extras y Ajustes</span>
-                <span className={`text-base font-black ${totalAdj >= 0 ? 'text-brand' : 'text-rose-400'}`}>
-                  {totalAdj >= 0 ? '+' : ''}{totalAdj.toLocaleString()} ฿
-                </span>
-              </div>
+              <div className="flex justify-between items-center group/item"><span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Cursos</span><span className="text-base font-black text-white">{totalComm.toLocaleString()} ฿</span></div>
+              <div className="flex justify-between items-center group/item"><span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Extras y Ajustes</span><span className={`text-base font-black ${totalAdj + totalAssists >= 0 ? 'text-brand' : 'text-rose-400'}`}>{totalAdj + totalAssists >= 0 ? '+' : ''}{(totalAdj + totalAssists).toLocaleString()} ฿</span></div>
               <div className="h-px bg-surface-edge/50 my-2" />
-              <div className="flex justify-between items-center text-rose-400">
-                <span className="text-sm font-bold">Total Adelantos</span>
-                <span className="text-base font-black">-{totalAdvances.toLocaleString()} ฿</span>
-              </div>
+              <div className="flex justify-between items-center text-rose-400"><span className="text-sm font-bold">Cobrado</span><span className="text-base font-black">-{totalAdvances.toLocaleString()} ฿</span></div>
             </div>
           </section>
 
-          {/* Advances Section */}
           <section className="space-y-4 flex-1">
-             <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                  <Banknote className="w-4 h-4" /> Adelantos y Pagos
-                </h4>
-                <button 
-                  onClick={() => setShowAdvForm(!showAdvForm)}
-                  className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}
-                >
-                  {showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                </button>
-             </div>
-
-             {showAdvForm && (
-               <div className="bg-surface p-4 rounded-xl border border-brand/30 animate-in slide-in-from-top-2 duration-300 space-y-3">
-                 <input 
-                   type="number" 
-                   placeholder="Cantidad (฿)"
-                   value={newAdv.amount}
-                   onChange={e => setNewAdv({...newAdv, amount: e.target.value})}
-                   className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-white font-black outline-none focus:border-brand"
-                 />
-                 <input 
-                   type="text" 
-                   placeholder="Concepto (ej: Adelanto)"
-                   value={newAdv.concept}
-                   onChange={e => setNewAdv({...newAdv, concept: e.target.value})}
-                   className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand"
-                 />
-                 <button 
-                   onClick={() => {
-                     if (newAdv.amount) {
-                       addAdvance(newAdv.amount, newAdv.concept);
-                       setNewAdv({ amount: '', concept: 'Adelanto' });
-                       setShowAdvForm(false);
-                     }
-                   }}
-                   className="w-full bg-brand py-2 rounded-lg text-white font-black text-xs shadow-lg shadow-brand/20"
-                 >
-                   Confirmar Pago
-                 </button>
-               </div>
-             )}
-             
-             <div className="space-y-2">
-               {advances.length === 0 ? (
-                 <div className="p-8 border-2 border-dashed border-surface-edge rounded-2xl flex flex-col items-center text-center">
-                   <div className="p-3 bg-surface rounded-full mb-3">
-                     <AlertCircle className="w-5 h-5 text-gray-600" />
-                   </div>
-                   <p className="text-[10px] font-bold text-gray-600 uppercase">Sin pagos este mes</p>
-                 </div>
-               ) : (
-                 advances.map((adv, idx) => (
-                   <div key={idx} className="bg-surface border border-surface-edge p-4 rounded-xl flex items-center justify-between group/adv hover:border-brand/30 transition-all">
-                     <div className="flex flex-col">
-                       <span className="text-xs font-black text-white">{adv.amount.toLocaleString()} ฿</span>
-                       <span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">
-                         {new Date(adv.date).toLocaleDateString()} • {adv.concept}
-                       </span>
-                     </div>
-                     <button onClick={() => removeAdvance(idx)} className="opacity-0 group-hover/adv:opacity-100 p-1.5 text-gray-500 hover:text-rose-500 transition-all">
-                       <Plus className="w-3.5 h-3.5 rotate-45" />
-                     </button>
-                   </div>
-                 ))
-               )}
-             </div>
+             <div className="flex items-center justify-between"><h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Banknote className="w-4 h-4" /> Pagos</h4><button onClick={() => setShowAdvForm(!showAdvForm)} className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}>{showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button></div>
+             {showAdvForm && (<div className="bg-surface p-4 rounded-xl border border-brand/30 animate-in slide-in-from-top-2 duration-300 space-y-3"><input type="number" placeholder="Cantidad (฿)" value={newAdv.amount} onChange={e => setNewAdv({...newAdv, amount: e.target.value})} className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-white font-black outline-none focus:border-brand" /><input type="text" placeholder="Concepto" value={newAdv.concept} onChange={e => setNewAdv({...newAdv, concept: e.target.value})} className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand" /><button onClick={() => { if (newAdv.amount) { addAdvance(newAdv.amount, newAdv.concept); setNewAdv({ amount: '', concept: 'Adelanto' }); setShowAdvForm(false); } }} className="w-full bg-brand py-2 rounded-lg text-white font-black text-xs shadow-lg shadow-brand/20">Confirmar Pago</button></div>)}
+             <div className="space-y-2">{advances.length === 0 ? (<div className="p-8 border-2 border-dashed border-surface-edge rounded-2xl flex flex-col items-center text-center"><div className="p-3 bg-surface rounded-full mb-3"><AlertCircle className="w-5 h-5 text-gray-600" /></div><p className="text-[10px] font-bold text-gray-600 uppercase">Sin pagos este mes</p></div>) : (advances.map((adv, idx) => (<div key={idx} className="bg-surface border border-surface-edge p-4 rounded-xl flex items-center justify-between group/adv hover:border-brand/30 transition-all"><div className="flex flex-col"><span className="text-xs font-black text-white">{adv.amount.toLocaleString()} ฿</span><span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">{new Date(adv.date).toLocaleDateString()} • {adv.concept}</span></div><button onClick={() => removeAdvance(idx)} className="opacity-0 group-hover/adv:opacity-100 p-1.5 text-gray-500 hover:text-rose-500 transition-all"><Plus className="w-3.5 h-3.5 rotate-45" /></button></div>)))}</div>
           </section>
-
-          {/* Final Action */}
-          <button className="w-full bg-white text-black py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-white/5 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-            <Briefcase className="w-5 h-5" /> Generar Liquidación
-          </button>
-
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ first_name: '', last_name: '', passport_number: '' });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsForm, setSettingsForm] = useState({ emails: '', addPax: 0, durationDays: 30, contractTitle: '' });
+  const [settingsForm, setSettingsForm] = useState({ emails: '', addPax: 0, durationDays: 30, contractTitle: '', paxBalance: 0 });
   const [historyBatches, setHistoryBatches] = useState([]);
 
   const showToast = (message, type = 'success') => {
@@ -40,17 +40,30 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
     }
     const timer = setTimeout(async () => {
       setIsSearching(true);
-      let query = supabase.from('customers').select('id, first_name, last_name, passport_number, booking_date');
+      const q = addSearchQuery.trim();
       
-      const terms = addSearchQuery.trim().split(/\s+/).filter(t => t.length > 0);
-      terms.forEach(term => {
-        query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,passport_number.ilike.%${term}%`);
-      });
-      
-      const { data } = await query.limit(5);
+      let data = null;
+      try {
+        // Use the advanced RPC first
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('search_customers_v3', { query_text: q });
+        if (!rpcErr && rpcData) {
+          data = rpcData;
+        } else {
+          // Fallback to direct query if RPC fails
+          const { data: directData } = await supabase
+            .from('customers')
+            .select('id, first_name, last_name, passport_number, booking_date, booked_activity')
+            .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,passport_number.ilike.%${q}%,email.ilike.%${q}%`)
+            .limit(10);
+          data = directData;
+        }
+      } catch (e) {
+        console.error("Search error:", e);
+      }
+
       setAddResults(data || []);
       setIsSearching(false);
-    }, 300);
+    }, 400);
     return () => clearTimeout(timer);
   }, [addSearchQuery]);
   
@@ -61,23 +74,20 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch settings
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('settings')
-        .select('*');
+      // 1. Fetch insurance config
+      const { data: config, error: configError } = await supabase
+        .from('insurance_config')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
         
-      if (settingsError) throw settingsError;
+      if (configError) throw configError;
       
-      if (settingsData) {
-        const paxRow = settingsData.find(row => row.key === 'insurance_pax_balance');
-        const emailsRow = settingsData.find(row => row.key === 'insurance_emails');
-        const durationRow = settingsData.find(row => row.key === 'insurance_duration_days');
-        const titleRow = settingsData.find(row => row.key === 'insurance_contract_title');
-        
-        setPaxBalance(paxRow ? Number(paxRow.value) : 0);
-        setTargetEmails(emailsRow ? String(emailsRow.value) : '');
-        setDurationDays(durationRow ? Number(durationRow.value) : 30);
-        if (titleRow) setContractTitle(titleRow.value);
+      if (config) {
+        setPaxBalance(config.pax_balance || 0);
+        setTargetEmails(config.target_emails || '');
+        setDurationDays(config.duration_days || 30);
+        setContractTitle(config.contract_title || 'EFF. 18/10/2024-2025 ( 200 Pax )');
       }
 
       // 1.5 Fetch history batches
@@ -174,16 +184,19 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
     setProcessing(true);
     try {
       const newPax = parseInt(settingsForm.addPax) || 0;
-      const updatedPax = paxBalance + newPax;
+      // Use the direct paxBalance field as the base, then add any "extra" from the addPax field
+      const updatedPax = (parseInt(settingsForm.paxBalance) || 0) + newPax;
       
-      const updates = [
-        { key: 'insurance_pax_balance', value: updatedPax, updated_at: new Date().toISOString() },
-        { key: 'insurance_emails', value: settingsForm.emails, updated_at: new Date().toISOString() },
-        { key: 'insurance_duration_days', value: settingsForm.durationDays || 30, updated_at: new Date().toISOString() },
-        { key: 'insurance_contract_title', value: settingsForm.contractTitle || 'EFF. 18/10/2024-2025 ( 200 Pax )', updated_at: new Date().toISOString() }
-      ];
-
-      const { error } = await supabase.from('settings').upsert(updates, { onConflict: 'key' });
+      const { error } = await supabase
+        .from('insurance_config')
+        .update({ 
+          pax_balance: updatedPax, 
+          target_emails: settingsForm.emails,
+          duration_days: settingsForm.durationDays || 30,
+          contract_title: settingsForm.contractTitle || 'EFF. 18/10/2024-2025 ( 200 Pax )',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', 1);
 
       if (error) throw error;
       
@@ -326,13 +339,17 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
       if (edgeError) throw new Error("Error en Edge Function: " + edgeError.message);
       if (edgeData?.success === false) throw new Error("Error alojado: " + edgeData.error);
 
-      // 4. Restar PAX en settings
+      // 4. Restar PAX en config
       const newBalance = paxBalance - customers.length;
-      const updates = [
-        { key: 'insurance_pax_balance', value: newBalance, updated_at: new Date().toISOString() }
-      ];
-      const { error: settingsError } = await supabase.from('settings').upsert(updates, { onConflict: 'key' });
-      if (settingsError) console.error("Error restando PAX:", settingsError);
+      const { error: configError } = await supabase
+        .from('insurance_config')
+        .update({ 
+          pax_balance: newBalance, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', 1);
+      
+      if (configError) console.error("Error restando PAX:", configError);
 
       // 5. Actualizar Clientes sumando los días de duración al día de hoy
       const todayDate = new Date();
@@ -440,7 +457,13 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
           
           <button
             onClick={() => {
-              setSettingsForm({ emails: targetEmails, addPax: 0, durationDays: durationDays, contractTitle: contractTitle });
+              setSettingsForm({ 
+                emails: targetEmails, 
+                addPax: 0, 
+                durationDays: durationDays, 
+                contractTitle: contractTitle,
+                paxBalance: paxBalance 
+              });
               setShowSettingsModal(true);
             }}
             className="flex items-center justify-center w-10 h-10 rounded-full bg-surface-edge/30 text-gray-400 hover:text-brand hover:bg-brand/10 transition-colors"
@@ -471,7 +494,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
                   
                   {/* Search Results Dropdown */}
                   {addSearchQuery.length >= 2 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-surface-edge rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto w-full">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-surface-edge rounded-xl shadow-2xl z-50 overflow-hidden max-h-[500px] overflow-y-auto w-full">
                       {isSearching ? (
                         <div className="p-3 text-center text-gray-500 text-xs">Buscando...</div>
                       ) : addResults.length === 0 ? (
@@ -482,19 +505,29 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
                             <button
                               key={res.id}
                               onClick={() => handleAddDirectly(res)}
-                              className="w-full text-left px-3 py-2 hover:bg-brand/10 transition-colors flex flex-row items-center justify-between gap-3"
+                              className="w-full text-left px-3 py-2 hover:bg-brand/10 transition-colors flex flex-row items-center justify-between gap-3 border-b border-surface-edge/30 last:border-0"
                             >
-                              <span className="text-sm font-semibold text-white capitalize flex-1 truncate pr-2">{res.first_name} {res.last_name}</span>
-                              <div className="flex flex-col items-end shrink-0 w-20">
-                                <span className="text-[12px] text-brand font-mono font-bold uppercase">
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-semibold text-white capitalize block truncate">
+                                  {res.first_name} {res.last_name}
+                                </span>
+                                {res.booked_activity && (
+                                  <span className="text-[12px] text-brand uppercase font-black block truncate mt-0.5 tracking-tight">
+                                    {res.booked_activity}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end shrink-0 gap-1.5">
+                                <span className="text-[14px] text-amber-400 font-mono font-black uppercase bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded shadow-sm">
                                   {res.passport_number || 'S/P'}
                                 </span>
                                 {res.booking_date ? (
-                                  <span className="text-[12px] text-gray-400 font-mono mt-0.5">
-                                    {new Date(res.booking_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' }).replace('.', '')}
+                                  <span className="text-[12px] text-cyan-400 font-bold mt-0.5 flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(res.booking_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }).replace('.', '')}
                                   </span>
                                 ) : (
-                                  <span className="text-[12px] text-gray-600 font-mono mt-0.5">-</span>
+                                  <span className="text-[11px] text-gray-600 font-mono">-</span>
                                 )}
                               </div>
                             </button>
@@ -752,7 +785,6 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
                 </label>
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <p className="text-sm text-gray-400 mb-2">Saldo actual en base de datos: <strong className="text-white">{paxBalance}</strong></p>
                     <input 
                       type="number" 
                       min="0"
@@ -765,17 +797,31 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Días de duración del seguro
-                </label>
-                <input 
-                  type="number" 
-                  min="1"
-                  value={settingsForm.durationDays || 30}
-                  onChange={(e) => setSettingsForm({...settingsForm, durationDays: parseInt(e.target.value) || 30})}
-                  className="w-full bg-surface-soft border border-surface-edge rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Plazas restantes (PAX)
+                  </label>
+                  <input 
+                    type="number" 
+                    value={settingsForm.paxBalance}
+                    onChange={(e) => setSettingsForm({...settingsForm, paxBalance: parseInt(e.target.value) || 0})}
+                    className="w-full bg-surface-soft border border-surface-edge rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Días de duración
+                  </label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    value={settingsForm.durationDays || 30}
+                    onChange={(e) => setSettingsForm({...settingsForm, durationDays: parseInt(e.target.value) || 30})}
+                    className="w-full bg-surface-soft border border-surface-edge rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand transition-colors"
+                  />
+                </div>
               </div>
 
               <div>

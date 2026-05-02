@@ -300,14 +300,31 @@ const CustomerSearchInput = ({ item, handleItemUpdate, onCancel }) => {
               {results.map(c => (
                 <div 
                   key={c.id}
-                  onMouseDown={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault(); 
                     e.stopPropagation();
+                    if (isSavingLocal.current) {
+                      console.log("[Search] Already saving, skipping click");
+                      return;
+                    }
                     isSavingLocal.current = true;
-                    console.log("[Search] Selected:", c.first_name);
-                    await handleItemUpdate(item, 'customer_id', c.id);
-                    if (item.temporary_name) await handleItemUpdate(item, 'temporary_name', null);
-                    onCancel();
+                    
+                    console.log("[Search] SELECTING CUSTOMER:", c.first_name, c.id);
+                    
+                    try {
+                      // Atomic update
+                      await handleItemUpdate(item, { 
+                        customer_id: c.id, 
+                        temporary_name: null,
+                        _customer: c 
+                      });
+                      console.log("[Search] Update successful for:", c.first_name);
+                    } catch (err) {
+                      console.error("[Search] Update FAILED:", err);
+                      alert("Error al vincular: " + err.message);
+                    } finally {
+                      onCancel();
+                    }
                   }}
                   className="px-3 py-2.5 hover:bg-brand/5 cursor-pointer border-b border-gray-100 last:border-0 transition-colors flex justify-between items-start gap-3 group/res"
                 >
@@ -404,18 +421,35 @@ export default function BillingGridRow({
       return;
     }
 
-    // For single item delete, we can either use a prompt or just do it.
-    // Given the user wants to avoid ugly dialogs, I'll route this through a parent handler if possible
-    // but since there's no onSelectItemDelete prop yet, I'll just remove the window.confirm for now
-    // or better, I will use the parent's confirmation for this too if we refactor more.
-    // For now, let's just make it call onUpdate after delete to keep it simple and clean.
-
-    try {
-      const { error } = await supabase.from('invoice_items').delete().eq('id', itemId);
-      if (error) throw error;
-      onUpdate();
-    } catch (err) {
-      console.error('Error deleting item:', err);
+    // Pedimos confirmación siempre antes de borrar
+    if (setConfirmConfig) {
+      setConfirmConfig({
+        show: true,
+        title: 'Borrar Registro',
+        message: items.length === 1 
+          ? 'Este es el último registro de la factura. Si lo borras, se eliminará la factura completa. ¿Deseas continuar?'
+          : '¿Estás seguro de que deseas eliminar este registro?',
+        type: 'danger',
+        onConfirm: async () => {
+          try {
+            // Si es el último item, borramos la factura entera
+            if (items.length === 1) {
+              const { error } = await supabase.from('invoices').delete().eq('id', invoice.id);
+              if (error) throw error;
+            } else {
+              // Si hay más items, solo borramos este
+              const { error } = await supabase.from('invoice_items').delete().eq('id', itemId);
+              if (error) throw error;
+            }
+            
+            if (onUpdate) onUpdate();
+            setConfirmConfig(prev => ({ ...prev, show: false }));
+          } catch (err) {
+            console.error('Error deleting:', err);
+            alert("Error al borrar: " + err.message);
+          }
+        }
+      });
     }
   };
 
@@ -438,50 +472,60 @@ export default function BillingGridRow({
     }
   };
 
-  const handleItemUpdate = async (item, field, value) => {
+  const handleItemUpdate = async (item, fieldOrUpdates, value) => {
     const finalId = item?.id || item?.invoice_item_id || item?._id;
     if (!finalId) return;
 
     try {
       const itemId = String(finalId);
-      let updates = { [field]: value };
+      let updates = typeof fieldOrUpdates === 'object' ? { ...fieldOrUpdates } : { [fieldOrUpdates]: value };
 
-      // Logical calculated fields
-      if (field === 'activity_id') {
-        const act = activities.find(a => String(a.id) === String(value));
+      // Logical calculated fields (if quantity or price changes)
+      if (updates.activity_id) {
+        const act = activities.find(a => String(a.id) === String(updates.activity_id));
         if (act) {
           const up = Number(act.price_thb) || 0;
           const q = Number(item.quantity ?? 1);
           updates.unit_price_thb = up;
           updates.total_thb = up * q;
           
-          // LIMPIEZA AUTOMÁTICA DE INSTRUCTOR
-          const cat = act.category?.toLowerCase() || '';
-          const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
-          if (isStaffDisabled) {
-            updates.instructor_id = null;
+          const isCommAllowed = act.is_commissionable;
+          if (!isCommAllowed) {
             updates.is_comm = false;
           }
         }
-      } else if (field === 'quantity') {
-        const q = Number(value) || 0;
+      } else if (updates.quantity !== undefined) {
+        const q = Number(updates.quantity) || 0;
         const up = Number(item.unit_price_thb) || 0;
         updates.total_thb = q * up;
-      } else if (field === 'unit_price_thb') {
-        const up = Number(value) || 0;
+      } else if (updates.unit_price_thb !== undefined) {
+        const up = Number(updates.unit_price_thb) || 0;
         const q = Number(item.quantity ?? 1);
         updates.total_thb = q * up;
       }
 
-      // ACTUALIZACIÓN INSTANTÁNEA (OPTIMISTA)
+      // 1. SMART OPTIMISTIC UPDATE
+      // If we are linking a customer, we inject the object so the UI reflects it immediately
+      let optimisticItemUpdates = { ...updates };
+      if (updates._customer) {
+        optimisticItemUpdates.customers = updates._customer;
+        delete updates._customer; // Don't send internal helper to DB
+      }
+
       setLocalItems(prev => prev.map(it => 
-        String(it.id) === String(itemId) ? { ...it, ...updates } : it
+        String(it.id) === String(itemId) ? { ...it, ...optimisticItemUpdates } : it
       ));
 
+      // 2. DATABASE UPDATE
+      console.log("[DB] Updating item", itemId, "with", updates);
       const { error } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
-      if (error) throw error;
       
-      // Llamamos a onUpdate para que la tabla se re-ordene sola en segundo plano
+      if (error) {
+        console.error("[DB] Error updating item:", error);
+        throw error;
+      }
+      
+      console.log("[DB] Update confirmed for", itemId);
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error('Error updating item:', err);
@@ -568,302 +612,293 @@ export default function BillingGridRow({
   };
 
   // Shared cells rendering for visual parity
-  const renderItemCells = (item, isHybridRow = false, bLine = '') => (
-    <>
-      {/* 3. FECHA - REDISEÑO TOTAL (COMPONENTE INDEPENDIENTE) */}
-      <DateCell 
-        item={item} 
-        handleItemUpdate={handleItemUpdate} 
-        bLine={bLine} 
-        formatSmartDate={formatSmartDate} 
-      />
+  const renderItemCells = (item, isHybridRow = false, bLine = '') => {
+    const act = activities.find(a => String(a.id) === String(item.activity_id));
+    const cat = act?.category?.toLowerCase() || '';
+    const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
 
-      {/* 4. Nombre / Buscador */}
-      <td className={`px-1 py-0 border-r border-gray-100 relative group/cell ${bLine}`}>
-        {!item.customer_id && searchingId === item.id ? (
-          <CustomerSearchInput 
-            item={item} 
-            handleItemUpdate={handleItemUpdate}
-            onCancel={() => setSearchingId(null)} 
-          />
-        ) : (
-          <div 
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              if (!item.customer_id) setSearchingId(item.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+    return (
+      <>
+        {/* 3. FECHA - REDISEÑO TOTAL (COMPONENTE INDEPENDIENTE) */}
+        <DateCell 
+          item={item} 
+          handleItemUpdate={handleItemUpdate} 
+          bLine={bLine} 
+          formatSmartDate={formatSmartDate} 
+        />
+
+        {/* 4. Nombre / Buscador */}
+        <td className={`px-1 py-0 border-r border-gray-100 relative group/cell ${bLine}`}>
+          {!item.customer_id && searchingId === item.id ? (
+            <CustomerSearchInput 
+              item={item} 
+              handleItemUpdate={handleItemUpdate}
+              onCancel={() => setSearchingId(null)} 
+            />
+          ) : (
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => {
                 if (!item.customer_id) setSearchingId(item.id);
-              }
-            }}
-            className="flex items-center gap-2 overflow-hidden cursor-text h-full px-1 outline-none focus-visible:ring-1 focus-visible:ring-brand focus-visible:rounded"
-            aria-label={item.customers?.first_name ? `Cliente: ${item.customers.first_name}` : "Vincular nuevo cliente"}
-          >
-             <span className={`text-[13px] font-bold truncate block ${item.customer_id ? 'text-gray-900' : 'text-blue-600 italic font-medium'}`}>
-                {item.customers?.first_name || item.temporary_name || 'Vincular Cliente...'}
-             </span>
-             {item.customer_id && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (setConfirmConfig) {
-                      setConfirmConfig({
-                        show: true,
-                        title: 'Desvincular Cliente',
-                        message: `Estás a punto de desvincular a ${item.customers?.first_name || 'este cliente'} del registro. ¿Deseas continuar?`,
-                        type: 'danger',
-                        onConfirm: () => {
-                          handleItemUpdate(item, 'customer_id', null);
-                          setConfirmConfig(prev => ({ ...prev, show: false }));
-                        }
-                      });
-                    }
-                  }}
-                  aria-label="Desvincular cliente"
-                  className="hidden group-hover/cell:flex items-center text-gray-400 hover:text-red-600 p-1 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-             )}
-          </div>
-        )}
-      </td>
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  if (!item.customer_id) setSearchingId(item.id);
+                }
+              }}
+              className="flex items-center gap-2 overflow-hidden cursor-text h-full px-1 outline-none focus-visible:ring-1 focus-visible:ring-brand focus-visible:rounded"
+              aria-label={item.customers?.first_name ? `Cliente: ${item.customers.first_name}` : "Vincular nuevo cliente"}
+            >
+               <span className={`text-[13px] font-bold truncate block ${item.customer_id ? 'text-gray-900' : 'text-blue-600 italic font-medium'}`}>
+                  {item.customers?.first_name || item.temporary_name || 'Vincular Cliente...'}
+               </span>
+               {item.customer_id && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (setConfirmConfig) {
+                        setConfirmConfig({
+                          show: true,
+                          title: 'Desvincular Cliente',
+                          message: `Estás a punto de desvincular a ${item.customers?.first_name || 'este cliente'} del registro. ¿Deseas continuar?`,
+                          type: 'danger',
+                          onConfirm: () => {
+                            handleItemUpdate(item, 'customer_id', null);
+                            setConfirmConfig(prev => ({ ...prev, show: false }));
+                          }
+                        });
+                      }
+                    }}
+                    aria-label="Desvincular cliente"
+                    className="hidden group-hover/cell:flex items-center text-gray-400 hover:text-red-600 p-1 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+               )}
+            </div>
+          )}
+        </td>
 
-      {/* 5. Apellidos */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <span className="text-[13px] text-slate-800 font-bold truncate block">
-          {item.customers?.last_name || (item.temporary_name ? "-" : "...")}
-        </span>
-      </td>
+        {/* 5. Apellidos */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+          <span className="text-[13px] text-slate-800 font-bold truncate block">
+            {item.customers?.last_name || (item.temporary_name ? "-" : "...")}
+          </span>
+        </td>
 
-      {/* 6. Email */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <span className="text-[12px] text-slate-500 truncate block">
-          {item.customers?.email || (item.temporary_name ? "-" : "")}
-        </span>
-      </td>
+        {/* 6. Email */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+          <span className="text-[12px] text-slate-500 truncate block">
+            {item.customers?.email || (item.temporary_name ? "-" : "")}
+          </span>
+        </td>
 
-      {/* 7. Actividad */}
-      <td 
-        className={`px-1 py-0 border-r border-gray-100 transition-all duration-200 group relative ${bLine} focus-within:z-50`}
-        style={{ 
-          backgroundColor: activities.find(a => a.id === item.activity_id)?.color ? activities.find(a => a.id === item.activity_id).color + '4D' : 'transparent',
-          borderLeft: item.activity_id && activities.find(a => a.id === item.activity_id)?.color 
-            ? `4px solid ${activities.find(a => a.id === item.activity_id).color}` 
-            : 'none'
-        }}
-      >
-        <SmartActivitySelect 
-          value={item.activity_id ?? ''}
-          activities={activities}
-          onChange={(val) => handleItemUpdate(item, 'activity_id', val)}
-        />
-      </td>
-
-      {/* 8. Precio */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <input 
-          type="number" 
-          value={item.unit_price_thb ?? 0} 
-          onChange={(e) => handleItemUpdate(item, 'unit_price_thb', e.target.value)}
-          aria-label="Precio unitario"
-          className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-        />
-      </td>
-
-      {/* 9. Q */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <input 
-          type="number" 
-          value={item.quantity ?? 1} 
-          onChange={(e) => handleItemUpdate(item, 'quantity', e.target.value)}
-          aria-label="Cantidad"
-          className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0" 
-        />
-      </td>
-
-      {/* 10. Total */}
-      <td className={`px-1 py-0 text-right border-r border-gray-100 ${bLine}`}>
-        <div className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm font-black tracking-tight whitespace-nowrap ${
-          item.status === 'Paid' 
-            ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
-            : 'bg-red-50 text-red-700 border-red-200'
-        }`}>
-          {Number(item.total_thb ?? 0).toLocaleString()} ฿
-        </div>
-      </td>
-      {/* 11. Estado */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <div 
-          className="relative group/status"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            handleItemUpdate(item, 'status', item.status === 'Paid' ? 'Pending' : 'Paid');
+        {/* 7. Actividad */}
+        <td 
+          className={`px-1 py-0 border-r border-gray-100 transition-all duration-200 group relative ${bLine} focus-within:z-50`}
+          style={{ 
+            backgroundColor: act?.color ? act.color + '4D' : 'transparent',
+            borderLeft: item.activity_id && act?.color 
+              ? `4px solid ${act.color}` 
+              : 'none'
           }}
         >
-          <select 
-            value={item.status || 'Pending'} 
-            onChange={(e) => handleItemUpdate(item, 'status', e.target.value)}
-            className={`w-full h-6 py-0 px-1 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${
-              item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
-            }`}
-          >
-            <option value="Paid" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PAGADO</option>
-            <option value="Pending" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PENDIENTE</option>
-          </select>
-          <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none opacity-0 group-hover/status:opacity-100 transition-opacity">
-            <ChevronDown className={`w-3 h-3 ${item.status === 'Paid' ? 'text-emerald-600' : 'text-red-400'}`} strokeWidth={4} />
-          </div>
-        </div>
-      </td>
-      {/* 12. Medio */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <div className="relative group/select">
-           <select 
-             value={item.payment_method || ''} 
-             onChange={(e) => handleItemUpdate(item, 'payment_method', e.target.value || null)}
-             className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full h-6 px-1 py-0 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
-               !item.payment_method ? 'text-transparent' : 'text-gray-800'
-             }`}
-           >
-             <option value="" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}></option>
-             <option value="WISE BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE BT</option>
-             <option value="WISE CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE CR</option>
-             <option value="EUR BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR BT</option>
-             <option value="EUR CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR CR</option>
-           </select>
-           <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-gray-500 group-hover/select:text-gray-700">
-             <ChevronDown className="w-3 h-3" strokeWidth={4} />
-           </div>
-        </div>
-      </td>
-      {/* 13. Instr */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${
-        !item.instructor_id && !(() => {
-          const act = activities.find(a => String(a.id) === String(item.activity_id));
-          const cat = act?.category?.toLowerCase() || '';
-          return cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
-        })() ? 'bg-red-500/10' : 'bg-white'
-      } ${bLine}`}>
-        {(() => {
-          const act = activities.find(a => String(a.id) === String(item.activity_id));
-          const cat = act?.category?.toLowerCase() || '';
-          const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
-          const isMissing = !item.instructor_id && !isStaffDisabled;
-          
-          return (
-            <div className="relative group/instr flex items-center justify-center h-full">
-              {isMissing && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Falta Instructor" />
-                </div>
-              )}
-              <select 
-                 value={item.instructor_id || ''} 
-                 onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
-                 disabled={isStaffDisabled}
-                 title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
-                 className={`bg-transparent text-sm font-black w-full h-6 text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity py-0 relative z-10 ${
-                   isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 
-                   isMissing ? 'text-red-600 animate-pulse appearance-none' : 'text-cyan-700 opacity-100 cursor-pointer'
-                 }`}
-               >
-                 <option value="" className="text-gray-400"></option>
-                 {staff.map(s => <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>)}
-               </select>
-            </div>
-          );
-        })()}
-      </td>
-      {/* 14. BIZUM */}
-      <td 
-        className={`px-1 py-0 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${
-          Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : 'bg-white'
-        } ${bLine}`}
-        onDoubleClick={(e) => {
-          e.preventDefault();
-          handleItemUpdate(item, 'bizum_deposit_eur', null);
-        }}
-        title="Doble clic para resetear a 0€"
-      >
-        <select 
-          value={item.bizum_deposit_eur || ''} 
-          onChange={(e) => handleItemUpdate(item, 'bizum_deposit_eur', e.target.value ? Number(e.target.value) : null)}
-          disabled={!item.customer_id}
-          className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-6 text-center pr-3 transition-colors cursor-pointer relative z-10 ${
-            !item.bizum_deposit_eur ? 'text-transparent' : 'text-white'
-          } disabled:opacity-30`}
-        >
-          <option value="" className="text-gray-900 bg-white"></option>
-          {bizumOptions.map(val => <option key={val} value={val} className="text-gray-900 bg-white">{val}€</option>)}
-        </select>
-        <div className={`absolute inset-y-0 right-1 flex items-center pointer-events-none transition-opacity z-20 ${
-          Number(item.bizum_deposit_eur || 0) === 0 ? 'opacity-0' : 'opacity-100'
-        }`}>
-          <ChevronDown className="w-3 h-3 text-white/90" />
-        </div>
-      </td>
-      {/* 15. COMISIÓN */}
-      <td className={`px-1 py-0 border-r border-gray-100 text-center ${bLine}`}>
-        {(() => {
-          const act = activities.find(a => String(a.id) === String(item.activity_id));
-          const cat = act?.category?.toLowerCase() || '';
-          const isCommDisabled = !item.activity_id || cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
-          
-          return (
-            <button 
-              disabled={isCommDisabled}
-              onClick={() => handleItemUpdate(item, 'is_comm', !item.is_comm)}
-              className={`p-0.5 rounded-md transition-all border ${
-                !isCommDisabled
-                  ? item.is_comm 
-                    ? 'bg-amber-500 text-white border-amber-600 shadow-inner' 
-                    : 'bg-white text-gray-200 border-gray-100 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50'
-                  : 'opacity-10 cursor-not-allowed border-transparent'
-              }`}
-              title={isCommDisabled ? "No disponible para esta actividad" : (item.is_comm ? "Comisionable" : "Marcar Comisión")}
-            >
-              <Coins className={`w-4 h-4 ${item.is_comm ? 'fill-current' : ''}`} />
-            </button>
-          );
-        })()}
-      </td>
-      {/* 16. Notas */}
-      <td className={`px-1 py-0 overflow-hidden border-r border-gray-100 ${bLine}`}>
-        <input 
-          type="text" placeholder="..."
-          defaultValue={item.notes || ''} 
-          onBlur={(e) => handleItemUpdate(item, 'notes', e.target.value)}
-          className="bg-transparent text-gray-700 font-medium text-[12px] w-full h-6 outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate py-0" 
-          title={item.notes || ''}
-        />
-      </td>
+          <SmartActivitySelect 
+            value={item.activity_id ?? ''}
+            activities={activities}
+            onChange={(val) => handleItemUpdate(item, 'activity_id', val)}
+          />
+        </td>
 
-      {/* Acciones */}
-      <td className={`px-1 py-0 text-center ${bLine} ${isHybridRow ? '' : rb}`}>
-        <div className="flex items-center justify-center gap-1">
-          {(!isHybridRow || (isHybridRow && items.length > 1)) && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onExtractItem(item.id, item.customer_id); }} 
-              className="p-1 hover:bg-brand/10 text-brand/50 hover:text-brand rounded transition-colors"
-              title="Extraer a nueva factura propia"
-            >
-              <LogOut className="w-3.5 h-3.5 rotate-[-90deg]" />
-            </button>
-          )}
-          <button 
-            onClick={(e) => handleDeleteItem(item.id, e)} 
-            className="p-1 hover:bg-red-50 text-red-500/50 hover:text-red-600 rounded transition-colors" 
-            title="Borrar Registro"
+        {/* 8. Precio */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+          <input 
+            type="number" 
+            value={item.unit_price_thb ?? 0} 
+            onChange={(e) => handleItemUpdate(item, 'unit_price_thb', e.target.value)}
+            aria-label="Precio unitario"
+            className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+          />
+        </td>
+
+        {/* 9. Q */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+          <input 
+            type="number" 
+            value={item.quantity ?? 1} 
+            onChange={(e) => handleItemUpdate(item, 'quantity', e.target.value)}
+            aria-label="Cantidad"
+            className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0" 
+          />
+        </td>
+
+        {/* 10. Total */}
+        <td className={`px-1 py-0 text-right border-r border-gray-100 ${bLine}`}>
+          <div className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm font-black tracking-tight whitespace-nowrap ${
+            item.status === 'Paid' 
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+              : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {Number(item.total_thb ?? 0).toLocaleString()} ฿
+          </div>
+        </td>
+        {/* 11. Estado */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+          <div 
+            className="relative group/status"
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              handleItemUpdate(item, 'status', item.status === 'Paid' ? 'Pending' : 'Paid');
+            }}
           >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </td>
-    </>
-  );
+            <select 
+              value={item.status || 'Pending'} 
+              onChange={(e) => handleItemUpdate(item, 'status', e.target.value)}
+              className={`w-full h-6 py-0 px-1 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${
+                item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
+              <option value="Paid" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PAGADO</option>
+              <option value="Pending" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PENDIENTE</option>
+            </select>
+            <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none opacity-0 group-hover/status:opacity-100 transition-opacity">
+              <ChevronDown className={`w-3 h-3 ${item.status === 'Paid' ? 'text-emerald-600' : 'text-red-400'}`} strokeWidth={4} />
+            </div>
+          </div>
+        </td>
+        {/* 12. Medio */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+          <div className="relative group/select">
+             <select 
+               value={item.payment_method || ''} 
+               onChange={(e) => handleItemUpdate(item, 'payment_method', e.target.value || null)}
+               className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full h-6 px-1 py-0 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
+                 !item.payment_method ? 'text-transparent' : 'text-gray-800'
+               }`}
+             >
+               <option value="" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}></option>
+               <option value="WISE BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE BT</option>
+               <option value="WISE CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE CR</option>
+               <option value="EUR BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR BT</option>
+               <option value="EUR CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR CR</option>
+             </select>
+             <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-gray-500 group-hover/select:text-gray-700">
+               <ChevronDown className="w-3 h-3" strokeWidth={4} />
+             </div>
+          </div>
+        </td>
+        {/* 13. Instr */}
+        <td className={`px-1 py-0 border-r border-gray-100 ${
+          !item.instructor_id && !isStaffDisabled ? 'bg-red-500/10' : 'bg-white'
+        } ${bLine}`}>
+          <div className="relative group/instr flex items-center justify-center h-full">
+            {!item.instructor_id && !isStaffDisabled && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Falta Instructor" />
+              </div>
+            )}
+            <select 
+               value={item.instructor_id || ''} 
+               onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
+               disabled={isStaffDisabled}
+               title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
+               className={`bg-transparent text-sm font-black w-full h-6 text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity py-0 relative z-10 ${
+                 isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 
+                 (!item.instructor_id && !isStaffDisabled) ? 'text-red-600 animate-pulse appearance-none' : 'text-cyan-700 opacity-100 cursor-pointer'
+               }`}
+             >
+               <option value="" className="text-gray-400"></option>
+               {staff.map(s => <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>)}
+             </select>
+          </div>
+        </td>
+        {/* 14. BIZUM */}
+        <td 
+          className={`px-1 py-0 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${
+            Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : 'bg-white'
+          } ${bLine}`}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            handleItemUpdate(item, 'bizum_deposit_eur', null);
+          }}
+          title="Doble clic para resetear a 0€"
+        >
+          <select 
+            value={item.bizum_deposit_eur || ''} 
+            onChange={(e) => handleItemUpdate(item, 'bizum_deposit_eur', e.target.value ? Number(e.target.value) : null)}
+            disabled={!item.customer_id}
+            className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-6 text-center pr-3 transition-colors cursor-pointer relative z-10 ${
+              !item.bizum_deposit_eur ? 'text-transparent' : 'text-white'
+            } disabled:opacity-30`}
+          >
+            <option value="" className="text-gray-900 bg-white"></option>
+            {bizumOptions.map(val => <option key={val} value={val} className="text-gray-900 bg-white">{val}€</option>)}
+          </select>
+          <div className={`absolute inset-y-0 right-1 flex items-center pointer-events-none transition-opacity z-20 ${
+            Number(item.bizum_deposit_eur || 0) === 0 ? 'opacity-0' : 'opacity-100'
+          }`}>
+            <ChevronDown className="w-3 h-3 text-white/90" />
+          </div>
+        </td>
+        {/* 15. COMISIÓN */}
+        <td className={`px-1 py-0 border-r border-gray-100 text-center ${bLine}`}>
+          {(() => {
+            const isCommDisabled = !item.activity_id || act?.is_commissionable === false;
+            
+            return (
+              <button 
+                disabled={isCommDisabled}
+                onClick={() => handleItemUpdate(item, 'is_comm', !item.is_comm)}
+                className={`p-0.5 rounded-md transition-all border ${
+                  !isCommDisabled
+                    ? item.is_comm 
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-inner' 
+                      : 'bg-white text-gray-200 border-gray-100 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50'
+                    : 'opacity-10 cursor-not-allowed border-transparent'
+                }`}
+                title={isCommDisabled ? "No disponible para esta actividad" : (item.is_comm ? "Comisionable" : "Marcar Comisión")}
+              >
+                <Coins className={`w-4 h-4 ${item.is_comm ? 'fill-current' : ''}`} />
+              </button>
+            );
+          })()}
+        </td>
+        {/* 16. Notas */}
+        <td className={`px-1 py-0 overflow-hidden border-r border-gray-100 ${bLine}`}>
+          <input 
+            type="text" placeholder="..."
+            defaultValue={item.notes || ''} 
+            onBlur={(e) => handleItemUpdate(item, 'notes', e.target.value)}
+            className="bg-transparent text-gray-700 font-medium text-[12px] w-full h-6 outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate py-0" 
+            title={item.notes || ''}
+          />
+        </td>
+
+        {/* Acciones */}
+        <td className={`px-1 py-0 text-center ${bLine} ${isHybridRow ? '' : rb}`}>
+          <div className="flex items-center justify-center gap-1">
+            {(!isHybridRow || (isHybridRow && items.length > 1)) && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onExtractItem(item.id, item.customer_id); }} 
+                className="p-1 hover:bg-brand/10 text-brand/50 hover:text-brand rounded transition-colors"
+                title="Extraer a nueva factura propia"
+              >
+                <LogOut className="w-3.5 h-3.5 rotate-[-90deg]" />
+              </button>
+            )}
+            <button 
+              onClick={(e) => handleDeleteItem(item.id, e)} 
+              className="p-1 hover:bg-red-50 text-red-500/50 hover:text-red-600 rounded transition-colors" 
+              title="Borrar Registro"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </td>
+      </>
+    );
+  };
 
   // Configuración de Estilo del Grupo
   const mainGroupColor = '#4f4f4f'; 

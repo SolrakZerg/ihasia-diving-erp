@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { 
   Users, 
@@ -23,9 +23,9 @@ import {
   Trash2,
   Edit2,
   Check,
-  CalendarDays,
   Package,
-  TrendingDown
+  Loader2,
+  Search
 } from 'lucide-react';
 
 const PARTNER_IDS = [
@@ -87,9 +87,11 @@ function LiquidationTable({
   return (
     <section className={`flex flex-col bg-[#1f2937] rounded-3xl border ${partner === 'CR' ? 'border-blue-500/20' : 'border-pink-500/20'} overflow-hidden shadow-xl`}>
       <div className={`${partner === 'CR' ? 'bg-blue-600' : 'bg-pink-600'} px-4 py-1.5 flex justify-between items-center`}>
-        <h4 className="text-[12px] font-black text-white uppercase tracking-wider">{partner} Cobrado Cash</h4>
+        <h4 className="text-[12px] font-black text-white uppercase tracking-wider">{partner} Pagos Cash</h4>
         <div className="flex items-center gap-2">
-           <span className="text-[16px] font-black text-white drop-shadow-lg">{total.toLocaleString()}</span>
+           <span className="text-[18px] font-black text-white drop-shadow-lg">
+             {total.toLocaleString()} <span className="text-xs font-black opacity-40 ml-0.5">฿</span>
+           </span>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -103,7 +105,6 @@ function LiquidationTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {/* Input Row (Always for Add) */}
             <tr className="bg-indigo-500/5">
               <td className="px-1 py-0.5">
                 <input 
@@ -137,8 +138,7 @@ function LiquidationTable({
                 </button>
               </td>
             </tr>
-            {/* Data Rows */}
-            {advances.filter(a => a.partner === partner).sort((a, b) => new Date(b.date) - new Date(a.date)).map((a) => (
+            {advances.filter(a => a.partner_id === partner).sort((a, b) => new Date(b.date) - new Date(a.date)).map((a) => (
               <tr key={a.id} className="hover:bg-white/5 transition-colors group">
                 {inlineEditId === a.id ? (
                   <>
@@ -173,7 +173,7 @@ function LiquidationTable({
                 )}
               </tr>
             ))}
-            {advances.filter(a => a.partner === partner).length === 0 && (
+            {advances.filter(a => a.partner_id === partner).length === 0 && (
               <tr><td colSpan="4" className="text-center py-4 text-[9px] font-black text-gray-700 uppercase tracking-widest">Sin registros</td></tr>
             )}
           </tbody>
@@ -192,6 +192,7 @@ export default function PartnersPayouts() {
   const [payoutRules, setPayoutRules] = useState([]);
   const [dailyLog, setDailyLog] = useState({}); 
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const [manualAdj, setManualAdj] = useState({}); 
@@ -226,74 +227,49 @@ export default function PartnersPayouts() {
     if (acts) setAllActivities(acts);
   };
 
-  const calculateMonthStats = (logData, y, m) => {
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const s = { 
-      CR: { office: 0, water: 0, theory: 0, fullOff: 0, halfOff: 0, totalOff: 0 }, 
-      BT: { office: 0, water: 0, theory: 0, fullOff: 0, halfOff: 0, totalOff: 0 }
-    };
-    const logMap = {};
-    (logData || []).forEach(row => { logMap[row.date] = { off: row.off_id }; });
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-      const log = logMap[dateStr] || {};
-      const val = log.off || 'EMPTY';
-      if (val === 'CR') s.CR.fullOff += 1;
-      if (val === 'BT') s.BT.fullOff += 1;
-      if (val === 'CRBT') { s.CR.fullOff += 1; s.BT.fullOff += 1; }
-      if (val === 'CR_HALF') s.CR.halfOff += 1;
-      if (val === 'BT_HALF') s.BT.halfOff += 1;
-    }
-    s.CR.totalOff = s.CR.fullOff + (s.CR.halfOff * 0.5);
-    s.BT.totalOff = s.BT.fullOff + (s.BT.halfOff * 0.5);
-    return s;
-  };
-
   const fetchData = async () => {
     setLoading(true);
     try {
       const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
       
-      const settingsKey = `partner_payout_CRBT_${year}_${month}`;
-      const boteInitialKey = `bote_initial_${year}_${month}`;
-      
-      const [ { data: setting }, { data: boteSetting } ] = await Promise.all([
-        supabase.from('settings').select('value').eq('key', settingsKey).maybeSingle(),
-        supabase.from('settings').select('value').eq('key', boteInitialKey).maybeSingle()
+      const [ { data: pSettlement }, { data: pAdvances }, { data: pDaily }, { data: pAdjs }, { data: bMonthly } ] = await Promise.all([
+        supabase.from('partner_settlements').select('*').eq('year', year).eq('month', month).eq('partner_id', 'CRBT').maybeSingle(),
+        supabase.from('partner_advances').select('*').eq('year', year).eq('month', month),
+        supabase.from('partner_daily_activity').select('*').eq('year', year).eq('month', month),
+        supabase.from('partner_adjustments').select('*').eq('year', year).eq('month', month),
+        supabase.from('bote_monthly').select('*').eq('year', year).eq('month', month).maybeSingle()
       ]);
       
-      // 1. Initial Bote (Synchronized with BoteManagement)
-      if (boteSetting?.value) {
-        setInitialBote(Number(boteSetting.value));
+      if (bMonthly) {
+        setInitialBote(Number(bMonthly.initial_balance || 0));
+        setBoteStats({ 
+          tshirts: 0, // No los necesitamos para el cálculo manual aquí
+          insurances: 0,
+          income: Number(bMonthly.apartar_amount || 0),
+          expenses: Number(bMonthly.expenses_total || 0),
+          final: Number(bMonthly.final_balance || 0)
+        });
       } else {
-        // Fallback to carryover logic if not set
         const prevM = month === 1 ? 12 : month - 1;
         const prevY = month === 1 ? year - 1 : year;
-        const prevBoteKey = `bote_final_${prevY}_${prevM}`;
-        const { data: pbRow } = await supabase.from('settings').select('value').eq('key', prevBoteKey).maybeSingle();
-        setInitialBote(pbRow ? Number(pbRow.value) : 70000);
+        const { data: prevB } = await supabase.from('bote_monthly').select('final_balance').eq('year', prevY).eq('month', prevM).maybeSingle();
+        setInitialBote(prevB ? Number(prevB.final_balance) : 70000);
+        setBoteStats({ income: 0, expenses: 0, final: prevB ? Number(prevB.final_balance) : 70000 });
       }
 
-      // 2. Partner-specific settings
-      if (setting?.value) {
-        setManualAdj(setting.value.adjustments || {});
-        setAssists(setting.value.assists || {});
-        setAdvances(setting.value.advances || []);
-        setPrevMonthBalance(setting.value.prevMonthBalance || { CR: 0, BT: 0 });
-      } else {
-        // ... rest of the legacy carryover for partners if needed
-        setManualAdj({}); setAssists({}); setAdvances([]);
-      }
+      setAdvances(pAdvances || []);
+      const assistMap = {};
+      pDaily?.forEach(row => { if (row.assists > 0) assistMap[row.day] = row.assists; });
+      setAssists(assistMap);
+      const adjMap = {};
+      pAdjs?.forEach(row => { if (row.amount !== 0) adjMap[row.day] = row.amount; });
+      setManualAdj(adjMap);
 
-      // 2. Fetch Monthly Operational Data
-      const { data: allItems } = await supabase
-        .from('invoice_items')
-        .select('*, activities(id, name, category, acronym, tshirt_included)')
-        .gte('date', firstDay)
-        .lte('date', lastDay);
-      
-      // Filter for Table (Only CR & BT)
+      if (pSettlement) setPrevMonthBalance({ CR: Number(pSettlement.prev_day_balance || 0), BT: 0 });
+      else setPrevMonthBalance({ CR: 0, BT: 0 });
+
+      const { data: allItems } = await supabase.from('invoice_items').select('*, activities(id, name, category, acronym, tshirt_included)').gte('date', firstDay).lte('date', lastDay);
       setInvoiceItems((allItems || []).filter(i => PARTNER_IDS.includes(i.instructor_id)));
 
       const { data: logData } = await supabase.from('partner_daily_log').select('*').gte('date', firstDay).lte('date', lastDay);
@@ -301,50 +277,43 @@ export default function PartnersPayouts() {
       (logData || []).forEach(row => { logMap[row.date] = { office: row.office_id, water: row.water_id, theory: row.theory_id, off: row.off_id }; });
       setDailyLog(logMap);
 
-      // 3. Fetch Bote Stats (T-shirts from ALL staff & Insurances)
-      const tCount = allItems?.filter(i => i.activities?.tshirt_included).reduce((acc, i) => acc + Number(i.quantity ?? 1), 0) || 0;
-      const { data: batches } = await supabase.from('insurance_batches').select('total_pax').gte('created_at', firstDay).lte('created_at', lastDay);
-      const iCount = batches?.reduce((acc, b) => acc + (b.total_pax || 0), 0) || 0;
-      setBoteStats({ tshirts: tCount, insurances: iCount });
-
-      // 4. Fetch Bote Expenses
-      const { data: bExpenses } = await supabase.from('bote_expenses').select('*').gte('date', firstDay).lte('date', lastDay);
-      setBoteExpenses(bExpenses || []);
-
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  const saveToSettings = async (overrides = {}) => {
-    const settingsKey = `partner_payout_CRBT_${year}_${month}`;
-    const payload = { adjustments: manualAdj, advances, assists, initialBote, prevMonthBalance, ...overrides };
-    await supabase.from('settings').upsert({ key: settingsKey, value: payload }, { onConflict: 'key' });
-  };
-
-  const addAdvance = (partner) => {
+  const addAdvance = async (partner) => {
     const form = partner === 'CR' ? crForm : btForm;
     if (!form.amount || !form.concept) return;
     const dateStr = `${year}-${month.toString().padStart(2, '0')}-${form.day.toString().padStart(2, '0')}`;
-    const item = { ...form, date: dateStr, partner, id: Date.now(), amount: parseFloat(form.amount) };
-    const updated = [...advances, item];
-    setAdvances(updated);
-    saveToSettings({ advances: updated });
-    const reset = { day: new Date().getDate(), amount: '', concept: '' };
-    if (partner === 'CR') setCrForm(reset);
-    else setBtForm(reset);
+    const { data: newAdv } = await supabase.from('partner_advances').insert({ year, month, partner_id: partner, amount: parseFloat(form.amount), concept: form.concept, date: dateStr }).select().single();
+    if (newAdv) {
+      setAdvances([...advances, newAdv]);
+      const reset = { day: new Date().getDate(), amount: '', concept: '' };
+      if (partner === 'CR') setCrForm(reset); else setBtForm(reset);
+    }
   };
 
-  const saveInlineEdit = (id, partner, inlineForm) => {
+  const saveInlineEdit = async (id, partner, inlineForm) => {
     const dateStr = `${year}-${month.toString().padStart(2, '0')}-${inlineForm.day.toString().padStart(2, '0')}`;
-    const updated = advances.map(a => a.id === id ? { ...a, amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr } : a);
-    setAdvances(updated);
-    saveToSettings({ advances: updated });
+    const { error } = await supabase.from('partner_advances').update({ amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr }).eq('id', id);
+    if (!error) setAdvances(advances.map(a => a.id === id ? { ...a, amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr } : a));
   };
 
-  const deleteAdvance = (id) => {
-    const updated = advances.filter(a => a.id !== id);
-    setAdvances(updated);
-    saveToSettings({ advances: updated });
+  const deleteAdvance = async (id) => {
+    const { error } = await supabase.from('partner_advances').delete().eq('id', id);
+    if (!error) setAdvances(advances.filter(a => a.id !== id));
+  };
+
+  const updateAssist = async (day, val) => {
+    const num = parseInt(val) || 0;
+    setAssists(prev => ({ ...prev, [day]: num }));
+    await supabase.from('partner_daily_activity').upsert({ year, month, day, partner_id: 'CRBT', assists: num }, { onConflict: 'year, month, day, partner_id' });
+  };
+
+  const updateAdjustment = async (day, val) => {
+    const num = parseFloat(val) || 0;
+    setManualAdj(prev => ({ ...prev, [day]: num }));
+    await supabase.from('partner_adjustments').upsert({ year, month, day, partner_id: 'CRBT', amount: num }, { onConflict: 'year, month, day, partner_id' });
   };
 
   const updateLog = async (date, field, value) => {
@@ -437,43 +406,115 @@ export default function PartnersPayouts() {
   const totalAssists = Object.values(assists).reduce((acc, val) => acc + (val * 2000), 0);
   const totalAdj = Object.values(manualAdj).reduce((acc, val) => acc + val, 0);
   const totalAdvances = advances.reduce((acc, a) => acc + a.amount, 0);
-  const finalBoteProyectado = initialBote + totalComm + totalAssists + totalAdj - totalAdvances;
-
-  const totalCRAdvances = advances.filter(a => a.partner === 'CR').reduce((acc, a) => acc + a.amount, 0);
-  const totalBTAdvances = advances.filter(a => a.partner === 'BT').reduce((acc, a) => acc + a.amount, 0);
-
-  // Per-partner totals (50/50 split of gross income)
-  const grossIncome = totalComm + totalAssists + totalAdj;
-  const halfGross = grossIncome / 2;
   
-  const totalCRPayout = halfGross - totalCRAdvances;
-  const totalBTPayout = halfGross - totalBTAdvances;
+  const grossIncome = totalComm + totalAssists + totalAdj;
+  const netRemaining = grossIncome - totalAdvances;
 
-  if (loading) return (
-    <div className="flex h-full items-center justify-center">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
-    </div>
-  );
+  // AUTO-SAVE LOGIC (Settlements & Monthly Reports)
+  useEffect(() => {
+    if (loading) return;
+    
+    const sync = async () => {
+      setSyncing(true);
+      try {
+        // 1. Sync Partner Settlements (Existing)
+        await supabase.from('partner_settlements').upsert({
+          year, month, partner_id: 'CRBT',
+          total_generated: totalComm,
+          total_adjustments: totalAssists + totalAdj,
+          total_advances: totalAdvances,
+          net_payout: netRemaining,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'year, month, partner_id' });
+
+        // 2. Sync to Monthly Reports (Totals for Dashboard)
+        const crCash = advances.filter(a => a.partner_id === 'CR').reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+        const btCash = advances.filter(a => a.partner_id === 'BT').reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+
+        await supabase.from('monthly_reports').upsert({
+          year, month,
+          cr_cash: crCash,
+          bt_cash: btCash,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'year, month' });
+
+      } catch (err) {
+        console.error("[PartnersPayouts] Sync error:", err);
+      } finally {
+        setSyncing(false);
+      }
+    };
+
+    const timer = setTimeout(sync, 1500);
+    return () => clearTimeout(timer);
+  }, [totalComm, totalAssists, totalAdj, totalAdvances, netRemaining, month, year, loading, advances]);
+
+  if (loading) return (<div className="flex h-full items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-brand" /></div>);
 
   return (
     <div className="flex flex-col h-full bg-surface animate-in fade-in duration-700 overflow-hidden text-slate-300">
       <style>{noSpinnerStyle}</style>
-      
-      {/* Top Header */}
       <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-400"><UsersRound className="w-6 h-6" /></div>
           <div>
-            <h1 className="text-2xl font-black text-white leading-tight">Liquidación Socios (CRBT)</h1>
+            <h1 className="text-2xl font-black text-white leading-tight">Liquidación Socios</h1>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-none mt-1">Gestión Unificada</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner">
-          <div className="flex items-center gap-1 px-3">
-            <button onClick={() => setMonth(m => m === 1 ? 12 : m - 1)} className="p-1 hover:bg-surface-edge rounded-lg text-gray-400"><ArrowLeft className="w-4 h-4" /></button>
-            <span className="text-white font-black text-sm min-w-[100px] text-center uppercase tracking-tighter">{months[month - 1]} {year}</span>
-            <button onClick={() => setMonth(m => m === 12 ? 1 : m + 1)} className="p-1 hover:bg-surface-edge rounded-lg text-gray-400"><ArrowRight className="w-4 h-4" /></button>
+        {/* HYBRID DATE SELECTOR */}
+        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
+          <button 
+            onClick={() => {
+              if (month === 1) {
+                setMonth(12);
+                setYear(prev => prev - 1);
+              } else {
+                setMonth(prev => prev - 1);
+              }
+            }}
+            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+            <select 
+              value={month} 
+              onChange={e => setMonth(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
+            >
+              {months.map((m, i) => (
+                <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
+              ))}
+            </select>
+            
+            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+            <select 
+              value={year} 
+              onChange={e => setYear(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
+            >
+              {[2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+              ))}
+            </select>
           </div>
+
+          <button 
+            onClick={() => {
+              if (month === 12) {
+                setMonth(1);
+                setYear(prev => prev + 1);
+              } else {
+                setMonth(prev => prev + 1);
+              }
+            }}
+            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -481,27 +522,15 @@ export default function PartnersPayouts() {
         <div className="flex-1 flex flex-col overflow-hidden px-6 py-2">
           <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar py-2">
             <div className="flex gap-6 justify-center items-start min-w-max h-full px-4">
-              
-              {/* Table 1: ACTIVIDAD CONSOLIDADA */}
               <div className="flex-none w-fit max-w-[850px] bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden flex flex-col h-fit max-h-full">
                 <div className="flex-1 overflow-auto custom-scrollbar relative">
                   <table className="w-full text-left border-collapse table-fixed">
                     <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl h-[70px]">
                       <tr className="border-b border-surface-edge">
                         <th className="p-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-12 bg-surface-soft">Día</th>
-                        {fixedColumns.map(col => (
-                          <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 w-[35px]">
-                            <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
-                          </th>
-                        ))}
-                        {dynamicActivities.map(act => (
-                          <th key={act.id} className="p-0 text-[16px] font-black text-amber-500/80 uppercase tracking-tighter text-center border-l border-surface-edge/30 bg-amber-500/5 w-[35px]">
-                            <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{(act.acronym || act.name).split('').slice(0, 8).map((char, i) => <span key={i}>{char}</span>)}</div>
-                          </th>
-                        ))}
-                        <th className="p-0 text-[16px] font-black text-cyan-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-[35px] bg-cyan-500/5">
-                          <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{'ASS'.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
-                        </th>
+                        {fixedColumns.map(col => (<th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 w-[35px]"><div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div></th>))}
+                        {dynamicActivities.map(act => (<th key={act.id} className="p-0 text-[16px] font-black text-amber-500/80 uppercase tracking-tighter text-center border-l border-surface-edge/30 bg-amber-500/5 w-[35px]"><div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{(act.acronym || act.name).split('').slice(0, 8).map((char, i) => <span key={i}>{char}</span>)}</div></th>))}
+                        <th className="p-0 text-[16px] font-black text-cyan-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-[35px] bg-cyan-500/5"><div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{'ASS'.split('').map((char, i) => <span key={i}>{char}</span>)}</div></th>
                         <th className="p-1 text-[16px] font-black text-indigo-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-16 bg-indigo-500/5 min-w-[64px]">Extra</th>
                         <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
                       </tr>
@@ -518,13 +547,9 @@ export default function PartnersPayouts() {
                               const count = matrixData[day].items[`dyn_${act.id}`] || 0;
                               return (<td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]"><span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>{count || ''}</span></td>);
                            })}
-                          <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5"><input type="number" value={assists[day] || ''} onChange={(e) => { const n = {...assists, [day]: parseInt(e.target.value)||0}; setAssists(n); saveToSettings({assists:n}); }} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none no-spinner" placeholder="0" /></td>
-                          <td className="p-0 border-l border-surface-edge/10 bg-indigo-500/5"><input type="number" value={manualAdj[day] || ''} onChange={(e) => { const n = {...manualAdj, [day]: parseFloat(e.target.value)||0}; setManualAdj(n); saveToSettings({adjustments:n}); }} className="w-full bg-transparent text-center text-indigo-400 font-black text-sm outline-none no-spinner" placeholder="0" /></td>
-                          <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4">
-                            <span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>
-                              {(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿
-                            </span>
-                          </td>
+                          <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5"><input type="number" value={assists[day] || ''} onChange={(e) => updateAssist(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none no-spinner" placeholder="0" /></td>
+                          <td className="p-0 border-l border-surface-edge/10 bg-indigo-500/5"><input type="number" value={manualAdj[day] || ''} onChange={(e) => updateAdjustment(day, e.target.value)} className="w-full bg-transparent text-center text-indigo-400 font-black text-sm outline-none no-spinner" placeholder="0" /></td>
+                          <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -542,7 +567,6 @@ export default function PartnersPayouts() {
                 </div>
               </div>
 
-              {/* Table 2: LOG DIARIO INDIVIDUAL */}
               <div className="flex-none min-w-[400px] max-w-[550px] bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden flex flex-col h-fit max-h-full">
                 <div className="flex-1 overflow-auto custom-scrollbar relative">
                   <table className="w-full text-left border-collapse table-fixed">
@@ -560,12 +584,7 @@ export default function PartnersPayouts() {
                         const dayName = new Date(year, month-1, day).toLocaleDateString('es-ES', {weekday: 'short'}).toUpperCase();
                         return (
                           <tr key={day} className="hover:bg-white/5 transition-colors h-9">
-                            <td className="pr-4 text-right">
-                               <div className="flex items-center justify-end gap-2 leading-none">
-                                  <span className="text-[10px] font-black text-slate-600">{dayName.slice(0,3)}</span>
-                                  <span className="text-xs font-black text-white w-4">{day}</span>
-                               </div>
-                            </td>
+                            <td className="pr-4 text-right"><div className="flex items-center justify-end gap-2 leading-none"><span className="text-[10px] font-black text-slate-600">{dayName.slice(0,3)}</span><span className="text-xs font-black text-white w-4">{day}</span></div></td>
                             {['office', 'water', 'theory', 'off'].map(field => (
                               <td key={field} className="px-0.5 border-l border-surface-edge/10">
                                  <select value={log[field] || 'EMPTY'} onChange={e => updateLog(dateStr, field, e.target.value)} className={`w-full text-[12px] font-black rounded-md px-1 py-1.5 outline-none appearance-none text-center ${LOG_OPTIONS.find(o => o.id === (log[field] || 'EMPTY'))?.color}`}>
@@ -597,16 +616,14 @@ export default function PartnersPayouts() {
           </div>
         </div>
 
-        {/* Sidebar Toggle Button */}
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`absolute top-4 right-0 z-50 p-2 bg-surface-edge border border-surface-edge text-white rounded-l-xl shadow-2xl hover:bg-brand transition-all duration-300`}>
           {sidebarOpen ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
         </button>
 
-        {/* Sidebar */}
         <div className={`bg-surface border-l border-surface-edge flex flex-col overflow-hidden transition-all duration-500 ease-in-out shadow-2xl z-10 ${sidebarOpen ? 'w-[400px] p-6 opacity-100' : 'w-0 p-0 opacity-0'}`}>
           <div className="flex-1 flex flex-col space-y-6 overflow-y-auto custom-scrollbar pr-2 min-w-[352px] mt-10 pb-10">
             
-            {/* 1. Recuento de Días */}
+
             <section className="space-y-4">
                <div className="bg-surface-soft border border-surface-edge rounded-3xl overflow-hidden shadow-xl">
                   <table className="w-full text-center border-collapse text-[12px] table-fixed">
@@ -623,9 +640,7 @@ export default function PartnersPayouts() {
                      <tbody className="divide-y divide-surface-edge/10">
                         {['CR', 'BT'].map(p => (
                           <tr key={p} className="h-10 font-black text-xs">
-                            <td className="p-[1px] h-10">
-                               <div className={`w-full h-[38px] rounded-md flex items-center justify-center text-white font-black text-[11px] ${p === 'CR' ? 'bg-blue-600' : 'bg-pink-600'}`}>{p}</div>
-                            </td>
+                            <td className="p-[1px] h-10"><div className={`w-full h-[38px] rounded-md flex items-center justify-center text-white font-black text-[11px] ${p === 'CR' ? 'bg-blue-600' : 'bg-pink-600'}`}>{p}</div></td>
                             <td className="p-[1px] text-blue-400 bg-blue-500/5 text-[12px]">{stats[p].fullOff}</td>
                             <td className="p-[1px] text-blue-400 bg-blue-500/5 text-[12px]">{stats[p].halfOff}</td>
                             <td className="p-[1px] text-blue-400 bg-blue-500/10 text-[12px]">{stats[p].totalOff}</td>
@@ -638,76 +653,30 @@ export default function PartnersPayouts() {
                </div>
                {diffDays !== 0 && (
                   <div className={`p-5 rounded-[28px] flex flex-col items-center justify-center gap-2 shadow-2xl border-2 transition-all animate-in zoom-in duration-500 ${diffDays > 0 ? 'bg-pink-600 border-pink-400 text-white shadow-pink-900/40' : 'bg-blue-600 border-blue-400 text-white shadow-blue-900/40'}`}>
-                     <div className="flex items-center gap-3">
-                        <AlertCircle className="w-6 h-6 text-white/80" />
-                        <span className="text-[16px] font-black uppercase tracking-tighter">
-                          {Math.abs(diffDays)} {Math.abs(diffDays) === 1 ? 'día' : 'días'} le debes a {diffDays > 0 ? 'BT' : 'CR'}
-                        </span>
-                     </div>
-                     <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Compensación de Días Libres</p>
+                     <div className="flex items-center gap-3"><AlertCircle className="w-6 h-6 text-white/80" /><span className="text-[16px] font-black uppercase tracking-tighter">{Math.abs(diffDays)} {Math.abs(diffDays) === 1 ? 'día' : 'días'} le debes a {diffDays > 0 ? 'BT' : 'CR'}</span></div>
                   </div>
                )}
             </section>
 
-            {/* 2. Liquidaciones INDIVIDUALES */}
-            <div className="space-y-6 mt-12">
-              <LiquidationTable 
-                partner="CR" 
-                total={totalCRAdvances} 
-                form={crForm} 
-                setForm={setCrForm} 
-                advances={advances}
-                onAdd={addAdvance}
-                onDelete={deleteAdvance}
-                onSaveInline={saveInlineEdit}
-              />
-              <LiquidationTable 
-                partner="BT" 
-                total={totalBTAdvances} 
-                form={btForm} 
-                setForm={setBtForm} 
-                advances={advances}
-                onAdd={addAdvance}
-                onDelete={deleteAdvance}
-                onSaveInline={saveInlineEdit}
-              />
+            <div className="space-y-6">
+              <LiquidationTable partner="CR" total={advances.filter(a => a.partner_id === 'CR').reduce((acc, a) => acc + a.amount, 0)} form={crForm} setForm={setCrForm} advances={advances} onAdd={addAdvance} onDelete={deleteAdvance} onSaveInline={saveInlineEdit} />
+              <LiquidationTable partner="BT" total={advances.filter(a => a.partner_id === 'BT').reduce((acc, a) => acc + a.amount, 0)} form={btForm} setForm={setBtForm} advances={advances} onAdd={addAdvance} onDelete={deleteAdvance} onSaveInline={saveInlineEdit} />
             </div>
 
-            {/* Estado del Bote Sidebar Widget */}
-            <section className="space-y-4 mt-12">
+            <section className="space-y-4">
                <div className="bg-[#1f2937] border border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                  <div className="bg-amber-400 py-3 px-8">
-                     <p className="text-[12px] font-black text-amber-950 uppercase tracking-[0.2em] flex items-center gap-2">
-                        <Package className="w-4 h-4" /> ESTADO DEL BOTE
-                     </p>
-                  </div>
-                  
-                  <div className="p-8 space-y-6 relative z-10">
-
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-center group/item">
-                         <span className="text-sm font-black text-zinc-400 uppercase tracking-widest group-hover/item:text-zinc-200 transition-colors">FONDO INICIAL</span>
-                         <span className="text-lg font-black text-amber-500 tracking-tighter">{initialBote.toLocaleString()} ฿</span>
-                       </div>
-
-                       <div className="flex justify-between items-center group/item">
-                         <span className="text-sm font-black text-zinc-400 uppercase tracking-widest group-hover/item:text-zinc-200 transition-colors">INGRESOS BOTE</span>
-                         <span className="text-lg font-black text-emerald-400 tracking-tighter">+{((boteStats.tshirts * 160) + (boteStats.insurances * 75)).toLocaleString()} ฿</span>
-                       </div>
-
-                       <div className="flex justify-between items-center group/item">
-                         <span className="text-sm font-black text-zinc-400 uppercase tracking-widest group-hover/item:text-zinc-200 transition-colors">GASTOS MATERIAL</span>
-                         <span className="text-lg font-black text-rose-400 tracking-tighter">-{boteExpenses.reduce((acc, e) => acc + Number(e.amount), 0).toLocaleString()} ฿</span>
-                       </div>
-                    </div>
-
-                    <div className="pt-6 border-t-2 border-white/5 flex flex-col items-center">
-                      <p className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-2">SALDO FINAL PROYECTADO</p>
-                      <h2 className="text-5xl font-black text-white tracking-tighter flex items-baseline gap-2">
-                        {(initialBote + (boteStats.tshirts * 160) + (boteStats.insurances * 75) - boteExpenses.reduce((acc, e) => acc + Number(e.amount), 0)).toLocaleString()} 
-                        <span className="text-xl text-brand italic opacity-50">฿</span>
-                      </h2>
-                    </div>
+                  <div className="bg-amber-400 py-3 px-8"><p className="text-[12px] font-black text-amber-950 uppercase tracking-[0.2em] flex items-center gap-2"><Package className="w-4 h-4" /> BOTE</p></div>
+                  <div className="p-8 space-y-4 relative z-10">
+                     <div className="flex justify-between items-center"><span className="text-sm font-black text-zinc-400 uppercase tracking-widest">INICIAL</span><span className="text-lg font-black text-amber-500">{initialBote.toLocaleString()} ฿</span></div>
+                     <div className="flex justify-between items-center"><span className="text-sm font-black text-zinc-400 uppercase tracking-widest">BOTE {months[month-1].toUpperCase()}</span><span className="text-lg font-black text-emerald-400">+{Number(boteStats.income || 0).toLocaleString()} ฿</span></div>
+                     <div className="flex justify-between items-center"><span className="text-sm font-black text-zinc-400 uppercase tracking-widest">GASTOS</span><span className="text-lg font-black text-rose-400">-{Number(boteStats.expenses || 0).toLocaleString()} ฿</span></div>
+                      <div className="pt-6 border-t border-white/5 flex flex-col items-center">
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-2">SALDO PROYECTADO</p>
+                        <h2 className="text-5xl font-black text-white tracking-tighter">
+                          {Number(boteStats.final || 0).toLocaleString()} 
+                          <span className="text-lg font-black text-white/30 ml-2 italic">฿</span>
+                        </h2>
+                      </div>
                   </div>
                </div>
             </section>

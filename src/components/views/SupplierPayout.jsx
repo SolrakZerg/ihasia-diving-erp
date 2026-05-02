@@ -197,7 +197,6 @@ export default function SupplierPayout() {
       if (data) {
         setSettlementId(data.id);
         setPaidAmount(data.paid_amount);
-        // Cargar configuración de factura si existe
         if (data.invoice_config && data.invoice_config.length > 0) {
           setSelectedInvoiceRows(data.invoice_config);
         }
@@ -217,6 +216,7 @@ export default function SupplierPayout() {
       month,
       year,
       paid_amount: value !== null ? value : paidAmount,
+      total_amount: grandTotal,
       invoice_config: customConfig || selectedInvoiceRows,
       updated_at: new Date().toISOString()
     };
@@ -234,15 +234,6 @@ export default function SupplierPayout() {
     setIsSaving(false);
   };
 
-  // Guardar configuración cuando cambian las filas
-  useEffect(() => {
-    if (selectedInvoiceRows.length > 0 && settlementId) {
-      const timer = setTimeout(() => {
-        saveSettlement(paidAmount, selectedInvoiceRows);
-      }, 1000); // Debounce de 1 segundo para no saturar la BD
-      return () => clearTimeout(timer);
-    }
-  }, [selectedInvoiceRows]);
 
   const fetchInitialData = async () => {
     const { data: activitiesData } = await supabase.from('activities').select('*').order('name');
@@ -398,6 +389,16 @@ export default function SupplierPayout() {
     return dynamicInvoiceData.reduce((acc, row) => acc + row.amount, 0);
   }, [dynamicInvoiceData]);
 
+  // Guardar configuración cuando cambian las filas o el total
+  useEffect(() => {
+    if (selectedInvoiceRows.length > 0 && settlementId) {
+      const timer = setTimeout(() => {
+        saveSettlement(paidAmount, selectedInvoiceRows);
+      }, 1000); // Debounce de 1 segundo para no saturar la BD
+      return () => clearTimeout(timer);
+    }
+  }, [selectedInvoiceRows, grandTotal]);
+
   const remainingBalance = grandTotal - paidAmount;
 
   if (loading && !invoiceItems.length) return (
@@ -438,16 +439,59 @@ export default function SupplierPayout() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner">
-          <div className="flex items-center gap-1 px-3">
-            <button onClick={() => setMonth(m => m === 1 ? 12 : m - 1)} className="p-1 hover:bg-surface-edge rounded-lg text-gray-400">
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <span className="text-white font-black text-sm min-w-[100px] text-center uppercase tracking-tighter">{months[month - 1]} {year}</span>
-            <button onClick={() => setMonth(m => m === 12 ? 1 : m + 1)} className="p-1 hover:bg-surface-edge rounded-lg text-gray-400">
-              <ArrowRight className="w-4 h-4" />
-            </button>
+        {/* HYBRID DATE SELECTOR */}
+        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
+          <button 
+            onClick={() => {
+              if (month === 1) {
+                setMonth(12);
+                setYear(prev => prev - 1);
+              } else {
+                setMonth(prev => prev - 1);
+              }
+            }}
+            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+            <select 
+              value={month} 
+              onChange={e => setMonth(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
+            >
+              {months.map((m, i) => (
+                <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
+              ))}
+            </select>
+            
+            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+            <select 
+              value={year} 
+              onChange={e => setYear(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
+            >
+              {[2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+              ))}
+            </select>
           </div>
+
+          <button 
+            onClick={() => {
+              if (month === 12) {
+                setMonth(1);
+                setYear(prev => prev + 1);
+              } else {
+                setMonth(prev => prev + 1);
+              }
+            }}
+            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -559,7 +603,7 @@ export default function SupplierPayout() {
                   </div>
                 </div>
 
-                {/* SUMMARY WIDGET TO THE RIGHT */}
+                {/* SUMMARY WIDGET - ORIGINAL DESIGN WITH NEW COLORS */}
                 <div className="flex-none w-72 flex flex-col gap-4">
                   <div className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -569,16 +613,16 @@ export default function SupplierPayout() {
                     <div className="space-y-6 relative z-10">
                       {/* TOTAL SECTION */}
                       <div>
-                        <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Total THB</p>
-                        <h2 className="text-3xl font-black text-white tracking-tighter">
-                          {grandTotal.toLocaleString()} <span className="text-emerald-500 text-xl">฿</span>
+                        <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1">Total THB</p>
+                        <h2 className="text-4xl font-black text-white tracking-tighter">
+                          {grandTotal.toLocaleString()} <span className="text-sm font-black text-amber-500/40 ml-1">฿</span>
                         </h2>
                       </div>
 
                       {/* PAID SECTION */}
                       <div className="bg-black/20 rounded-2xl p-4 border border-white/5 group/paid">
                         <div className="flex justify-between items-center mb-2">
-                          <p className="text-emerald-500/70 text-[10px] font-black uppercase tracking-widest">Pagado:</p>
+                          <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest">Pagado:</p>
                           {isSaving && <span className="text-[8px] text-emerald-500 animate-pulse font-black uppercase">Guardando...</span>}
                         </div>
                         <div className="relative">
@@ -587,37 +631,38 @@ export default function SupplierPayout() {
                             value={paidAmount || ''}
                             onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
                             onBlur={(e) => saveSettlement(parseInt(e.target.value) || 0)}
-                            className="w-full bg-transparent text-2xl font-black text-white outline-none border-b-2 border-emerald-500/20 focus:border-emerald-500 transition-colors no-spinner"
+                            className="w-full bg-transparent text-3xl font-black text-white outline-none !border-none !ring-0 focus:!ring-0 transition-colors no-spinner tracking-tighter"
                             placeholder="0"
                           />
-                          <span className="absolute right-0 bottom-1 text-emerald-500 font-black">฿</span>
+                          <span className="absolute right-0 bottom-2 text-emerald-500/40 font-black text-sm">฿</span>
                         </div>
+                        <div className="h-0.5 w-full bg-emerald-500/20 rounded-full mt-1" />
                       </div>
 
                       {/* REMAINING SECTION */}
                       <div className="pt-2">
-                        <p className="text-rose-400 text-[10px] font-black uppercase tracking-widest mb-1">Por Pagar:</p>
-                        <h2 className={`text-4xl font-black tracking-tighter transition-colors ${remainingBalance <= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                          {remainingBalance.toLocaleString()} <span className="text-xl">฿</span>
+                        <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1">Por Pagar:</p>
+                        <h2 className={`text-5xl font-black tracking-tighter transition-colors ${remainingBalance <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {remainingBalance.toLocaleString()} <span className="text-base font-black opacity-30 ml-1">฿</span>
                         </h2>
                       </div>
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-surface-edge">
-                      <p className="text-[11px] text-gray-500 font-bold leading-relaxed">
+                      <p className="text-[11px] text-gray-500 font-bold leading-relaxed italic">
                         Cálculo basado en la actividad de <span className="text-gray-300">{months[month-1]}</span>.
                       </p>
                     </div>
                   </div>
 
                   <div className={`bg-surface-soft/50 border border-surface-edge/50 rounded-2xl p-4 flex items-center gap-4 transition-colors ${remainingBalance <= 0 ? 'bg-emerald-500/5 border-emerald-500/20' : ''}`}>
-                    <div className={`p-3 rounded-xl ${remainingBalance <= 0 ? 'bg-emerald-500/20' : 'bg-rose-500/10'}`}>
-                      {remainingBalance <= 0 ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <FileText className="w-5 h-5 text-rose-500" />}
+                    <div className={`p-3 rounded-xl ${remainingBalance <= 0 ? 'bg-emerald-500/20' : 'bg-rose-400/10'}`}>
+                      {remainingBalance <= 0 ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <FileText className="w-5 h-5 text-rose-400" />}
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-gray-500 uppercase">Estado</p>
+                      <p className="text-[10px] font-black text-zinc-400 uppercase">Estado Mensual</p>
                       <p className={`text-xs font-bold ${remainingBalance <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {remainingBalance <= 0 ? 'Liquidado Total' : 'Pendiente de Pago'}
+                        {remainingBalance <= 0 ? 'Liquidación Completa' : 'Pendiente de Pago'}
                       </p>
                     </div>
                   </div>

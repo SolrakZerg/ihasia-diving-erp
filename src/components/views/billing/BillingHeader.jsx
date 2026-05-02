@@ -37,13 +37,27 @@ export default function BillingHeader({
       <div className="flex-none w-full max-w-[380px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
         <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
           <span className="flex items-center gap-1.5 text-blue-400 text-xs font-bold whitespace-nowrap"><Users className="w-3.5 h-3.5" /> Llegadas</span>
-          <div className="flex-none ml-auto flex items-center bg-brand/10 rounded-lg border border-brand/30 overflow-hidden h-[19px]">
-            <button onClick={(e) => { e.stopPropagation(); changeArrivalsDate(-1); }} className="flex-none px-2 h-full hover:bg-brand/20 text-brand transition-colors border-r border-brand/20 flex items-center justify-center font-bold"><ChevronLeft className="w-4 h-4" /></button>
-            <div className="relative cursor-pointer group/date flex items-center justify-center px-3 h-full hover:bg-brand/5 border-x border-brand/20" onClick={() => dateInputRef.current?.showPicker()}>
+          <div className="flex-none ml-auto flex items-center bg-surface-soft/50 rounded-2xl border border-surface-edge/30 overflow-hidden h-[21px] p-0.5">
+            <button 
+              onClick={(e) => { e.stopPropagation(); changeArrivalsDate(-1); }} 
+              className="p-1 hover:bg-surface-edge/30 rounded-lg text-gray-400 hover:text-white transition-all border-r border-surface-edge/20"
+            >
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+            
+            <div className="relative cursor-pointer group/date flex items-center justify-center px-3 h-full hover:bg-brand/5" onClick={() => dateInputRef.current?.showPicker()}>
               <input ref={dateInputRef} type="date" value={arrivalsDate} onChange={(e) => setArrivalsDate(e.target.value)} className="absolute w-0 h-0 opacity-0 border-0 p-0 m-0 pointer-events-none" style={{ visibility: 'hidden' }} />
-              <span className="text-[11px] text-brand font-bold whitespace-nowrap">{new Date(arrivalsDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
+              <span className="text-[10px] text-brand font-black whitespace-nowrap uppercase">
+                {new Date(arrivalsDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+              </span>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); changeArrivalsDate(1); }} className="flex-none px-2 h-full hover:bg-brand/20 text-brand transition-colors border-l border-brand/20 flex items-center justify-center font-bold"><ChevronRight className="w-4 h-4" /></button>
+            
+            <button 
+              onClick={(e) => { e.stopPropagation(); changeArrivalsDate(1); }} 
+              className="p-1 hover:bg-surface-edge/30 rounded-lg text-gray-400 hover:text-white transition-all border-l border-surface-edge/20"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
@@ -107,7 +121,7 @@ export default function BillingHeader({
       </div>
 
       {/* Widget 3: CAJA */}
-      <div className="flex-none w-fit flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden min-w-[140px] shrink-0">
+      <div className="flex-none w-fit flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden min-w-[180px] shrink-0">
         <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
           <span className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold"><Calculator className="w-3.5 h-3.5" /> Caja</span>
           {isSavingCash ? <Loader2 className="w-3 h-3 animate-spin text-emerald-500/50" /> : <CheckCircle2 className="w-3 h-3 text-emerald-500/30" />}
@@ -122,18 +136,28 @@ export default function BillingHeader({
               { label: '50', value: 50, state: bills50, setState: setBills50 },
               { label: '20', value: 20, state: bills20, setState: setBills20 },
             ].map((b) => (
-              <div key={b.label} className="flex items-center gap-4 group">
-                <div className="w-16 text-emerald-400/90 font-mono text-[12px] group-hover:text-emerald-400 transition-colors">{b.label} <span className="text-gray-600 text-[9px]">฿</span></div>
-                <input type="number" min="0" max="999" value={b.state} onChange={e => b.setState(e.target.value)} className="w-12 h-[20px] bg-surface text-white border border-surface-edge hover:border-emerald-500/50 rounded text-center outline-none focus:border-emerald-500 py-0 text-xs font-bold transition-all shadow-inner" />
+              <div key={b.label} className="flex items-center justify-between gap-2 group">
+                <div className="w-10 text-emerald-400/90 font-mono text-[12px] group-hover:text-emerald-400 transition-colors">{b.label}</div>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max="999" 
+                  value={b.state} 
+                  onChange={e => b.setState(e.target.value)} 
+                  className="w-10 h-[20px] bg-surface text-white border border-surface-edge hover:border-emerald-500/50 rounded text-center outline-none focus:border-emerald-500 py-0 text-xs font-bold transition-all shadow-inner" 
+                />
+                <div className="w-16 text-right text-white/50 font-mono text-[12px]">
+                  {(Number(b.state || 0) * b.value).toLocaleString()}
+                </div>
               </div>
             ))}
           </div>
           <div className="mt-2 pt-2 border-t border-surface-edge/50 space-y-1">
             <div className="flex flex-col gap-0.5">
-              <div className="flex justify-between items-center"><span className="text-gray-400 text-[10px] uppercase font-black">Total:</span><span className="text-white font-black text-[15px] font-mono tracking-tighter leading-tight">{actualCash.toLocaleString()} ฿</span></div>
-              <div className="flex justify-between items-center"><span className="text-gray-400 text-[10px] uppercase font-black tracking-tighter">Debería:</span><span className="text-white font-black text-[15px] font-mono tracking-tighter leading-tight">{expectedCash.toLocaleString()} ฿</span></div>
+              <div className="flex justify-between items-center"><span className="text-gray-400 text-[12px] uppercase font-black">Hay:</span><span className="text-white font-black text-[15px] font-mono tracking-tighter leading-tight">{actualCash.toLocaleString()} ฿</span></div>
+              <div className="flex justify-between items-center"><span className="text-gray-400 text-[12px] uppercase font-black tracking-tighter">Debería:</span><span className="text-white font-black text-[15px] font-mono tracking-tighter leading-tight">{expectedCash.toLocaleString()} ฿</span></div>
               <div className="flex flex-col items-center pt-2 mt-1 border-t border-surface-edge/30">
-                <span className={`text-[20px] font-black leading-none drop-shadow-sm ${diffCash === 0 ? 'text-emerald-400' : diffCash > 0 ? 'text-blue-400' : 'text-red-400'}`}>{diffCash > 0 ? '+' : ''}{diffCash.toLocaleString()} ฿</span>
+                <span className={`text-[20px] font-black leading-none drop-shadow-sm ${diffCash === 0 ? 'text-blue-400' : diffCash > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{diffCash > 0 ? '+' : ''}{diffCash.toLocaleString()} ฿</span>
                 <span className="text-[9px] uppercase text-gray-400 font-black mt-0.5">{diffCash === 0 ? 'DIFERENCIA OK' : diffCash > 0 ? 'SOBRA DINERO' : 'FALTA DINERO'}</span>
               </div>
             </div>
@@ -147,42 +171,91 @@ export default function BillingHeader({
           <span className="flex items-center gap-1.5 text-blue-400 text-xs font-bold"><Target className="w-3.5 h-3.5" /> Finanzas</span>
           <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest leading-none">Global</span>
         </div>
-        <div className="flex-1 flex flex-col p-2 px-3 justify-between bg-surface-soft/30">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center pb-2 border-b border-surface-edge/30">
-              <span className="text-gray-400 text-[12px] uppercase font-bold tracking-tight">Facturado:</span>
-              <span className="text-white font-black text-[18px] drop-shadow-md">{stats.facturado.toLocaleString()} ฿</span>
+        <div className="flex-1 flex flex-col p-3 px-4 justify-between bg-surface-soft/30 gap-1.5">
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center">
+              <span className="text-amber-500 text-[12px] uppercase font-black tracking-tight">Facturado:</span>
+              <span className="text-amber-500 font-black text-[16px]">{stats.facturado.toLocaleString()} <span className="text-[12px] opacity-40">฿</span></span>
             </div>
-            <div className="flex justify-between items-center bg-amber-500/10 px-2 py-1.5 rounded border border-amber-500/20 shadow-sm">
-              <span className="text-amber-500 text-[12px] uppercase font-black">Pendiente:</span>
-              <span className="text-amber-400 font-bold text-[14px]">{stats.pendiente.toLocaleString()} ฿</span>
+            <div className="flex justify-between items-center">
+              <span className="text-emerald-500 text-[12px] uppercase font-black tracking-tight">Cobrado:</span>
+              <span className="text-emerald-500 font-black text-[16px]">{stats.cobrado.toLocaleString()} <span className="text-[12px] opacity-40">฿</span></span>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 py-2">
-              <div className="flex flex-col"><span className="text-[11px] text-gray-500 uppercase font-black leading-tight">Wise BT</span><span className="text-blue-400 text-[12px] font-mono font-bold">{stats.wiseBT.toLocaleString()} ฿</span></div>
-              <div className="flex flex-col text-right"><span className="text-[11px] text-gray-500 uppercase font-black leading-tight">Wise CR</span><span className="text-blue-400 text-[12px] font-mono font-bold">{stats.wiseCR.toLocaleString()} ฿</span></div>
-              <div className="flex flex-col"><span className="text-[11px] text-gray-500 uppercase font-black leading-tight">EUR BT</span><span className="text-indigo-400 text-[12px] font-mono font-bold">{stats.eurBT.toLocaleString()} ฿</span></div>
-              <div className="flex flex-col text-right"><span className="text-[11px] text-gray-500 uppercase font-black leading-tight">EUR CR</span><span className="text-indigo-400 text-[12px] font-mono font-bold">{stats.eurCR.toLocaleString()} ฿</span></div>
+            <div className="flex justify-between items-center">
+              <span className="text-rose-400 text-[12px] uppercase font-black tracking-tight">Pendiente:</span>
+              <span className="text-rose-400 font-black text-[16px]">{stats.pendiente.toLocaleString()} <span className="text-[12px] opacity-40">฿</span></span>
             </div>
           </div>
-          <div className="mt-3 flex justify-between items-center bg-emerald-500/10 px-3 py-2 rounded border border-emerald-500/25 shadow-inner">
-            <span className="text-emerald-500 text-[12px] uppercase font-black">Balance Cash:</span>
-            <span className="text-emerald-400 font-black text-[16px] font-mono">{stats.balanceCash.toLocaleString()} ฿</span>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 py-1.5 border-y border-surface-edge/20">
+            <div>
+              <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">Wise BT</span>
+              <span className="text-pink-400 font-black text-[16px]">{stats.wiseBT.toLocaleString()} <span className="text-[10px] opacity-50">฿</span></span>
+            </div>
+            <div className="text-right">
+              <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">Wise CR</span>
+              <span className="text-blue-400 font-black text-[16px]">{stats.wiseCR.toLocaleString()} <span className="text-[10px] opacity-50">฿</span></span>
+            </div>
+            <div>
+              <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">EUR BT</span>
+              <span className="text-pink-400 font-black text-[16px]">{stats.eurBT.toLocaleString()} <span className="text-[10px] opacity-50">฿</span></span>
+            </div>
+            <div className="text-right">
+              <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">EUR CR</span>
+              <span className="text-blue-400 font-black text-[16px]">{stats.eurCR.toLocaleString()} <span className="text-[10px] opacity-50">฿</span></span>
+            </div>
           </div>
+
         </div>
       </div>
 
       {/* ACCIONES GLOBALES: selector arriba-derecha, botones abajo */}
       <div className="flex flex-col justify-between items-end ml-auto pb-2 gap-2 shrink min-w-[200px]">
-        {/* Selector de mes/año — arriba a la derecha */}
-        <div className="flex items-center gap-2 bg-surface border border-surface-edge p-1 rounded-2xl shadow-sm h-9 shrink-0">
-          <select value={selectedMonth} onChange={(e) => { const v = Number(e.target.value); setSelectedMonth(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, v, selectedYear); }} className="bg-transparent text-gray-300 text-[11px] font-black px-3 focus:outline-none cursor-pointer hover:text-white transition-colors">
-            {['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'].map((m, i) => <option key={i} value={i} className="bg-slate-900 text-white">{m}</option>)}
-          </select>
-          <div className="w-px h-4 bg-white/10" />
-          <select value={selectedYear} onChange={(e) => { const v = Number(e.target.value); setSelectedYear(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, selectedMonth, v); }} className="bg-transparent text-gray-300 text-[11px] font-black px-3 focus:outline-none cursor-pointer hover:text-white transition-colors">
-            {[2024, 2025, 2026].map(y => <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>)}
-          </select>
+        {/* NUEVO CONTROLADOR DE FECHA HÍBRIDO (MES/AÑO) */}
+        <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner h-11">
+          <button 
+            onClick={() => {
+              let nm = selectedMonth - 1, ny = selectedYear;
+              if (nm < 0) { nm = 11; ny--; }
+              setSelectedMonth(nm); setSelectedYear(ny); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny);
+            }}
+            className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+            <select 
+              value={selectedMonth} 
+              onChange={(e) => { const v = Number(e.target.value); setSelectedMonth(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, v, selectedYear); }}
+              className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
+            >
+              {['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'].map((m, i) => <option key={i} value={i} className="bg-slate-900 text-white">{m}</option>)}
+            </select>
+            
+            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+            <select 
+              value={selectedYear} 
+              onChange={(e) => { const v = Number(e.target.value); setSelectedYear(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, selectedMonth, v); }}
+              className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center"
+            >
+              {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>)}
+            </select>
+          </div>
+
+          <button 
+            onClick={() => {
+              let nm = selectedMonth + 1, ny = selectedYear;
+              if (nm > 11) { nm = 0; ny++; }
+              setSelectedMonth(nm); setSelectedYear(ny); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny);
+            }}
+            className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
+
         {/* Filtros + añadir fila — abajo */}
         <div className="flex flex-wrap justify-end items-center gap-2">
           <button onClick={() => { const v = !showOnlyToday; setShowOnlyToday(v); fetchInvoices(false, v, showOnlyUnpaid); }} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyToday ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
@@ -194,8 +267,42 @@ export default function BillingHeader({
             {showOnlyUnpaid ? 'FILTRO: PENDIENTES' : 'FILTRO: TODOS'}
           </button>
           <button onClick={async () => {
-            const { data: inv, error: invErr } = await supabase.from('invoices').insert({ status: 'Open' }).select().single();
-            if (inv && !invErr) { await supabase.from('invoice_items').insert({ invoice_id: inv.id, quantity: 1, unit_price_thb: 0, total_thb: 0, status: 'Pending', date: null }); fetchInvoices(false); }
+            try {
+              const { data: inv, error: invErr } = await supabase.from('invoices').insert({ 
+                status: 'Open'
+              }).select().single();
+              
+              if (invErr) {
+                console.error("[BillingHeader] Error creating invoice:", invErr);
+                alert("Error al crear factura: " + invErr.message);
+                return;
+              }
+
+              console.log("[BillingHeader] Invoice created, adding first item...", inv.id);
+              const { error: itemErr } = await supabase.from('invoice_items').insert({ 
+                invoice_id: inv.id, 
+                quantity: 1, 
+                unit_price_thb: 0, 
+                total_thb: 0, 
+                status: 'Pending', 
+                date: null
+              });
+
+              if (!itemErr) {
+                // Indicamos que queremos scroll al final
+                sessionStorage.setItem('shouldScrollToBottom', 'true');
+              }
+
+              if (itemErr) {
+                console.error("[BillingHeader] Error creating item:", itemErr);
+                alert("Error al crear registro: " + itemErr.message);
+                return;
+              }
+
+              fetchInvoices(false);
+            } catch (err) {
+              console.error("[BillingHeader] Unexpected error:", err);
+            }
           }} className="flex-none flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black rounded-xl transition-all shadow-lg active:scale-95 group h-11 whitespace-nowrap">
             <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> AÑADIR FILA
           </button>

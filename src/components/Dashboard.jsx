@@ -14,9 +14,6 @@ import PartnersPayouts from './views/PartnersPayouts';
 import SupplierPayout from './views/SupplierPayout';
 
 
-// Mock views for now
-const Logs = () => <div className="p-10 text-gray-400">Próximamente: Diario de Buceo</div>;
-const Attendance = () => <div className="p-10 text-gray-400">Próximamente: Asistencia</div>;
 
 export default function Dashboard({ user }) {
   const [activeView, setActiveView] = useState(() => {
@@ -50,8 +47,6 @@ export default function Dashboard({ user }) {
       case 'overview': return <Overview />;
       case 'customers': return <CustomerTable onNavigate={navigateTo} />;
       case 'insurance': return <InsuranceView initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
-      case 'logs': return <Logs />;
-      case 'attendance': return <Attendance />;
       case 'settings': return <AdminSettings />;
       case 'billing': return <Billing />;
       case 'expenses': return <Expenses />;

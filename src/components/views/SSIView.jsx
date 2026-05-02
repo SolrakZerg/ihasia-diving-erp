@@ -20,12 +20,14 @@ import {
   TrendingUp,
   CreditCard,
   Users,
-  ShieldCheck,
+  Waves,
   Zap,
   Info,
   Settings,
   Filter,
-  Check
+  Check,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export default function SSIView() {
@@ -47,75 +49,104 @@ export default function SSIView() {
   const [adjNext, setAdjNext] = useState(0); // Adelanto: Empiezan este mes, pagan ahora (se facturan el que viene)
   const [adjPrev, setAdjPrev] = useState(0); // Ajuste: Empezaron el anterior, ya se pagaron (se facturan este)
   const FIXED_ADJ_PRICE = 1067;
+  const adjustmentsTotal = (adjNext * FIXED_ADJ_PRICE) - (adjPrev * FIXED_ADJ_PRICE);
+
+  const [settlementId, setSettlementId] = useState(null);
+  const [totalSsi, setTotalSsi] = useState(0);
+  const [finalPaid, setFinalPaid] = useState(0);
+  const [finalPending, setFinalPending] = useState(0);
 
   useEffect(() => {
     fetchInitialData();
+    fetchSettlement(); // Load money snapshot immediately
   }, []);
+
+  useEffect(() => {
+    fetchSettlement();
+  }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
     if (activeActivityIds !== null) {
       fetchData();
-      fetchAdjustments();
     }
   }, [selectedMonth, selectedYear, activeActivityIds]);
 
-  const fetchAdjustments = async () => {
-    // 1. Get adjNext for current month
-    const currentKey = `ssi_adj_${selectedYear}_${selectedMonth}`;
-    const { data: current } = await supabase.from('settings').select('*').eq('key', currentKey).maybeSingle();
-    if (current?.value) {
-       const parsed = JSON.parse(current.value);
-       setAdjNext(parsed.next || 0);
-       setManualPaid(parsed.manual || 0);
+  const fetchSettlement = async () => {
+    // 1. Get current month settlement
+    const { data: current } = await supabase
+      .from('supplier_settlements')
+      .select('*')
+      .eq('year', selectedYear)
+      .eq('month', selectedMonth + 1)
+      .ilike('supplier_name', '%SSI%')
+      .maybeSingle();
+
+    if (current) {
+      setSettlementId(current.id);
+      setManualPaid(current.paid_amount || 0);
+      
+      const t = current.total_amount || 0;
+      const p = current.paid_amount || 0;
+      setTotalSsi(t);
+      setFinalPaid(p);
+      setFinalPending(t - p);
+
+      const config = current.invoice_config || {};
+      setAdjNext(config.adjNext || 0);
     } else {
-       setAdjNext(0);
-       setManualPaid(0);
+      setSettlementId(null);
+      setManualPaid(0);
+      setTotalSsi(0);
+      setFinalPaid(0);
+      setFinalPending(0);
+      setAdjNext(0);
     }
 
-    // 2. Get adjNext for previous month (which is current month's adjPrev)
+    // 2. Get previous month for adjPrev
     const prevDate = new Date(selectedYear, selectedMonth - 1, 1);
-    const prevKey = `ssi_adj_${prevDate.getFullYear()}_${prevDate.getMonth()}`;
-    const { data: prev } = await supabase.from('settings').select('*').eq('key', prevKey).maybeSingle();
-    setAdjPrev(prev?.value ? JSON.parse(prev.value).next || 0 : 0);
+    const { data: prev } = await supabase
+      .from('supplier_settlements')
+      .select('invoice_config')
+      .eq('year', prevDate.getFullYear())
+      .eq('month', prevDate.getMonth() + 1)
+      .ilike('supplier_name', '%SSI%')
+      .maybeSingle();
+    
+    setAdjPrev(prev?.invoice_config?.adjNext || 0);
   };
 
-  const saveAdjustments = async (next, manual) => {
-    const key = `ssi_adj_${selectedYear}_${selectedMonth}`;
-    await supabase.from('settings').upsert({ 
-      key: key, 
-      value: JSON.stringify({ next, manual }) 
-    });
+  const saveSettlement = async (next, manual, total) => {
+    const payload = {
+      supplier_name: 'SSI',
+      year: selectedYear,
+      month: selectedMonth + 1,
+      paid_amount: manual,
+      total_amount: total,
+      invoice_config: { adjNext: next },
+      updated_at: new Date().toISOString()
+    };
+
+    if (settlementId) {
+      await supabase.from('supplier_settlements').update(payload).eq('id', settlementId);
+    } else {
+      const { data } = await supabase.from('supplier_settlements').insert(payload).select().single();
+      if (data) setSettlementId(data.id);
+    }
   };
 
   const fetchInitialData = async () => {
     // 1. Fetch all activities for config
     const { data: activities } = await supabase.from('activities').select('*').order('name');
-    if (activities) setAllActivities(activities);
-
-    // Fetch category colors from settings
-    const { data: catRes } = await supabase.from('settings').select('*').eq('key', 'catalog_categories').maybeSingle();
-    if (catRes && catRes.value) setCategorySettings(JSON.parse(catRes.value));
-
-    // 2. Fetch active activities from settings
-    const { data: settings } = await supabase.from('settings').select('*').eq('key', 'ssi_active_activities').maybeSingle();
-    
-    if (settings && settings.value) {
-      try {
-        const parsed = JSON.parse(settings.value);
-        setActiveActivityIds(parsed);
-      } catch (e) {
-        setActiveActivityIds([]);
-      }
-    } else {
-      // Default: ONLY activities with category 'Course'
-      const defaultIds = activities
-        ?.filter(a => (a.category || '').toLowerCase() === 'course')
-        .map(a => a.id) || [];
-      
-      setActiveActivityIds(defaultIds);
-      // Save defaults
-      await supabase.from('settings').upsert({ key: 'ssi_active_activities', value: JSON.stringify(defaultIds) });
+    if (activities) {
+      setAllActivities(activities);
+      // PERSISTENCIA: Leemos el estado guardado en 'is_ssi_active'
+      const activeIds = activities.filter(a => a.is_ssi_active).map(a => a.id);
+      setActiveActivityIds(activeIds);
     }
+
+    // Fetch category colors from new table
+    const { data: catRes } = await supabase.from('activity_categories').select('*').order('sort_order');
+    if (catRes) setCategorySettings(catRes);
   };
 
   const fetchData = async (isUpdate = false) => {
@@ -187,12 +218,28 @@ export default function SSIView() {
     setLoading(false);
   };
 
-  const calculatedTotal = data.reduce((sum, item) => sum + item.total, 0);
-  const adjustmentsTotal = (adjNext * FIXED_ADJ_PRICE) - (adjPrev * FIXED_ADJ_PRICE);
-  const totalSsi = calculatedTotal + adjustmentsTotal;
-  
-  const finalPaid = manualPaid > 0 ? manualPaid : ssiPaid;
-  const finalPending = totalSsi - finalPaid;
+  // Sync calculated values to state for stable UI
+  useEffect(() => {
+    if (!loading && activeActivityIds !== null) {
+      const calculatedTotal = data.reduce((sum, item) => sum + item.total, 0);
+      const newTotal = calculatedTotal + adjustmentsTotal;
+      const newPaid = manualPaid > 0 ? manualPaid : ssiPaid;
+      
+      setTotalSsi(newTotal);
+      setFinalPaid(newPaid);
+      setFinalPending(newTotal - newPaid);
+    }
+  }, [data, ssiPaid, manualPaid, adjustmentsTotal, loading, activeActivityIds]);
+
+  // AUTO-SAVE LOGIC: Sincroniza el total calculado con la BD para el Dashboard
+  useEffect(() => {
+    if (activeActivityIds && activeActivityIds.length > 0 && !loading) {
+      const timer = setTimeout(() => {
+        saveSettlement(adjNext, manualPaid, totalSsi);
+      }, 1500); // Debounce de 1.5s
+      return () => clearTimeout(timer);
+    }
+  }, [totalSsi, manualPaid, adjNext]);
 
   const togglePaid = async (activity) => {
     const newValue = !activity.isPaid;
@@ -210,8 +257,39 @@ export default function SSIView() {
   };
 
   const saveConfig = async (newIds) => {
+    // Now we update the activities table directly
+    // 1. Reset all ssi_active flags
+    await supabase.from('activities').update({ is_ssi_active: false }).is('is_ssi_active', true);
+
+    // 2. Set only the selected ones
+    if (newIds.length > 0) {
+      await supabase.from('activities').update({ is_ssi_active: true }).in('id', newIds);
+    }
+
+    // Update local state to reflect changes immediately
+    setAllActivities(prev => prev.map(a => ({
+      ...a,
+      is_ssi_active: newIds.includes(a.id)
+    })));
     setActiveActivityIds(newIds);
-    await supabase.from('settings').upsert({ key: 'ssi_active_activities', value: JSON.stringify(newIds) });
+  };
+  
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(prev => prev - 1);
+    } else {
+      setSelectedMonth(prev => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(prev => prev + 1);
+    } else {
+      setSelectedMonth(prev => prev + 1);
+    }
   };
 
   const handleSort = (key) => {
@@ -240,75 +318,103 @@ export default function SSIView() {
   return (
     <div className="h-full flex flex-col bg-surface overflow-hidden relative">
       {/* COMPACT HEADER - Height reduced to 140px */}
-      <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] h-[140px]">
-        <div className="max-w-[1400px] mx-auto px-8 h-full flex items-center justify-between gap-8">
+      <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] h-[200px]">
+        <div className="max-w-[1700px] mx-auto px-8 h-full flex items-center justify-center gap-24">
           
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-indigo-500/10 p-2.5 rounded-2xl border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
-                <ShieldCheck className="w-6 h-6 text-indigo-400" />
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-brand/20 p-3 rounded-2xl ring-1 ring-brand/30">
+                <Waves className="w-8 h-8 text-brand" />
               </div>
               <div>
-                <h1 className="text-xl font-black text-white tracking-tight uppercase">Pagos SSI</h1>
-                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest leading-none">Certificaciones Mensuales</p>
+                <h1 className="text-3xl font-black text-white tracking-tight">Pagos SSI</h1>
+                <p className="text-gray-400 text-sm font-bold mt-1">Certificaciones Mensuales</p>
               </div>
             </div>
 
-            {/* DATE & CONFIG SELECTOR - BELOW TITLE */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-surface-soft/50 p-1 rounded-xl border border-surface-edge/30">
-                <Calendar className="w-3 h-3 text-gray-500 ml-2" />
-                <select 
-                  value={selectedMonth} 
-                  onChange={e => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-0.5 cursor-pointer hover:text-indigo-400"
+            {/* HYBRID DATE SELECTOR */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
+                {/* PREV BUTTON */}
+                <button 
+                  onClick={handlePrevMonth}
+                  className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
                 >
-                  {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m, i) => (
-                    <option key={m} value={i} className="bg-[#1a1c2d]">{m}</option>
-                  ))}
-                </select>
-                <div className="w-px h-3 bg-surface-edge/30 mx-1" />
-                <select 
-                  value={selectedYear} 
-                  onChange={e => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-0.5 cursor-pointer hover:text-indigo-400"
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+                  <select 
+                    value={selectedMonth} 
+                    onChange={e => setSelectedMonth(parseInt(e.target.value))}
+                    className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
+                  >
+                    {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map((m, i) => (
+                      <option key={m} value={i} className="bg-[#1a1c2d]">{m}</option>
+                    ))}
+                  </select>
+                  
+                  <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+                  <select 
+                    value={selectedYear} 
+                    onChange={e => setSelectedYear(parseInt(e.target.value))}
+                    className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
+                  >
+                    {[2024, 2025, 2026, 2027].map(y => (
+                      <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* NEXT BUTTON */}
+                <button 
+                  onClick={handleNextMonth}
+                  className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
                 >
-                  {[2024, 2025, 2026, 2027].map(y => (
-                    <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-                  ))}
-                </select>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
               
               <button 
                 onClick={() => setShowConfigModal(true)} 
-                className="p-1.5 rounded-xl bg-surface-edge/10 border border-surface-edge/30 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group"
+                className="p-2.5 rounded-2xl bg-surface-edge/10 border border-surface-edge/30 text-gray-500 hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
+                title="Configuración"
               >
-                <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+                <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
               </button>
             </div>
           </div>
-
-           {/* STATS WIDGETS */}
+           {/* STATS WIDGETS - LARGER & CENTERED */}
            <div className="flex gap-4">
-              <div className="bg-surface-soft/40 border border-surface-edge/20 px-4 py-2.5 rounded-2xl flex flex-col min-w-[130px]">
-                 <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1.5">Total SSI</span>
-                 <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-black text-white font-mono">{totalSsi.toLocaleString()} ฿</span>
-                    {adjustmentsTotal !== 0 && (
-                      <span className={`text-[10px] font-bold ${adjustmentsTotal > 0 ? 'text-indigo-400' : 'text-rose-400'}`}>
-                        ({adjustmentsTotal > 0 ? '+' : ''}{adjustmentsTotal.toLocaleString()})
-                      </span>
-                    )}
-                 </div>
-              </div>
-
-              <div className="bg-emerald-500/5 border border-emerald-500/10 px-4 py-2.5 rounded-2xl flex flex-col min-w-[130px]">
-                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1.5">Pagado</span>
-                  <span className="text-lg font-black text-emerald-400 font-mono">{finalPaid.toLocaleString()} ฿</span>
+               <div className="bg-amber-500/5 border border-amber-400/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-amber-500/10 transition-all">
+                  <div className="p-2 rounded-2xl bg-amber-500/10 mb-2 text-amber-400 group-hover:scale-110 transition-transform">
+                     <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-black text-amber-400/60 uppercase tracking-[0.2em] leading-none mb-2">TOTAL SSI</span>
+                  <span className="text-3xl font-black text-white tracking-tighter">
+                     {totalSsi.toLocaleString()} <span className="text-sm font-black text-amber-400/40 ml-1 italic font-mono">฿</span>
+                  </span>
                </div>
-               <div className="bg-amber-500/5 border border-amber-500/15 px-4 py-2.5 rounded-2xl flex flex-col min-w-[130px]">
-                  <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1.5">Debemos</span>
-                  <span className="text-lg font-black text-amber-500 font-mono">{finalPending.toLocaleString()} ฿</span>
+
+               <div className="bg-emerald-500/5 border border-emerald-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-emerald-500/10 transition-all">
+                  <div className="p-2 rounded-2xl bg-emerald-500/10 mb-2 text-emerald-400 group-hover:scale-110 transition-transform">
+                     <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-black text-emerald-400/60 uppercase tracking-[0.2em] leading-none mb-2">PAGADO</span>
+                  <span className="text-3xl font-black text-white tracking-tighter">
+                     {finalPaid.toLocaleString()} <span className="text-sm font-black text-emerald-500/40 ml-1 italic font-mono">฿</span>
+                  </span>
+               </div>
+               
+               <div className="bg-rose-500/5 border border-rose-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-rose-500/10 transition-all">
+                  <div className="p-2 rounded-2xl bg-rose-500/10 mb-2 text-rose-400 group-hover:scale-110 transition-transform">
+                     <TrendingDown className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-black text-rose-400/60 uppercase tracking-[0.2em] leading-none mb-2">POR PAGAR</span>
+                  <span className="text-3xl font-black text-white tracking-tighter">
+                     {finalPending.toLocaleString()} <span className="text-sm font-black text-rose-400/40 ml-1 italic font-mono">฿</span>
+                  </span>
                </div>
            </div>
         </div>
@@ -396,17 +502,17 @@ export default function SSIView() {
                         </span>
                       </td>
                       <td className="px-[10px] py-2.5 max-w-[150px] overflow-hidden text-ellipsis">
-                        <span className="text-[12px] text-gray-300 font-bold tracking-tight whitespace-nowrap">
+                        <span className="text-[15px] text-gray-300 font-bold tracking-tight whitespace-nowrap">
                           {act.name}
                         </span>
                       </td>
                       <td className="px-[10px] py-2.5 text-center">
-                        <span className="inline-flex items-center justify-center bg-surface-edge/60 min-w-[28px] h-7 rounded-lg text-xs font-black text-white border border-surface-edge shadow-sm font-mono">
+                        <span className="inline-flex items-center justify-center bg-surface-edge/60 min-w-[34px] h-9 rounded-lg text-[15px] font-black text-white border border-surface-edge shadow-sm font-mono">
                            {act.count}
                         </span>
                       </td>
                       <td className="px-[10px] py-2.5 text-right">
-                        <span className="text-[13px] font-bold text-gray-400 font-mono italic">{act.ssi_cost.toLocaleString()}</span>
+                        <span className="text-[14px] font-bold text-gray-400 font-mono italic">{act.ssi_cost.toLocaleString()}</span>
                       </td>
                       <td className="px-[10px] py-2.5 text-right">
                         <span className={`text-[16px] font-black font-mono tracking-tighter ${act.isPaid ? 'text-emerald-400' : 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.1)]'}`}>
@@ -441,14 +547,17 @@ export default function SSIView() {
           <div className="w-64 flex flex-col gap-4">
              {/* AJUSTES MANUALES */}
              <div className="bg-surface-soft border border-surface-edge rounded-3xl p-5 shadow-xl flex flex-col gap-6">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Settings className="w-3.5 h-3.5 text-indigo-400" /> Ajustes SSI
+                <h4 className="text-[13px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                     <Settings className="w-4 h-4 text-zinc-500" /> AJUSTES SSI
+
                 </h4>
 
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                        <PlusCircle className="w-3.5 h-3.5" /> Adelanto (Próx. Mes)
+                                             <span className="text-[13px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+
+                                                 <PlusCircle className="w-4 h-4 text-indigo-400" /> ADELANTO (PRÓX. MES)
+
                       </span>
                       <div className="flex items-center gap-4 bg-surface-edge/20 p-3 rounded-[2rem] border border-surface-edge/30 shadow-inner">
                         <input
@@ -458,9 +567,10 @@ export default function SSIView() {
                           onChange={(e) => {
                              const val = parseInt(e.target.value) || 0;
                              setAdjNext(val);
-                             saveAdjustments(val, manualPaid);
+                             saveSettlement(val, manualPaid, totalSsi + (val - adjNext) * FIXED_ADJ_PRICE);
                           }}
-                          className="w-full bg-transparent text-3xl font-black text-white font-mono text-center tracking-tighter outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                     className="w-full bg-transparent text-3xl font-black text-indigo-400 font-mono text-center tracking-tighter outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+
                         />
                       </div>
                   </div>
@@ -468,71 +578,91 @@ export default function SSIView() {
                   <div className="h-px bg-surface-edge/20 mx-2" />
 
                   <div className="flex flex-col opacity-90">
-                      <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                        <Trash2 className="w-3.5 h-3.5" /> Ajuste (Mes Anterior)
+                                             <span className="text-[13px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+
+                                                 <Trash2 className="w-4 h-4 text-cyan-400" /> AJUSTE (MES ANTERIOR)
+
                       </span>
                       <div className="flex items-center gap-4 bg-surface-edge/10 p-3 rounded-[2rem] border border-surface-edge/10">
-                        <span className="text-3xl font-black text-gray-500 font-mono flex-1 text-center tracking-tighter">{adjPrev}</span>
+                                                 <span className="text-3xl font-black text-cyan-400/50 font-mono flex-1 text-center tracking-tighter">{adjPrev}</span>
+
                       </div>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-surface-edge/20 mt-2">
                    <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5">
-                      <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Impacto Total</span>
-                      <span className={`text-lg font-black ${adjustmentsTotal >= 0 ? 'text-indigo-400' : 'text-rose-400'} font-mono`}>
+                                             <span className="text-[13px] font-black text-zinc-400 uppercase tracking-wider">Impacto Total</span>
+
+                                             <span className={`text-lg font-black ${adjustmentsTotal >= 0 ? 'text-indigo-400' : 'text-cyan-400'} font-mono`}>
+
                         {adjustmentsTotal > 0 ? '+' : ''}{adjustmentsTotal.toLocaleString()} ฿
                       </span>
                    </div>
                 </div>
              </div>
 
-             {/* PAGO MANUAL */}
-             <div className="bg-surface-soft border border-surface-edge rounded-3xl p-5 shadow-xl flex flex-col gap-4">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Registro de Pago
-                </h4>
-                <div className="relative group">
-                   <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                      <span className="text-emerald-400/50 font-black text-sm">฿</span>
-                   </div>
-                   <input
-                     type="number"
-                     value={manualPaid || ''}
-                     placeholder="0"
-                     onChange={(e) => {
-                        const val = parseInt(e.target.value) || 0;
-                        setManualPaid(val);
-                        saveAdjustments(adjNext, val);
-                     }}
-                     className="w-full bg-surface-edge/20 border-2 border-surface-edge/30 rounded-2xl py-3.5 pl-10 pr-4 text-xl font-black text-emerald-400 placeholder:text-gray-700 focus:border-emerald-500/50 focus:bg-emerald-500/5 transition-all outline-none font-mono"
-                   />
-                </div>
-             </div>
+              {/* LIQUIDACIÓN MENSUAL UNIFICADA - CENTRADO Y ALINEADO */}
+              <div className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col gap-6">
+                 
+                 {/* BLOQUE ÚNICO DE DATOS - Centrado por fuera, alineado por dentro */}
+                 <div className="w-fit mx-auto flex flex-col gap-6 w-full max-w-[240px]">
+                    
+                    {/* 1. PAGADO */}
+                    <div className="flex flex-col gap-4 items-center">
+                       <h4 className="text-[13px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                         <CreditCard className="w-4 h-4 text-emerald-400" /> PAGADO
+                       </h4>
+                       <div className="w-full bg-surface-edge/20 border-2 border-surface-edge/30 rounded-2xl py-3 px-2 focus-within:border-emerald-500/50 focus-within:bg-emerald-500/5 transition-all">
+                          <div className="flex justify-center items-baseline gap-2">
+                             <input
+                               type="number"
+                               value={manualPaid || ''}
+                               placeholder="0"
+                               onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setManualPaid(val);
+                                  saveSettlement(adjNext, val, totalSsi);
+                               }}
+                               className="bg-transparent border-none p-0 !outline-none !ring-0 text-2xl font-black text-emerald-400 font-mono text-right w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                             />
+                             <span className="text-emerald-400/50 font-black text-2xl font-mono w-4">฿</span>
+                          </div>
+                       </div>
+                    </div>
 
-             {/* RECAP CARD */}
-             <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-5 shadow-xl flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                   <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest">Calculado</span>
-                   <div className="flex justify-between items-baseline">
-                     <span className="text-xl font-black text-white font-mono">{totalSsi.toLocaleString()} ฿</span>
-                     <Receipt className="w-3.5 h-3.5 text-indigo-400" />
-                   </div>
-                </div>
+                    <div className="h-px bg-surface-edge/20" />
 
-                <div className="h-px bg-indigo-500/20" />
+                    {/* 2. POR PAGAR */}
+                    <div className="flex flex-col gap-2 items-center">
+                       <span className="text-[13px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-rose-400" /> POR PAGAR
+                       </span>
+                       <div className="flex justify-center items-baseline gap-2">
+                          <span className={`text-2xl font-black font-mono text-right w-24 ${(totalSsi - manualPaid) === 0 ? 'text-emerald-500/50' : 'text-rose-400'}`}>
+                             {(totalSsi - manualPaid).toLocaleString()}
+                          </span>
+                          <span className="text-rose-400/50 font-black text-2xl font-mono w-4">฿</span>
+                       </div>
+                    </div>
 
-                <div className="flex flex-col gap-1">
-                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Diferencia / Pendiente</span>
-                   <div className="flex justify-between items-baseline">
-                     <span className={`text-lg font-black font-mono ${(totalSsi - manualPaid) === 0 ? 'text-emerald-500/50' : 'text-amber-400'}`}>
-                        {(totalSsi - manualPaid).toLocaleString()} ฿
-                     </span>
-                     <div className={`w-2 h-2 rounded-full ${(totalSsi - manualPaid) === 0 ? 'bg-emerald-500/30' : 'bg-amber-500 animate-pulse'}`} />
-                   </div>
-                </div>
-             </div>
-          </div>
+                    <div className="h-px bg-surface-edge/20" />
+
+                    {/* 3. TOTAL */}
+                    <div className="flex flex-col gap-2 items-center">
+                       <span className="text-[13px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                          <Receipt className="w-4 h-4 text-amber-400" /> TOTAL
+                       </span>
+                       <div className="flex justify-center items-baseline gap-2">
+                          <span className="text-2xl font-black text-amber-400 font-mono text-right w-24">
+                             {totalSsi.toLocaleString()}
+                          </span>
+                          <span className="text-amber-400/50 font-black text-2xl font-mono w-4">฿</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
       </div>
 
