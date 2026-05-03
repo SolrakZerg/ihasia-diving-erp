@@ -48,7 +48,8 @@ export default function Staff({ isNested = false }) {
     email: '',
     phone: '',
     instructor_number: '',
-    role: 'Instructor'
+    role: 'Instructor',
+    active: true
   });
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function Staff({ isNested = false }) {
 
     if (!error) {
       setView('list');
-      setFormData({ first_name: '', last_name: '', initials: '', email: '', phone: '', instructor_number: '', role: 'Instructor' });
+      setFormData({ first_name: '', last_name: '', initials: '', email: '', phone: '', instructor_number: '', role: 'Instructor', active: true });
       fetchData();
     } else {
       alert('Error: ' + error.message);
@@ -126,6 +127,15 @@ export default function Staff({ isNested = false }) {
     } else {
       alert("Error: " + error.message);
     }
+  };
+
+  const toggleActive = async (member) => {
+    const { error } = await supabase
+      .from('staff')
+      .update({ active: !member.active })
+      .eq('id', member.id);
+    
+    if (!error) fetchData(false);
   };
 
   const deleteStaff = async (id) => {
@@ -239,6 +249,16 @@ export default function Staff({ isNested = false }) {
               <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Número Instructor (SSI/PADI)</label>
               <input value={formData.instructor_number} onChange={e => setFormData({...formData, instructor_number: e.target.value})} className="w-full bg-surface border border-surface-edge rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-brand outline-none transition-all" />
             </div>
+            <div className="flex items-center gap-3 bg-surface/50 p-4 rounded-xl border border-surface-edge">
+              <input 
+                type="checkbox" 
+                id="active_check"
+                checked={formData.active} 
+                onChange={e => setFormData({...formData, active: e.target.checked})} 
+                className="w-5 h-5 rounded border-gray-600 bg-surface-edge text-brand focus:ring-brand" 
+              />
+              <label htmlFor="active_check" className="text-sm font-bold text-white cursor-pointer select-none">Personal Activo (aparecerá en facturación)</label>
+            </div>
           </div>
           <button type="submit" disabled={saving} className="w-full bg-brand py-4 rounded-xl font-black text-white shadow-lg shadow-brand/20 flex items-center justify-center gap-2">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus className="w-5 h-5" /> Registrar Staff</>}
@@ -302,7 +322,7 @@ export default function Staff({ isNested = false }) {
       )}
 
       {/* Table Wrapper */}
-      <div className={`bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 ${isNested ? 'mx-8 mb-8' : ''}`} style={{ height: isNested ? 'calc(100vh - 350px)' : 'calc(100vh - 200px)', minHeight: '500px' }}>
+      <div className={`bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 ${isNested ? 'mx-2 mb-8' : ''}`} style={{ height: isNested ? 'calc(100vh - 350px)' : 'calc(100vh - 200px)', minHeight: '500px' }}>
         <div className="overflow-auto flex-1 relative">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead className="sticky top-0 z-20">
@@ -310,37 +330,40 @@ export default function Staff({ isNested = false }) {
                 <th className="px-4 py-4 text-center w-10">
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-600 bg-surface-edge text-brand" checked={sortedStaff.length > 0 && selectedIds.size === sortedStaff.length} onChange={toggleSelectAll} />
                 </th>
-                <th onClick={() => handleSort('first_name')} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                <th onClick={() => handleSort('first_name')} className="px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                   <div className="flex items-center gap-2">Nombre y Apellidos <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                 </th>
-                <th onClick={() => handleSort('initials')} className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                <th onClick={() => handleSort('initials')} className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                   <div className="flex items-center justify-center gap-2">Iniciales <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                 </th>
-                {!isExtendedView && <th className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Teléfono</th>}
+                {!isExtendedView && <th className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Teléfono</th>}
                 {isExtendedView && (
                   <>
-                    <th className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Email</th>
-                    <th className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Teléfono</th>
+                    <th className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Email</th>
+                    <th className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Teléfono</th>
                   </>
                 )}
-                <th className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">WhatsApp</th>
-                <th onClick={() => handleSort('instructor_number')} className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                <th className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">WhatsApp</th>
+                <th onClick={() => handleSort('instructor_number')} className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                    <div className="flex items-center justify-center gap-2">Nº Instructor <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                 </th>
-                <th onClick={() => handleSort('role')} className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                <th onClick={() => handleSort('role')} className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                    <div className="flex items-center justify-center gap-2">Rol <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                 </th>
                 {isExtendedView && (
                   <>
-                    <th onClick={() => handleSort('base_salary')} className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                    <th onClick={() => handleSort('base_salary')} className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                       <div className="flex items-center justify-center gap-2">Sueldo Base <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                     </th>
-                    <th onClick={() => handleSort('commission_rate')} className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                    <th onClick={() => handleSort('commission_rate')} className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                       <div className="flex items-center justify-center gap-2">% Com <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                     </th>
                   </>
                 )}
-                <th className="px-6 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right w-20">Acciones</th>
+                <th onClick={() => handleSort('active')} className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group">
+                   <div className="flex items-center justify-center gap-2">Estado <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
+                </th>
+                <th className="px-3 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right w-20">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-edge/50">
@@ -405,6 +428,10 @@ export default function Staff({ isNested = false }) {
                       </>
                     )}
 
+                    <td className="px-4 py-2 text-center">
+                       <input type="checkbox" checked={editData.active} onChange={e=>setEditData({...editData, active: e.target.checked})} className="w-4 h-4 rounded border-gray-600 bg-surface-edge text-brand" />
+                    </td>
+
                     <td className="px-4 py-2 text-right">
                        <div className="flex justify-end gap-1">
                         <button onClick={() => saveEdit(member.id)} className="p-1.5 text-emerald-400 bg-emerald-500/10 rounded-lg hover:bg-emerald-500/20"><Check className="w-4 h-4" /></button>
@@ -416,12 +443,12 @@ export default function Staff({ isNested = false }) {
                   <tr 
                     key={member.id} 
                     onClick={() => handleRowClick(member)}
-                    className="hover:bg-brand/5 transition-colors group cursor-pointer"
+                    className={`hover:bg-brand/5 transition-all group cursor-pointer ${!member.active ? 'opacity-40 grayscale-[0.5]' : ''}`}
                   >
                     <td className="px-4 py-2 text-center border-r border-surface-edge/10" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" className="w-4 h-4 rounded border-gray-600 bg-surface-edge text-brand" checked={selectedIds.has(member.id)} onChange={() => toggleSelectOne(member.id)} />
                     </td>
-                    <td className="px-6 py-2 border-r border-surface-edge/5">
+                    <td className="px-3 py-2 border-r border-surface-edge/5">
                       <div className="flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-black text-[10px]">
                            {member.initials?.slice(0, 2)}
@@ -431,29 +458,29 @@ export default function Staff({ isNested = false }) {
                          </div>
                       </div>
                     </td>
-                    <td className="px-6 py-2 text-center">
+                    <td className="px-3 py-2 text-center">
                       <span className="bg-surface-edge text-white px-2.5 py-1 rounded-lg text-[11px] font-black border border-brand/20 shadow-sm shadow-brand/10 tracking-widest">
                         {member.initials}
                       </span>
                     </td>
                     {!isExtendedView && (
-                      <td className="px-6 py-2">
+                      <td className="px-3 py-2">
                         <div className="space-y-1">
-                          {member.phone && <p className="text-sm text-brand/80 font-bold flex items-center gap-1.5"><Phone className="w-3 h-3" /> {member.phone}</p>}
+                           {member.phone && <p className="text-sm text-brand/80 font-bold flex items-center gap-1.5"><Phone className="w-3 h-3" /> {member.phone}</p>}
                         </div>
                       </td>
                     )}
                     {isExtendedView && (
                       <>
-                        <td className="px-6 py-2 text-sm text-cyan-500/80 font-medium font-mono">
+                        <td className="px-3 py-2 text-sm text-cyan-500/80 font-medium font-mono">
                           {member.email || '---'}
                         </td>
-                        <td className="px-6 py-2 text-center text-xs text-brand font-bold font-mono">
+                        <td className="px-3 py-2 text-center text-xs text-brand font-bold font-mono">
                           {member.phone || '---'}
                         </td>
                       </>
                     )}
-                    <td className="px-6 py-2 text-center" onClick={e => e.stopPropagation()}>
+                    <td className="px-3 py-2 text-center" onClick={e => e.stopPropagation()}>
                       <a 
                         href={`https://wa.me/${member.phone?.replace(/[^0-9]/g, '')}`}
                         target="_blank"
@@ -465,25 +492,38 @@ export default function Staff({ isNested = false }) {
                         <Phone className="w-4 h-4" />
                       </a>
                     </td>
-                    <td className="px-6 py-2 text-center font-mono text-sm font-bold text-gray-200">
+                    <td className="px-3 py-2 text-center font-mono text-sm font-bold text-gray-200">
                       {member.instructor_number || '---'}
                     </td>
-                    <td className="px-6 py-2 text-center">
+                    <td className="px-3 py-2 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${member.role === 'Admin' ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' : member.role === 'Freelance' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : member.role === 'Instructor' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-brand/10 border-brand/30 text-brand'}`}>
                         {member.role}
                       </span>
                     </td>
                     {isExtendedView && (
                       <>
-                        <td className="px-6 py-3.5 text-center font-bold text-white text-sm">
+                        <td className="px-3 py-3.5 text-center font-bold text-white text-sm">
                           {member.base_salary ? `${member.base_salary} ฿` : '---'}
                         </td>
-                        <td className="px-6 py-3.5 text-center font-bold text-amber-500 text-sm">
+                        <td className="px-3 py-3.5 text-center font-bold text-amber-500 text-sm">
                           {member.commission_rate ? `${member.commission_rate}%` : '---'}
                         </td>
                       </>
                     )}
-                    <td className="px-6 py-3.5 text-right" onClick={e => e.stopPropagation()}>
+                    <td className="px-3 py-2 text-center" onClick={e => e.stopPropagation()}>
+                      <button 
+                        onClick={() => toggleActive(member)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase transition-all border ${
+                          member.active 
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white' 
+                          : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white'
+                        }`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full ${member.active ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+                        {member.active ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td className="px-3 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => startEditing(member)} className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-brand hover:bg-brand/10 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => deleteStaff(member.id)} className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -494,7 +534,7 @@ export default function Staff({ isNested = false }) {
               ))}
               {staff.length === 0 && (
                 <tr>
-                   <td colSpan="11" className="py-20 text-center text-gray-400 italic">No hay miembros registrados en el staff.</td>
+                   <td colSpan="12" className="py-20 text-center text-gray-400 italic">No hay miembros registrados en el staff.</td>
                 </tr>
               )}
             </tbody>
@@ -515,7 +555,7 @@ export default function Staff({ isNested = false }) {
               </div>
               <p className="text-gray-400 font-bold ml-16">{confirmConfig.message}</p>
             </div>
-            <div className="bg-surface-edge/20 px-6 py-4 flex justify-end gap-3">
+            <div className="bg-surface-soft/50 px-6 py-4 flex justify-end gap-3">
               <button 
                 onClick={() => setConfirmConfig({ ...confirmConfig, show: false })}
                 className="px-4 py-2 rounded-xl text-sm font-black text-gray-400 hover:text-white hover:bg-white/5 transition-colors"

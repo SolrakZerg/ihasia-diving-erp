@@ -32,6 +32,7 @@ export default function Overview() {
   const [staffData, setStaffData] = useState([]);
   const [expenseData, setExpenseData] = useState([]);
   const [metrics, setMetrics] = useState({});
+  const [monthlyReport, setMonthlyReport] = useState(null);
   const [incomeData, setIncomeData] = useState({ 
     total: 0, 
     breakdown: {}, 
@@ -55,8 +56,8 @@ export default function Overview() {
 
     try {
       const [ 
-        { data: invoices }, 
         { data: monthlyReport }, 
+        { data: monthlyActivities },
         { data: staffSettlements },
         { data: partnerSettlement },
         { data: bExpenses },
@@ -65,8 +66,8 @@ export default function Overview() {
         { data: sSettlements },
         metricsRes
       ] = await Promise.all([
-        supabase.from('invoices').select('*, invoice_items(*, activities(*))').gte('created_at', firstDay).lte('created_at', lastDayStr),
         supabase.from('monthly_reports').select('*').eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('monthly_activity_summary').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('staff_settlements').select('*, staff(initials)').eq('year', year).eq('month', month),
         supabase.from('partner_settlements').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('bote_expenses').select('*').gte('date', firstDay).lte('date', lastDayStr),
@@ -76,64 +77,33 @@ export default function Overview() {
         supabase.from('monthly_metrics').select('metric_key, value').eq('year', year).eq('month', month)
       ]);
 
-      // 2. Process Invoices (Income & Courses)
-      const monthInvoices = (invoices || []);
-      let facturado = 0, pendiente = 0, wiseBT = 0, wiseCR = 0, eurBT = 0, eurCR = 0, balanceCash = 0;
-      let ssiTotal = 0;
-      const courseAcronyms = ['OW', 'AOW', 'SD', 'S&R'];
-      let currentMonthCourses = 0;
+      const mObj = (metricsRes.data || []).reduce((acc, m) => ({ ...acc, [m.metric_key]: Number(m.value) }), {});
 
-      monthInvoices.forEach(inv => {
-        inv.invoice_items?.forEach(item => {
-          let isThisMonth = false;
-          if (!item.date) isThisMonth = true;
-          else {
-            const [y, m] = item.date.split('-').map(Number);
-            if (y === year && m === month) isThisMonth = true;
-          }
-          if (!isThisMonth) return;
-
-          const total = Number(item.total_thb || 0);
-          facturado += total;
-          
-          if (item.status === 'Pending') {
-            pendiente += total;
-          } else {
-            const method = (item.payment_method || 'CASH').toUpperCase();
-            if (method === 'WISE BT') wiseBT += total;
-            else if (method === 'WISE CR') wiseCR += total;
-            else if (method === 'EUR BT') eurBT += total;
-            else if (method === 'EUR CR') eurCR += total;
-            else if (method === 'CASH' || method === '') balanceCash += total;
-          }
-
-          ssiTotal += (Number(item.activities?.ssi_cost_thb || 0) * Number(item.quantity || 1));
-          if (courseAcronyms.includes(item.activities?.acronym) && Number(item.quantity ?? 1) > 0) {
-            currentMonthCourses += Number(item.quantity || 1);
-          }
-        });
-      });
+      // 2. Process Invoices (Ya no se calculan aquí, se leen de monthlyReport)
+      const facturado = Number(monthlyReport?.facturado || 0);
+      const pendiente = Number(monthlyReport?.pendiente || 0);
+      const cobrado = Number(monthlyReport?.cobrado || 0);
+      
+      const wiseBT = Number(monthlyReport?.bt_wise || 0);
+      const wiseCR = Number(monthlyReport?.cr_wise || 0);
+      const eurBT = Number(monthlyReport?.bt_eur || 0);
+      const eurCR = Number(monthlyReport?.cr_eur || 0);
+      
+      const totalCRAdvances = Number(monthlyReport?.cr_cash || 0);
+      const totalBTAdvances = Number(monthlyReport?.bt_cash || 0);
 
       const openingCash = monthlyReport?.mes_anterior || 0;
       const boteTotal = Number(boteMonthly?.apartar_amount || 0);
       const botePending = monthlyReport?.bote_xpagar ?? boteTotal;
 
-      const mObj = (metricsRes.data || []).reduce((acc, m) => ({ ...acc, [m.metric_key]: m.value }), {});
-      
-      // PRIORIDAD 1: monthly_reports (Persistencia centralizada)
-      // PRIORIDAD 2: metrics (Triggers antiguos)
-      // PRIORIDAD 3: Calculado al vuelo (Fallback)
-      const dbFacturado = monthlyReport?.facturado != null ? parseFloat(monthlyReport.facturado) : (mObj.total_billed != null ? parseFloat(mObj.total_billed) : facturado);
-      const dbPendiente = monthlyReport?.pendiente != null ? parseFloat(monthlyReport.pendiente) : (mObj.total_pending != null ? parseFloat(mObj.total_pending) : pendiente);
-      const dbCobrado = monthlyReport?.cobrado != null ? parseFloat(monthlyReport.cobrado) : (dbFacturado - dbPendiente);
+      const dbFacturado = facturado;
+      const dbPendiente = pendiente;
+      const dbCobrado = cobrado;
 
-      const dbWiseBT = monthlyReport?.bt_wise != null ? parseFloat(monthlyReport.bt_wise) : wiseBT;
-      const dbWiseCR = monthlyReport?.cr_wise != null ? parseFloat(monthlyReport.cr_wise) : wiseCR;
-      const dbEurBT = monthlyReport?.bt_eur != null ? parseFloat(monthlyReport.bt_eur) : eurBT;
-      const dbEurCR = monthlyReport?.cr_eur != null ? parseFloat(monthlyReport.cr_eur) : eurCR;
-
-      const totalCRAdvances = Number(monthlyReport?.cr_cash || 0);
-      const totalBTAdvances = Number(monthlyReport?.bt_cash || 0);
+      const dbWiseBT = wiseBT;
+      const dbWiseCR = wiseCR;
+      const dbEurBT = eurBT;
+      const dbEurCR = eurCR;
 
       const crData = [
         { name: 'CASH', value: totalCRAdvances, color: '#3b82f6' },
@@ -156,6 +126,7 @@ export default function Overview() {
       const carabaoPending = Number(carabaoSettlement?.pending_amount || 0);
 
       const ssiSettlement = (sSettlements || []).find(s => s.supplier_name?.toLowerCase().includes('ssi'));
+      const ssiTotal = Number(monthlyReport?.ssi_estimated || 0);
       const ssiTotalFinal = ssiSettlement ? Number(ssiSettlement.total_amount) : ssiTotal;
       const ssiPendingFinal = ssiSettlement ? Number(ssiSettlement.pending_amount) : ssiTotal;
 
@@ -251,28 +222,12 @@ export default function Overview() {
       });
       setExpenseData(detailedExpenses);
 
-      setCourseStats(prev => ({ ...prev, count: currentMonthCourses }));
+      setCourseStats({ count: Number(monthlyActivities?.total_courses || 0), target: 20 });
       
-      // 5. Process Staff (Real-time reactive logic)
-      const activeInstructorIds = new Set();
-      monthInvoices.forEach(inv => {
-        inv.invoice_items?.forEach(item => {
-          let isThisMonth = false;
-          if (!item.date) isThisMonth = true;
-          else {
-            const [y, m] = item.date.split('-').map(Number);
-            if (y === year && m === month) isThisMonth = true;
-          }
-          if (isThisMonth && item.instructor_id) {
-            activeInstructorIds.add(String(item.instructor_id));
-          }
-        });
-      });
+      // 5. Process Staff (Leemos directamente de staffSettlements ya sincronizado)
 
       const finalStaff = (staffSettlements || []).map(s => {
-        const isActuallyActive = activeInstructorIds.has(String(s.staff_id));
-        // If they are not in this month's invoices, their commissions are 0 (stale data prevention)
-        const realComms = isActuallyActive ? (Number(s.total_commissions) || 0) : 0;
+        const realComms = Number(s.total_commissions) || 0;
         const totalBonus = Number(s.total_bonus) || 0;
         
         return {
@@ -284,6 +239,7 @@ export default function Overview() {
       
       setStaffData(finalStaff);
       setMetrics(mObj);
+      setMonthlyReport(monthlyReport);
 
     } catch (e) {
       console.error("Error fetching dashboard data:", e);
@@ -615,34 +571,24 @@ export default function Overview() {
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Por Cobrar</span>
                   <span className="text-sm font-black font-mono">{Math.round(incomeData.pending || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-400/70 mb-1.5">
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-400 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Pagado</span>
                   <span className="text-sm font-black font-mono">
-                    {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0) - expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()}
+                    {Math.round(monthlyReport?.total_pagado || 0).toLocaleString()}
                   </span>
                </div>
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-emerald-400/50 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Cobrado + Mes Ant.</span>
-                  <span className="text-sm font-black font-mono">{Math.round((incomeData.collected || 0) + (incomeData.openingCash || 0)).toLocaleString()}</span>
+                  <span className="text-sm font-black font-mono">{Math.round(monthlyReport?.total_disponible || 0).toLocaleString()}</span>
                </div>
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado + Mes Ant.</span>
-                  <span className="text-sm font-black font-mono">{Math.round((incomeData.total || 0) + (incomeData.openingCash || 0)).toLocaleString()}</span>
+                  <span className="text-sm font-black font-mono">{Math.round(monthlyReport?.total_facturado_mes_ant || 0).toLocaleString()}</span>
                </div>
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Hay o Habrá + Pagado</span>
                   <span className="text-sm font-black font-mono">
-                    {Math.round(
-                      (incomeData.breakdown?.['DEBERÍA'] || 0) + 
-                      (incomeData.breakdown?.['BT Wise'] || 0) + 
-                      (incomeData.breakdown?.['CR Wise'] || 0) + 
-                      (incomeData.breakdown?.['BT EUR'] || 0) + 
-                      (incomeData.breakdown?.['CR EUR'] || 0) + 
-                      (incomeData.breakdown?.['CR Cash'] || 0) + 
-                      (incomeData.breakdown?.['BT Cash'] || 0) + 
-                      (incomeData.pending || 0) + 
-                      (expenseData.reduce((acc, e) => acc + e.value, 0) - expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0))
-                    ).toLocaleString()}
+                    {Math.round(monthlyReport?.total_auditoria || 0).toLocaleString()}
                   </span>
                </div>
             </div>

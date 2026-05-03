@@ -9,6 +9,7 @@ export function useBilling() {
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [sortBy, setSortBy] = useState('date');
   const [activities, setActivities] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [staff, setStaff] = useState([]);
   const [bills50000, setBills50000] = useState('');
   const [bills1000, setBills1000] = useState('');
@@ -65,8 +66,122 @@ export function useBilling() {
       });
     });
     const cobrado = facturado - pendiente;
-    return { facturado, pendiente, cobrado, wiseBT, wiseCR, eurBT, eurCR, balanceCash, dailyBalanceCash };
-  }, [allMonthInvoices, arrivalsDate]);
+    const { activityBreakdown, ssiEstimated } = allMonthInvoices.reduce((acc, inv) => {
+      inv.invoice_items?.forEach(item => {
+        const qty = Number(item.quantity ?? 1);
+        
+        // 1. Obtener acrónimo de forma segura
+        let acr = (item.activities?.acronym || '').trim();
+        if (!acr && item.activity_id) {
+          const act = activities.find(a => a.id === item.activity_id);
+          acr = act?.acronym || '';
+        }
+
+        if (acr) {
+          // Normalizamos para comparar (insensible a mayúsculas)
+          const targetKey = Object.keys(acc.activityBreakdown).find(k => k.toLowerCase() === acr.toLowerCase());
+          if (targetKey) {
+            acc.activityBreakdown[targetKey] += qty;
+          } else {
+            // Si el acrónimo no estaba en la inicialización (caso raro), lo creamos al vuelo
+            acc.activityBreakdown[acr] = qty;
+          }
+        }
+
+        // 2. Lógica de Tanques (Más flexible para acrónimos personalizados)
+        const a = (acr || '').toLowerCase();
+        
+        // CANCELACIONES
+        if (a === 'can' || a === 'can2' || a.startsWith('can')) {
+          const n = (item.activities?.name || '').toLowerCase();
+          if (n.includes('bautizo (1 dive)') || n.includes('refresh (1)')) acc.activityBreakdown.total_tanks += qty;
+          else if (n.includes('bautizo (2 dives)') || n.includes('refresh (2')) acc.activityBreakdown.total_tanks += 2 * qty;
+        } 
+        // 1 TANQUE: DSD1, SR1, FD1
+        else if (a.startsWith('dsd1') || a.startsWith('sr1') || a.startsWith('fd1')) {
+          acc.activityBreakdown.total_tanks += qty;
+        } 
+        // 2 TANQUES: DSD2, SR2, FD2
+        else if (a.startsWith('dsd2') || a.startsWith('sr2') || a.startsWith('fd2')) {
+          acc.activityBreakdown.total_tanks += 2 * qty;
+        }
+
+        acc.ssiEstimated += (Number(item.activities?.ssi_cost_thb || 0) * qty);
+      });
+      return acc;
+    }, { 
+      // Inicializamos con todos los acrónimos actuales del catálogo para que aparezcan aunque estén a 0
+      activityBreakdown: (activities || []).reduce((acc, act) => {
+        if (act.acronym) acc[act.acronym] = 0;
+        return acc;
+      }, { total_tanks: 0 }),
+      ssiEstimated: 0 
+    });
+
+    return { facturado, pendiente, cobrado, wiseBT, wiseCR, eurBT, eurCR, balanceCash, dailyBalanceCash, activityBreakdown, ssiEstimated };
+  }, [allMonthInvoices, arrivalsDate, activities]);
+
+  // ESTADO PARA LOS TOTALES OFICIALES DE LA BD
+  const [monthlyDbData, setMonthlyDbData] = useState({ total_courses: 0, total_tanks: 0, total_spec: 0 });
+
+  // Función para leer los totales de la Vista relacional
+  const fetchDbTotals = async (m = selectedMonth, y = selectedYear) => {
+    const { data, error } = await supabase
+      .from('monthly_activity_summary')
+      .select('*')
+      .eq('month', m + 1) // +1 para coincidir con el formato 1-indexed de la BD
+      .eq('year', y)
+      .maybeSingle(); 
+    
+    if (data) setMonthlyDbData(data);
+    else {
+      setMonthlyDbData({ total_courses: 0, total_tanks: 0, total_spec: 0 });
+    }
+  };
+
+  // FUNCIÓN PARA SINCRONIZAR CON EL NUEVO SISTEMA RELACIONAL (monthly_activity_logs)
+  const syncMonthlyStats = async (breakdown) => {
+    if (!breakdown || !activities || activities.length === 0) return;
+    
+    const upsertData = activities
+      .map(act => {
+        const count = breakdown[act.acronym] || 0;
+        if (count <= 0) return null;
+        return {
+          year: selectedYear,
+          month: selectedMonth + 1, // +1 para formato 1-indexed
+          activity_id: act.id,
+          count: count,
+          updated_at: new Date().toISOString()
+        };
+      })
+      .filter(Boolean);
+
+    if (upsertData.length === 0) return;
+
+    const { error } = await supabase
+      .from('monthly_activity_logs')
+      .upsert(upsertData, { onConflict: 'year,month,activity_id' });
+
+    if (error) {
+      console.error("[useBilling] Error syncing monthly_activity_logs:", error);
+    } else {
+      // SI EL GUARDADO FUE BIEN, REFRESCAMOS LOS TOTALES DE LA BD
+      fetchDbTotals();
+    }
+  };
+
+  // Sincronizar automáticamente cuando cambien los datos
+  useEffect(() => {
+    if (stats.activityBreakdown) {
+      syncMonthlyStats(stats.activityBreakdown);
+    }
+  }, [stats.activityBreakdown]);
+
+  // Al cambiar de mes/año, cargamos los totales de la BD
+  useEffect(() => {
+    fetchDbTotals();
+  }, [selectedMonth, selectedYear]);
 
   const displayedInvoices = useMemo(() => {
     return [...invoices]
@@ -99,32 +214,8 @@ export function useBilling() {
   }, [invoices, sortBy, showOnlyUnpaid]);
 
   const activityStats = useMemo(() => {
-    const s = { ow: 0, sd: 0, aa: 0, dsd1: 0, dsd2: 0, sr1: 0, sr2: 0, fd1: 0, fd25: 0, fdAlum: 0, cancel: 0, deepAdv: 0, deepEsp: 0, ean: 0, totalTanks: 0 };
-    allMonthInvoices.forEach(inv => {
-      inv.invoice_items?.forEach(item => {
-        const qty = Number(item.quantity ?? 1);
-        const n = (item.activities?.name || '').trim().toLowerCase();
-        if (n.startsWith('cancel')) {
-          s.cancel += qty;
-          if (n.includes('bautizo (1 dive)') || n.includes('refresh (1)')) s.totalTanks += qty;
-          else if (n.includes('bautizo (2 dives)') || n.includes('refresh (2')) s.totalTanks += 2 * qty;
-        } else if (n.startsWith('open water')) s.ow += qty;
-        else if (n.startsWith('scuba diver')) s.sd += qty;
-        else if (n === 'advanced') s.aa += qty;
-        else if (n === 'bautizo (1 dive)') { s.dsd1 += qty; s.totalTanks += qty; }
-        else if (n === 'bautizo (2 dives)') { s.dsd2 += qty; s.totalTanks += 2 * qty; }
-        else if (n === 'refresh (1)') { s.sr1 += qty; s.totalTanks += qty; }
-        else if (n.startsWith('refresh (2')) { s.sr2 += qty; s.totalTanks += 2 * qty; }
-        else if (n === 'fd 1') s.fd1 += qty;
-        else if (n === 'fd 2 a 5') s.fd25 += qty;
-        else if (n === 'fd alumno') s.fdAlum += qty;
-        else if (n.startsWith('deep adv')) s.deepAdv += qty;
-        else if (n.startsWith('deep (')) s.deepEsp += qty;
-        else if (n.startsWith('nitrox')) s.ean += qty;
-      });
-    });
-    return s;
-  }, [allMonthInvoices]);
+    return stats.activityBreakdown;
+  }, [stats.activityBreakdown]);
 
   const expectedCash = dbExpectedCash || stats.balanceCash;
   const diffCash = actualCash - expectedCash;
@@ -174,7 +265,8 @@ export function useBilling() {
         year: selectedYear, month: selectedMonth + 1, stats 
       });
       try {
-        const { error } = await supabase.from('monthly_reports').upsert({
+        // 1. Informe Mensual
+        const { error: repError } = await supabase.from('monthly_reports').upsert({
           year: selectedYear,
           month: selectedMonth + 1,
           facturado: stats.facturado,
@@ -186,11 +278,13 @@ export function useBilling() {
           bt_wise: stats.wiseBT,
           cr_cash: stats.crCash,
           bt_cash: stats.btCash,
+          ssi_estimated: stats.ssiEstimated,
           updated_at: new Date().toISOString()
         }, { onConflict: 'year, month' });
 
-        if (error) throw error;
-        console.log("[useBilling] ✅ Informe sincronizado con éxito.");
+        if (repError) throw repError;
+
+        console.log("[useBilling] ✅ Informe sincronizado.");
         
         // Refrescamos el DEBERIA para que el widget de caja se actualice al momento
         fetchCashControl();
@@ -217,6 +311,10 @@ export function useBilling() {
       if (data) {
         setBills50000(data.b_50000 ?? ''); setBills1000(data.b_1000 ?? ''); setBills500(data.b_500 ?? '');
         setBills100(data.b_100 ?? ''); setBills50(data.b_50 ?? ''); setBills20(data.b_20 ?? '');
+      } else {
+        // RESET si no hay datos para el mes seleccionado
+        setBills50000(''); setBills1000(''); setBills500('');
+        setBills100(''); setBills50(''); setBills20('');
       }
       
       // TAMBIÉN CARGAR EL DEBERÍA DE monthly_reports
@@ -273,15 +371,17 @@ export function useBilling() {
   };
 
   const fetchCatalogs = async () => {
-    const [actRes, stfRes] = await Promise.all([
-      supabase.from('activities').select('id, name, price_thb, color, category'),
-      supabase.from('staff').select('id, first_name, initials').eq('active', true).order('first_name')
+    const [actRes, stfRes, catRes] = await Promise.all([
+      supabase.from('activities').select('id, name, price_thb, color, category, acronym, widget_column, widget_order'),
+      supabase.from('staff').select('id, first_name, initials, active').order('first_name'),
+      supabase.from('activity_categories').select('*')
     ]);
     if (actRes.data) {
       const p = { 'Course': 1, 'Fun Dive': 2, 'Fee': 3, 'Pro': 4, 'Snorkeling': 5, 'Retail': 6 };
       setActivities([...actRes.data].sort((a, b) => { const pa = p[a.category] || 99, pb = p[b.category] || 99; return pa !== pb ? pa - pb : a.name.localeCompare(b.name); }));
     }
     if (stfRes.data) setStaff(stfRes.data);
+    if (catRes.data) setCategories(catRes.data);
   };
 
   const fetchInvoices = async (showLoader = false, overrideToday = null, overrideUnpaid = null, overrideMonth = null, overrideYear = null) => {
@@ -295,7 +395,7 @@ export function useBilling() {
       const { data, error } = await supabase.from('invoices').select(`
         *, customers!invoices_customer_id_fkey(first_name, last_name, email),
         invoice_items(id, quantity, total_thb, unit_price_thb, date, status, payment_method, notes, activity_id, instructor_id, bizum_deposit_eur, customer_id, temporary_name, is_comm,
-          activities(name, category, color), staff(first_name, initials),
+          activities(name, category, color, acronym), staff(first_name, initials),
           customers!invoice_items_customer_id_fkey(first_name, last_name, email))
       `).order('created_at', { ascending: false });
       if (error) throw error;
@@ -431,6 +531,14 @@ export function useBilling() {
   const handleDeleteItems = async () => {
     const ids = Array.from(selectedItemIds).filter(id => id && typeof id === 'string' && id.length > 20);
     if (ids.length === 0) { setSelectedItemIds(new Set()); setToast("No hay registros válidos seleccionados"); return; }
+    
+    // 1. Identificar qué facturas podrían quedarse vacías antes de borrar
+    const candidateInvoiceIds = [...new Set(
+      invoices
+        .filter(inv => inv.invoice_items?.some(it => ids.includes(it.id)))
+        .map(inv => inv.id)
+    )];
+
     setConfirmConfig({
       show: true, title: 'Eliminar Registros',
       message: `¿Estás seguro de que deseas eliminar ${ids.length} registros? Esta acción no se puede deshacer.`,
@@ -438,9 +546,27 @@ export function useBilling() {
       onConfirm: async () => {
         try {
           setLoadingInvoices(true);
+          
+          // 2. Borrar los ítems seleccionados
           const { error } = await supabase.from('invoice_items').delete().in('id', ids);
           if (error) throw error;
-          setToast(`${ids.length} eliminados`); setSelectedItemIds(new Set()); fetchInvoices(false);
+          
+          // 3. LIMPIEZA: Borrar facturas que se hayan quedado sin ítems
+          for (const invId of candidateInvoiceIds) {
+            const { data: items } = await supabase
+              .from('invoice_items')
+              .select('id')
+              .eq('invoice_id', invId)
+              .limit(1);
+            
+            if (!items || items.length === 0) {
+              await supabase.from('invoices').delete().eq('id', invId);
+            }
+          }
+
+          setToast(`${ids.length} eliminados`); 
+          setSelectedItemIds(new Set()); 
+          fetchInvoices(false);
         } catch (err) { console.error('Error deleting items:', err); alert('Error al eliminar: ' + err.message); }
         finally { setLoadingInvoices(false); setConfirmConfig(prev => ({ ...prev, show: false })); }
       }
@@ -530,7 +656,7 @@ export function useBilling() {
   return {
     // State
     todayArrivals, loadingArrivals, invoices, loadingInvoices, sortBy, setSortBy,
-    activities, staff, bills50000, setBills50000, bills1000, setBills1000,
+    activities, categories, staff, bills50000, setBills50000, bills1000, setBills1000,
     bills500, setBills500, bills100, setBills100, bills50, setBills50, bills20, setBills20,
     selectedArrivalIds, setSelectedArrivalIds, selectedItemIds, setSelectedItemIds,
     toast, setToast, confirmConfig, setConfirmConfig,
@@ -545,6 +671,6 @@ export function useBilling() {
     handleToggleSelection, changeArrivalsDate, fetchInvoices,
     handleAddArrivalsToTable, handleApplyBulkChanges, handleCopyEmails,
     handleDeleteItems, handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
-    patchInvoiceItem,
+    patchInvoiceItem, fetchCatalogs, monthlyDbData,
   };
 }

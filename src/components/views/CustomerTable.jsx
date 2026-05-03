@@ -225,7 +225,15 @@ export default function CustomerTable({ onNavigate }) {
     if (selectedIds.size === 0) return;
     setIsProcessingBilling(true);
     try {
-      const selectedCustomers = customers.filter(c => selectedIds.has(c.id));
+      // 1. Cargamos los datos frescos de TODOS los seleccionados por ID
+      // Esto evita que se pierdan datos por paginación o filtros de búsqueda
+      const { data: selectedCustomers, error: fetchErr } = await supabase
+        .from('customers')
+        .select('*')
+        .in('id', Array.from(selectedIds));
+
+      if (fetchErr) throw fetchErr;
+      if (!selectedCustomers) return;
       
       for (const cust of selectedCustomers) {
         // 1. Check for existing 'Open' invoice for this customer
@@ -240,10 +248,8 @@ export default function CustomerTable({ onNavigate }) {
 
         let invoiceId;
         if (existingInvoices && existingInvoices.length > 0) {
-          // Use existing invoice
           invoiceId = existingInvoices[0].id;
         } else {
-          // Create new individual invoice
           const { data: invData, error: invErr } = await supabase.from('invoices').insert({
             customer_id: cust.id,
             status: 'Open'
@@ -253,11 +259,12 @@ export default function CustomerTable({ onNavigate }) {
           invoiceId = invData.id;
         }
 
-        // 2. Create invoice item with booking date
+        // 2. Create invoice item with NULL date
+        // Forzamos NULL para que aparezca con aviso rojo en Facturación
         const { error: itemErr } = await supabase.from('invoice_items').insert({
           invoice_id: invoiceId,
           customer_id: cust.id,
-          date: cust.booking_date,
+          date: null, // <--- Forzamos validación manual
           quantity: 1,
           unit_price_thb: 0,
           total_thb: 0,

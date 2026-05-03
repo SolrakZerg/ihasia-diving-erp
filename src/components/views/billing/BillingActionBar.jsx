@@ -46,7 +46,7 @@ export default function BillingActionBar({
             <Briefcase className={`w-4 h-4 ${bulkInstructor ? 'text-amber-400' : 'text-gray-500'}`} />
             <select className="bg-transparent text-white text-xs font-black outline-none cursor-pointer pr-2 py-1.5" value={bulkInstructor} onChange={(e) => setBulkInstructor(e.target.value)}>
               <option value="" className="bg-slate-900 uppercase">¿INSTRUCTOR?</option>
-              {staff.map(s => <option key={s.id} value={s.id} className="bg-slate-900">{s.first_name}</option>)}
+              {staff.filter(s => s.active).map(s => <option key={s.id} value={s.id} className="bg-slate-900">{s.first_name}</option>)}
             </select>
           </div>
 

@@ -1,9 +1,9 @@
-import { useRef } from 'react';
-import { Users, ChevronLeft, ChevronRight, Target, Calculator, CheckCircle2, Loader2, Calendar, Search, Plus, Briefcase } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Users, ChevronLeft, ChevronRight, Target, Calculator, CheckCircle2, Loader2, Calendar, Search, Plus, Briefcase, Settings, X as CloseIcon } from 'lucide-react';
 
 const StatItem = ({ label, value, color = "text-white", noBorder = false, first = false }) => (
-  <div className={`flex items-center justify-between gap-3 ${first ? 'pb-1 pt-0' : 'py-1'} w-full ${noBorder ? '' : 'border-b border-white/[0.04]'}`}>
-    <span className={`text-[10px] font-bold tracking-wide uppercase truncate ${value === 0 ? 'text-gray-400/60' : 'text-gray-300'}`}>{label}</span>
+  <div className={`flex items-center justify-between gap-3 ${first ? 'pb-0.5 pt-0' : 'py-0.5'} w-full ${noBorder ? '' : 'border-b border-white/[0.04]'}`}>
+    <span className={`text-[10px] font-bold tracking-wide truncate ${value === 0 ? 'text-gray-400/60' : 'text-gray-300'}`}>{label}</span>
     <span className={`text-[12px] font-black tabular-nums transition-colors ${value === 0 ? 'text-gray-500' : color}`}>{value}</span>
   </div>
 );
@@ -13,7 +13,7 @@ export default function BillingHeader({
   arrivalsDate, setArrivalsDate, changeArrivalsDate, todayArrivals, loadingArrivals,
   selectedArrivalIds, setSelectedArrivalIds, handleAddArrivalsToTable,
   // Activity Stats
-  activityStats,
+  activityStats, activities,
   // Cash
   bills50000, setBills50000, bills1000, setBills1000, bills500, setBills500,
   bills100, setBills100, bills50, setBills50, bills20, setBills20,
@@ -26,11 +26,18 @@ export default function BillingHeader({
   showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
   fetchInvoices,
   // Add row
+  fetchCatalogs,
+  monthlyDbData,
+  categories = [],
   supabase,
 }) {
   const dateInputRef = useRef(null);
+  const [showConfig, setShowConfig] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [catFilter, setCatFilter] = useState(['Course', 'Fun Dive', 'Pro']);
 
   return (
+    <>
     <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-surface-edge py-1.5 px-4 shadow-xl flex gap-4 items-stretch h-[290px] overflow-x-auto custom-scrollbar">
 
       {/* Widget 1: LLEGADAS */}
@@ -73,7 +80,7 @@ export default function BillingHeader({
                     <td className="py-0.5 px-1.5 w-6 text-center text-gray-500 text-[10px] font-mono">{i + 1}</td>
                     <td className="py-0.5 px-1.5 w-6 text-center"><input type="checkbox" checked={selectedArrivalIds.has(c.id)} readOnly className="w-3.5 h-3.5 rounded text-brand bg-surface border-surface-edge cursor-pointer pointer-events-none" /></td>
                     <td className="py-0.5 px-1.5 text-white font-medium truncate max-w-[180px]">{c.first_name} {c.last_name}</td>
-                    <td className="py-0.5 px-1.5 text-brand text-[10px] truncate max-w-[110px] font-bold uppercase opacity-80 pl-2">{c.booked_activity || 'Genérico'}</td>
+                    <td className="py-0.5 px-1.5 text-brand text-[10px] truncate max-w-[110px] font-bold opacity-80 pl-2">{c.booked_activity || 'Genérico'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -88,37 +95,100 @@ export default function BillingHeader({
       </div>
 
       {/* Widget 2: ACTIVIDADES */}
-      <div className="flex-none w-[250px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-2xl overflow-hidden hidden lg:flex shrink-0">
+      <div className="flex-none w-[480px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-2xl overflow-hidden hidden lg:flex shrink-0">
         <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
           <span className="flex items-center gap-1.5 text-brand text-xs font-bold"><Target className="w-3.5 h-3.5" /> Actividades</span>
+          <button 
+            onClick={() => setShowConfig(true)}
+            className="p-1 hover:bg-white/10 text-gray-500 hover:text-brand transition-colors rounded"
+            title="Configurar columnas"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <div className="flex-1 grid grid-cols-2 divide-x divide-white/10 p-3">
-          <div className="pr-3 flex flex-col justify-between">
+        <div className="flex-1 grid grid-cols-3 divide-x divide-white/10 p-2 overflow-y-auto">
+          {/* COLUMNA 1: CURSOS */}
+          <div className="pr-2 flex flex-col justify-between">
             <div className="flex flex-col gap-0">
-              <StatItem label="OW" value={activityStats.ow} first />
-              <StatItem label="SD" value={activityStats.sd} />
-              <StatItem label="AA" value={activityStats.aa} />
-              <StatItem label="DSD1" value={activityStats.dsd1} />
-              <StatItem label="DSD2" value={activityStats.dsd2} />
-              <StatItem label="SR1" value={activityStats.sr1} />
-              <StatItem label="SR2" value={activityStats.sr2} noBorder />
+              {(activities || [])
+                .filter(a => a.widget_column === 1 && (activityStats[a.acronym] > 0))
+                .sort((a, b) => (a.widget_order || 0) - (b.widget_order || 0))
+                .map((act, idx, arr) => (
+                  <StatItem 
+                    key={act.id} 
+                    label={act.acronym || act.name} 
+                    value={activityStats[act.acronym] || 0} 
+                    first={idx === 0} 
+                    noBorder={idx === arr.length - 1} 
+                  />
+                ))}
             </div>
-            <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between">
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">TANQUES</span>
-              <span className="text-sm font-black text-brand-light leading-none">{activityStats.totalTanks}</span>
+            <div className="mt-2 pt-1 border-t border-white/10 flex justify-between items-center px-1">
+              <span className="text-[9px] font-black text-brand uppercase">CURSOS</span>
+              <span className="text-xs font-black text-white">
+                {monthlyDbData?.total_courses || 0}
+              </span>
             </div>
           </div>
-          <div className="pl-3 flex flex-col gap-0">
-            <StatItem label="FD 1" value={activityStats.fd1} first />
-            <StatItem label="FD 2-5" value={activityStats.fd25} />
-            <StatItem label="FD AL" value={activityStats.fdAlum} />
-            <StatItem label="DEEP A" value={activityStats.deepAdv} />
-            <StatItem label="DEEP E" value={activityStats.deepEsp} />
-            <StatItem label="EAN" value={activityStats.ean} />
-            <StatItem label="CANCEL" value={activityStats.cancel} color="text-red-500" noBorder />
+
+          {/* COLUMNA 2: TANQUES */}
+          <div className="px-2 flex flex-col justify-between">
+            <div className="flex flex-col gap-0">
+              {(activities || [])
+                .filter(a => a.widget_column === 2 && (activityStats[a.acronym] > 0))
+                .sort((a, b) => (a.widget_order || 0) - (b.widget_order || 0))
+                .map((act, idx, arr) => (
+                  <StatItem 
+                    key={act.id} 
+                    label={act.acronym || act.name} 
+                    value={activityStats[act.acronym] || 0} 
+                    first={idx === 0} 
+                    noBorder={idx === arr.length - 1} 
+                  />
+                ))}
+            </div>
+            <div className="mt-2 pt-1 border-t border-white/10 flex justify-between items-center px-1">
+              <span className="text-[9px] font-black text-brand uppercase">TANQUES</span>
+              <span className="text-xs font-black text-white">
+                {monthlyDbData?.total_tanks || 0}
+              </span>
+            </div>
+          </div>
+
+          {/* COLUMNA 3: ESPECIALIDADES */}
+          <div className="pl-2 flex flex-col justify-between">
+            <div className="flex flex-col gap-0">
+              {(activities || [])
+                .filter(a => a.widget_column === 3 && ((activityStats[a.acronym] > 0) || (a.acronym === 'CAN' && (Number(activityStats.CAN || 0) + Number(activityStats.CAN2 || 0)) > 0)))
+                .sort((a, b) => (a.widget_order || 0) - (b.widget_order || 0))
+                .map((act, idx, arr) => {
+                  const isCancel = (act.acronym || '').toLowerCase().startsWith('can');
+                  const val = isCancel 
+                    ? (Number(activityStats.CAN || 0) + Number(activityStats.CAN2 || 0)) 
+                    : (activityStats[act.acronym] || 0);
+                  
+                  return (
+                    <StatItem 
+                      key={act.id} 
+                      label={isCancel ? 'CANCEL' : (act.acronym || act.name)} 
+                      value={val} 
+                      first={idx === 0} 
+                      statusColor={isCancel ? "text-red-400" : undefined} 
+                      noBorder={idx === arr.length - 1} 
+                    />
+                  );
+                })}
+            </div>
+            <div className="mt-2 pt-1 border-t border-white/10 flex justify-between items-center px-1">
+              <span className="text-[9px] font-black text-brand uppercase">ESPECIALIDADES</span>
+              <span className="text-xs font-black text-white">
+                {monthlyDbData?.total_spec || 0}
+              </span>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Widget 3: CAJA */}
       <div className="flex-none w-fit flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden min-w-[180px] shrink-0">
@@ -309,5 +379,157 @@ export default function BillingHeader({
         </div>
       </div>
     </div>
+
+    {/* MODAL DE CONFIGURACIÓN DE ACTIVIDADES */}
+    {showConfig && (
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setShowConfig(false)} />
+        <div className="relative bg-slate-900 border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50">
+            <div>
+              <h3 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
+                <Settings className="w-5 h-5 text-brand" />
+                Configurar Widget
+              </h3>
+              <p className="text-xs text-gray-400 font-medium">Personaliza qué actividades ves en cada columna</p>
+            </div>
+            <button onClick={() => setShowConfig(false)} className="p-2 hover:bg-white/5 rounded-xl text-gray-500 transition-colors">
+              <CloseIcon className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {/* FILTRO DE CATEGORÍAS */}
+          <div className="p-4 bg-slate-800/50 border-b border-white/5 flex flex-wrap gap-2">
+            {(categories || []).map(cat => {
+              const isActive = catFilter.includes(cat.name);
+              return (
+                <button
+                  key={cat.id || cat.name}
+                  onClick={() => setCatFilter(prev => 
+                    prev.includes(cat.name) ? prev.filter(c => c !== cat.name) : [...prev, cat.name]
+                  )}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
+                    isActive 
+                      ? (cat.color || 'bg-brand/20 border-brand text-brand') + ' shadow-lg shadow-brand/10' 
+                      : 'bg-white/5 border border-white/10 text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-900">
+            <div className="grid grid-cols-1 gap-2">
+              {(activities || [])
+                .filter(act => catFilter.includes(act.category || 'Other'))
+                .map(act => (
+                <div key={act.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 hover:border-brand/30 transition-all group">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-white group-hover:text-brand transition-colors">{act.name}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {/* ACRÓNIMO con color de ACTIVIDAD */}
+                      <span 
+                        className="text-[10px] font-black px-1.5 py-0.5 rounded border"
+                        style={{ 
+                          color: act.color || '#94a3b8', 
+                          backgroundColor: (act.color || '#94a3b8') + '15',
+                          borderColor: (act.color || '#94a3b8') + '30'
+                        }}
+                      >
+                        {act.acronym || 'SIN ACRÓNIMO'}
+                      </span>
+                      
+                      {/* CATEGORÍA con color de CATEGORÍA (usa clases de Tailwind) */}
+                      {(() => {
+                        const catObj = categories.find(c => c.name === act.category);
+                        return (
+                          <span 
+                            className={`text-[9px] px-1.5 py-0.5 rounded-md uppercase font-bold ${catObj?.color || 'bg-white/5 text-gray-400 border border-white/10'}`}
+                          >
+                            {act.category}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] font-black text-gray-600 uppercase leading-none mb-1">Columna</span>
+                          {(() => {
+                            const col1Color = categories.find(c => c.name === 'Course')?.color || '';
+                            const col2Color = categories.find(c => c.name === 'Fun Dive')?.color || '';
+                            const col3Color = categories.find(c => c.name === 'Pro')?.color || '';
+                            
+                            let currentBg = 'bg-slate-800';
+                            if (act.widget_column === 1) currentBg = col1Color;
+                            if (act.widget_column === 2) currentBg = col2Color;
+                            if (act.widget_column === 3) currentBg = col3Color;
+
+                            return (
+                              <select 
+                                value={act.widget_column || ''}
+                                onChange={async (e) => {
+                                  const val = e.target.value === '' ? null : Number(e.target.value);
+                                  setIsSavingConfig(true);
+                                  await supabase.from('activities').update({ widget_column: val }).eq('id', act.id);
+                                  await fetchCatalogs();
+                                  await fetchInvoices(false);
+                                  setIsSavingConfig(false);
+                                }}
+                                className={`border-none text-[11px] font-bold rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-brand cursor-pointer min-w-[120px] transition-all ${currentBg} ${!act.widget_column ? 'text-white' : ''}`}
+                              >
+                                <option value="" className="bg-slate-900 text-white">Ocultar</option>
+                                <option value="1" className="bg-slate-900 text-blue-400">Columna 1 (Cursos)</option>
+                                <option value="2" className="bg-slate-900 text-cyan-400">Columna 2 (Tanques)</option>
+                                <option value="3" className="bg-slate-900 text-purple-400">Columna 3 (Especialidades)</option>
+                              </select>
+                            );
+                          })()}
+                        </div>
+                    
+                    <input 
+                      type="number"
+                      placeholder="Ord"
+                      defaultValue={act.widget_order || 0}
+                      onBlur={async (e) => {
+                        const val = Number(e.target.value);
+                        setIsSavingConfig(true);
+                        await supabase.from('activities').update({ widget_order: val }).eq('id', act.id);
+                        await fetchCatalogs();
+                        await fetchInvoices(false);
+                        setIsSavingConfig(false);
+                      }}
+                      className="w-12 bg-slate-800 border-none text-[11px] font-bold text-white text-center rounded-lg py-1.5 focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="p-6 bg-slate-900 border-t border-white/5 flex justify-end gap-3">
+            <button 
+              onClick={() => setShowConfig(false)}
+              className="px-8 py-3 bg-brand text-white font-black text-sm rounded-2xl shadow-xl shadow-brand/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              Cerrar Configurador
+            </button>
+          </div>
+          
+          {isSavingConfig && (
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px] flex items-center justify-center z-[1100]">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-10 h-10 animate-spin text-brand" />
+                <span className="text-xs font-bold text-white uppercase tracking-widest">Guardando...</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }

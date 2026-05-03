@@ -18,7 +18,10 @@ import {
   Tag,
   ArrowUpDown,
   Timer,
-  Search
+  Search,
+  Users,
+  Milk,
+  WavesArrowDown
 } from 'lucide-react';
 
 export default function Activities({ isNested = false }) {
@@ -46,9 +49,11 @@ export default function Activities({ isNested = false }) {
   const [catForm, setCatForm] = useState({ 
     name: '', 
     color: 'bg-gray-500/10 text-gray-400 border border-gray-500/20',
-    is_commissionable: false 
+    is_commissionable: false,
+    requires_staff: true
   });
   const [confirmConfig, setConfirmConfig] = useState({ show: false, title: '', message: '', type: 'danger', onConfirm: null });
+  const [toast, setToast] = useState(null);
 
   // Add Form state
   const [formData, setFormData] = useState({
@@ -90,6 +95,13 @@ export default function Activities({ isNested = false }) {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const fetchData = async (showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -273,25 +285,29 @@ export default function Activities({ isNested = false }) {
       const { error } = await supabase.from('activity_categories').update({
         name: catForm.name.trim(),
         color: catForm.color,
-        is_commissionable: catForm.is_commissionable
+        is_commissionable: catForm.is_commissionable,
+        requires_staff: catForm.requires_staff
       }).eq('id', editingCat.id);
       
       if (!error) {
         fetchData(false);
-        setCatForm({ name: '', color: colorPresets[0], is_commissionable: false });
+        setCatForm({ name: '', color: colorPresets[0], is_commissionable: false, requires_staff: true });
         setEditingCat(null);
+        setToast({ message: 'Categoría actualizada correctamente', type: 'success' });
       }
     } else {
       const { error } = await supabase.from('activity_categories').insert({
         name: catForm.name.trim(),
         color: catForm.color,
         is_commissionable: catForm.is_commissionable,
+        requires_staff: catForm.requires_staff,
         sort_order: (categories.length + 1) * 10
       });
       
       if (!error) {
         fetchData(false);
-        setCatForm({ name: '', color: colorPresets[0], is_commissionable: false });
+        setCatForm({ name: '', color: colorPresets[0], is_commissionable: false, requires_staff: true });
+        setToast({ message: 'Nueva categoría creada', type: 'success' });
       }
     }
   };
@@ -301,13 +317,14 @@ export default function Activities({ isNested = false }) {
     setCatForm({ 
       name: cat.name, 
       color: cat.color,
-      is_commissionable: cat.is_commissionable || false 
+      is_commissionable: cat.is_commissionable || false,
+      requires_staff: cat.requires_staff !== false // Default to true if null/undefined
     });
   };
 
   const cancelEditingCat = () => {
     setEditingCat(null);
-    setCatForm({ name: '', color: colorPresets[0], is_commissionable: false });
+    setCatForm({ name: '', color: colorPresets[0], is_commissionable: false, requires_staff: true });
   };
 
   const handleDeleteCategory = async (id, catName) => {
@@ -412,7 +429,7 @@ export default function Activities({ isNested = false }) {
                 <input 
                   type="text" value={formData.acronym} onChange={(e) => setFormData({...formData, acronym: e.target.value})}
                   placeholder="OWD"
-                  className="w-full bg-surface border border-surface-edge rounded-2xl px-4 py-3 text-white focus:border-brand focus:outline-none transition-all font-black text-center uppercase"
+                  className="w-full bg-surface border border-surface-edge rounded-2xl px-4 py-3 text-white focus:border-brand focus:outline-none transition-all font-black text-center"
                 />
               </div>
               <div className="md:col-span-3 space-y-2">
@@ -487,7 +504,7 @@ export default function Activities({ isNested = false }) {
                   className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all ${formData.is_ssi_active ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-surface border-surface-edge text-gray-600'}`}
                 >
                   <span className="text-xs font-black uppercase tracking-widest">{formData.is_ssi_active ? 'VISIBLE' : 'OCULTO'}</span>
-                  <Waves className={`w-5 h-5 ${formData.is_ssi_active ? 'opacity-100' : 'opacity-20'}`} />
+                  <WavesArrowDown className={`w-5 h-5 ${formData.is_ssi_active ? 'opacity-100' : 'opacity-20'}`} />
                 </button>
               </div>
             </div>
@@ -495,7 +512,7 @@ export default function Activities({ isNested = false }) {
             {/* FILA 4: NUMERO TANQUES, SUELDO, COSTE SSI */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2"><Waves className="w-3 h-3"/> Número Tanques</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2"><Milk className="w-3 h-3"/> Número Tanques</label>
                 <input 
                   type="number" required value={formData.tanks_weight} onChange={(e) => setFormData({...formData, tanks_weight: e.target.value})}
                   className="w-full bg-surface border border-surface-edge rounded-2xl px-4 py-3 text-white font-bold focus:border-brand focus:outline-none"
@@ -647,7 +664,7 @@ export default function Activities({ isNested = false }) {
                 <th onClick={() => handleSort('ssi_cost_thb')} className="px-[15px] py-2 text-sm font-black text-rose-300 uppercase tracking-widest text-right cursor-pointer hover:bg-rose-400/10 text-right">SSI</th>
                 <th className="px-[15px] py-2 text-sm font-black text-gray-500 uppercase tracking-widest text-center">Com.</th>
                 <th className="px-0 py-2 text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group w-[30px] min-w-[30px]">
-                  <div className="flex items-center justify-center"><Waves className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" /></div>
+                  <div className="flex items-center justify-center"><Milk className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" /></div>
                 </th>
                 <th onClick={() => handleSort('duration_days')} className="px-2 py-2 text-center cursor-pointer hover:bg-indigo-500/10 transition-colors group w-[50px] min-w-[50px]">
                   <div className="flex items-center justify-center"><Timer className="w-4 h-4 text-indigo-400 opacity-70 group-hover:opacity-100" /></div>
@@ -670,7 +687,7 @@ export default function Activities({ isNested = false }) {
                       <td className="px-2 py-1">
                          <div className="flex gap-1.5">
                             <input value={editData.name} onChange={e=>setEditData({...editData, name: e.target.value})} className="flex-1 min-w-[140px] bg-surface border border-surface-edge rounded-lg px-2.5 py-1.5 text-[13px] text-white focus:border-brand focus:outline-none" placeholder="Nombre" />
-                            <input value={editData.acronym} onChange={e=>setEditData({...editData, acronym: e.target.value})} className="w-14 bg-surface border border-surface-edge rounded-lg px-2 py-1.5 text-[12px] text-white font-black uppercase focus:border-brand focus:outline-none text-center" placeholder="Acr." />
+                            <input value={editData.acronym} onChange={e=>setEditData({...editData, acronym: e.target.value})} className="w-14 bg-surface border border-surface-edge rounded-lg px-2 py-1.5 text-[12px] text-white font-black focus:border-brand focus:outline-none text-center" placeholder="Acr." />
                          </div>
                       </td>
                       <td className="px-2 py-1 text-center">
@@ -698,7 +715,7 @@ export default function Activities({ isNested = false }) {
                             <Coins className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => setEditData({...editData, is_ssi_active: !editData.is_ssi_active})} className={`p-1 rounded ${editData.is_ssi_active ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-600'}`} title="SSI Active">
-                            <Waves className="w-3.5 h-3.5" />
+                            <WavesArrowDown className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -736,7 +753,7 @@ export default function Activities({ isNested = false }) {
                       <div className="flex items-center gap-3">
                          <span className="font-bold text-gray-200 text-[16px]">{activity.name}</span>
                          {activity.acronym && (
-                           <span className="text-[12px] font-black bg-brand/10 text-brand px-1.5 py-0.5 rounded border border-brand/20 uppercase">
+                           <span className="text-[12px] font-black bg-brand/10 text-brand px-1.5 py-0.5 rounded border border-brand/20">
                              {activity.acronym}
                            </span>
                          )}
@@ -762,12 +779,12 @@ export default function Activities({ isNested = false }) {
                     <td className="px-[15px] py-2 text-center">
                       <div className="flex flex-col gap-0.5 items-center">
                         {activity.is_commissionable && <Coins className="w-3.5 h-3.5 text-amber-500" title="Comisionable" />}
-                        {activity.is_ssi_active && <Waves className="w-3.5 h-3.5 text-indigo-400" title="Activo en SSI" />}
+                        {activity.is_ssi_active && <WavesArrowDown className="w-3.5 h-3.5 text-emerald-500" title="Activo en SSI" />}
                         {!activity.is_commissionable && !activity.is_ssi_active && <span className="text-gray-700">-</span>}
                       </div>
                     </td>
                     <td className="px-0 py-2 text-center w-[30px]">
-                      <span className={`text-[13px] font-bold ${activity.tanks_weight > 0 ? 'text-amber-400' : 'text-gray-600'}`}>
+                      <span className={`text-[13px] font-bold ${activity.tanks_weight > 0 ? 'text-white' : 'text-gray-600'}`}>
                         {activity.tanks_weight > 0 ? activity.tanks_weight : '-'}
                       </span>
                     </td>
@@ -923,6 +940,21 @@ export default function Activities({ isNested = false }) {
                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${catForm.is_commissionable ? 'left-7' : 'left-1'}`} />
                     </button>
                   </div>
+                  
+                  {/* Requires Staff Toggle for Category */}
+                  <div className="flex items-center justify-between p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl">
+                    <div className="flex items-center gap-2">
+                       <Users className={`w-4 h-4 ${catForm.requires_staff ? 'text-indigo-400' : 'text-gray-600'}`} />
+                       <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">¿Requiere Staff / Instructor?</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setCatForm({...catForm, requires_staff: !catForm.requires_staff})}
+                      className={`w-12 h-6 rounded-full transition-all relative ${catForm.requires_staff ? 'bg-indigo-500' : 'bg-surface-edge'}`}
+                    >
+                       <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${catForm.requires_staff ? 'left-7' : 'left-1'}`} />
+                    </button>
+                  </div>
 
                   <button 
                     onClick={handleAddCategory} disabled={!catForm.name.trim()}
@@ -933,6 +965,18 @@ export default function Activities({ isNested = false }) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-md ${
+            toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400/30 text-white' : 'bg-rose-500/90 border-rose-400/30 text-white'
+          }`}>
+            {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span className="font-bold text-sm tracking-tight">{toast.message}</span>
           </div>
         </div>
       )}

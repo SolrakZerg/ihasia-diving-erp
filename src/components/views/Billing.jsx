@@ -71,7 +71,7 @@ export default function Billing() {
   }, [widths]);
 
   const {
-    invoices, loadingInvoices, staff, activities,
+    invoices, loadingInvoices, staff, activities, categories,
     selectedItemIds, setSelectedItemIds,
     toast, setToast, confirmConfig, setConfirmConfig,
     bulkDate, setBulkDate, bulkInstructor, setBulkInstructor,
@@ -109,7 +109,11 @@ export default function Billing() {
         selectedYear={billing.selectedYear} setSelectedYear={billing.setSelectedYear}
         showOnlyToday={billing.showOnlyToday} setShowOnlyToday={billing.setShowOnlyToday}
         showOnlyUnpaid={billing.showOnlyUnpaid} setShowOnlyUnpaid={billing.setShowOnlyUnpaid}
+        activities={billing.activities}
+        categories={billing.categories}
         fetchInvoices={fetchInvoices}
+        fetchCatalogs={billing.fetchCatalogs}
+        monthlyDbData={billing.monthlyDbData}
         supabase={supabase}
       />
 
@@ -220,6 +224,7 @@ export default function Billing() {
                       invoice={inv}
                       staff={staff}
                       activities={activities}
+                      categories={categories}
                       selectedItemIds={selectedItemIds}
                       onSelectItem={(itemId) => {
                         setSelectedItemIds(prev => {
@@ -230,6 +235,16 @@ export default function Billing() {
                         });
                       }}
                       onToggleGroup={(event) => handleToggleSelection(inv, index, event.shiftKey)}
+                      onSelectItems={(ids, selected) => {
+                        setSelectedItemIds(prev => {
+                          const newSet = new Set(prev);
+                          ids.forEach(id => {
+                            if (selected) newSet.add(id);
+                            else newSet.delete(id);
+                          });
+                          return newSet;
+                        });
+                      }}
                       onUpdate={() => fetchInvoices(false)}
                       onDeleteInvoice={handleDeleteInvoice}
                       onExtractItem={handleExtractItem}

@@ -359,6 +359,7 @@ const CustomerSearchInput = ({ item, handleItemUpdate, onCancel }) => {
 export default function BillingGridRow({ 
   invoice, 
   activities = [], 
+  categories = [], 
   staff = [], 
   selectedItemIds,
   onSelectItem,
@@ -493,6 +494,13 @@ export default function BillingGridRow({
           if (!isCommAllowed) {
             updates.is_comm = false;
           }
+
+          // CLEANUP: If the new activity category doesn't require staff, clear instructor_id
+          const categoryData = categories.find(c => c.name === act.category);
+          const isStaffDisabled = categoryData ? categoryData.requires_staff === false : false;
+          if (isStaffDisabled) {
+            updates.instructor_id = null;
+          }
         }
       } else if (updates.quantity !== undefined) {
         const q = Number(updates.quantity) || 0;
@@ -592,9 +600,9 @@ export default function BillingGridRow({
   
   const isAnyInstructorMissing = items.some(item => {
     const act = activities.find(a => String(a.id) === String(item.activity_id));
-    const cat = act?.category?.toLowerCase() || '';
-    const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
-    return !item.instructor_id && !isStaffDisabled;
+    const categoryData = categories.find(c => c.name === act?.category);
+    const isStaffDisabled = categoryData ? categoryData.requires_staff === false : false;
+    return !item.instructor_id && !isStaffDisabled && item.activity_id;
   });
 
   // Smart Date Logic
@@ -614,8 +622,8 @@ export default function BillingGridRow({
   // Shared cells rendering for visual parity
   const renderItemCells = (item, isHybridRow = false, bLine = '') => {
     const act = activities.find(a => String(a.id) === String(item.activity_id));
-    const cat = act?.category?.toLowerCase() || '';
-    const isStaffDisabled = cat.includes('snorkeling') || cat.includes('snorkelling') || cat === 'retail';
+    const categoryData = categories.find(c => c.name === act?.category);
+    const isStaffDisabled = categoryData ? categoryData.requires_staff === false : false;
 
     return (
       <>
@@ -798,19 +806,19 @@ export default function BillingGridRow({
                 <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Falta Instructor" />
               </div>
             )}
-            <select 
-               value={item.instructor_id || ''} 
-               onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
-               disabled={isStaffDisabled}
-               title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
-               className={`bg-transparent text-sm font-black w-full h-6 text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity py-0 relative z-10 ${
-                 isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 
-                 (!item.instructor_id && !isStaffDisabled) ? 'text-red-600 animate-pulse appearance-none' : 'text-cyan-700 opacity-100 cursor-pointer'
-               }`}
-             >
-               <option value="" className="text-gray-400"></option>
-               {staff.map(s => <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>)}
-             </select>
+              <select 
+                value={item.instructor_id || ''} 
+                onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
+                disabled={isStaffDisabled}
+                title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
+                className={`bg-transparent text-sm font-black w-full h-6 text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity py-0 relative z-10 ${
+                  isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' : 
+                  (!item.instructor_id && !isStaffDisabled) ? 'text-red-600 animate-pulse appearance-none' : 'text-cyan-700 opacity-100 cursor-pointer'
+                }`}
+              >
+                <option value="" className="text-gray-400"></option>
+                {staff.filter(s => s.active || s.id === item.instructor_id).map(s => <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>)}
+              </select>
           </div>
         </td>
         {/* 14. BIZUM */}
