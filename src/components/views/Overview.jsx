@@ -296,6 +296,11 @@ export default function Overview() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_settlements' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_expenses' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_monthly' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_activity_summary' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fixed_expenses' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'supplier_settlements' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_metrics' }, () => fetchDashboardData())
       .subscribe();
 
     return () => {

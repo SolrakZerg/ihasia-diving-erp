@@ -61,7 +61,6 @@ export default function Activities({ isNested = false }) {
     price_thb: '',
     price_eur: '',
     tanks_weight: '0',
-    instructor_payout_thb: '0',
     ssi_cost_thb: '0',
     category: 'Course',
     color: '',
@@ -166,7 +165,6 @@ export default function Activities({ isNested = false }) {
         price_thb: parseFloat(formData.price_thb) || 0,
         price_eur: parseFloat(formData.price_eur) || 0,
         tanks_weight: parseFloat(formData.tanks_weight) || 0,
-        instructor_payout_thb: parseFloat(formData.instructor_payout_thb) || 0,
         ssi_cost_thb: parseFloat(formData.ssi_cost_thb) || 0,
         category: formData.category,
         color: formData.color,
@@ -179,7 +177,7 @@ export default function Activities({ isNested = false }) {
     if (!error) {
       setView('list');
       fetchData();
-      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', instructor_payout_thb: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false });
+      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false });
     } else {
       alert('Error guardando: ' + error.message);
     }
@@ -243,7 +241,6 @@ export default function Activities({ isNested = false }) {
       price_thb: act.price_thb?.toString() || '0',
       price_eur: act.price_eur?.toString() || '0',
       tanks_weight: act.tanks_weight?.toString() || '0',
-      instructor_payout_thb: act.instructor_payout_thb?.toString() || '0',
       ssi_cost_thb: act.ssi_cost_thb?.toString() || '0',
       category: act.category || categories[0]?.name || '',
       color: act.color || '',
@@ -260,7 +257,6 @@ export default function Activities({ isNested = false }) {
       price_thb: parseFloat(editData.price_thb) || 0,
       price_eur: parseFloat(editData.price_eur) || 0,
       tanks_weight: parseFloat(editData.tanks_weight) || 0,
-      instructor_payout_thb: parseFloat(editData.instructor_payout_thb) || 0,
       ssi_cost_thb: parseFloat(editData.ssi_cost_thb) || 0,
       category: editData.category,
       color: editData.color,
@@ -519,13 +515,6 @@ export default function Activities({ isNested = false }) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1">Sueldo Instructor (฿)</label>
-                <input 
-                  type="number" value={formData.instructor_payout_thb} onChange={(e) => setFormData({...formData, instructor_payout_thb: e.target.value})}
-                  className="w-full bg-surface border border-amber-500/20 rounded-2xl px-4 py-3 text-white font-bold focus:border-amber-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </div>
-              <div className="space-y-2">
                 <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-1">Coste SSI (฿)</label>
                 <input 
                   type="number" value={formData.ssi_cost_thb} onChange={(e) => setFormData({...formData, ssi_cost_thb: e.target.value})}
@@ -660,7 +649,6 @@ export default function Activities({ isNested = false }) {
                 <th onClick={() => handleSort('price_eur')} className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-right cursor-pointer hover:bg-surface-edge/50 transition-colors group">
                   <div className="flex items-center justify-end gap-2">EUR <ArrowUpDown className="w-3 h-3 opacity-50 group-hover:opacity-100" /></div>
                 </th>
-                <th onClick={() => handleSort('instructor_payout_thb')} className="px-[15px] py-2 text-sm font-black text-amber-300 uppercase tracking-widest text-right cursor-pointer hover:bg-amber-400/10">Sueldo</th>
                 <th onClick={() => handleSort('ssi_cost_thb')} className="px-[15px] py-2 text-sm font-black text-rose-300 uppercase tracking-widest text-right cursor-pointer hover:bg-rose-400/10 text-right">SSI</th>
                 <th className="px-[15px] py-2 text-sm font-black text-gray-500 uppercase tracking-widest text-center">Com.</th>
                 <th className="px-0 py-2 text-center cursor-pointer hover:bg-surface-edge/50 transition-colors group w-[30px] min-w-[30px]">
@@ -702,9 +690,6 @@ export default function Activities({ isNested = false }) {
                          <div className="text-[11px] text-gray-500 font-mono w-16 text-right pr-2">
                            {(editData.price_thb / exchangeRate).toFixed(0)}€
                          </div>
-                      </td>
-                      <td className="px-2 py-1 text-right">
-                         <input value={editData.instructor_payout_thb} onChange={e=>setEditData({...editData, instructor_payout_thb: e.target.value})} className="bg-surface border border-amber-300/30 rounded-lg px-2 py-1.5 text-[13px] text-amber-100 w-[70px] text-right focus:border-amber-300 outline-none font-mono" />
                       </td>
                       <td className="px-2 py-1 text-right border-r border-surface-edge/10">
                          <input value={editData.ssi_cost_thb} onChange={e=>setEditData({...editData, ssi_cost_thb: e.target.value})} className="bg-surface border border-rose-300/30 rounded-lg px-2 py-1.5 text-[13px] text-rose-100 w-[70px] text-right focus:border-rose-300 outline-none font-mono" />
@@ -769,9 +754,6 @@ export default function Activities({ isNested = false }) {
                     </td>
                     <td className="px-[15px] py-2 text-right font-mono text-gray-500 text-[15px]">
                       €{(activity.price_thb / exchangeRate).toFixed(2)}
-                    </td>
-                    <td className="px-[15px] py-2 text-right font-mono text-amber-300 font-bold text-[16px]">
-                      {activity.instructor_payout_thb?.toLocaleString() || 0}
                     </td>
                     <td className="px-[15px] py-2 text-right font-mono text-rose-300 text-[16px] font-bold border-r border-surface-edge/5">
                       {activity.ssi_cost_thb?.toLocaleString() || 0}
@@ -971,7 +953,7 @@ export default function Activities({ isNested = false }) {
 
       {/* TOAST NOTIFICATION */}
       {toast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-8 z-[300] animate-in fade-in slide-in-from-right-4 duration-300">
           <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-md ${
             toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400/30 text-white' : 'bg-rose-500/90 border-rose-400/30 text-white'
           }`}>

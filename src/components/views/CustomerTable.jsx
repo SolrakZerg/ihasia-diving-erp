@@ -698,7 +698,7 @@ export default function CustomerTable({ onNavigate }) {
       />
 
       {showToast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in slide-in-from-bottom-4">
+        <div className="fixed bottom-6 right-8 z-[150] animate-in fade-in slide-in-from-right-4 duration-300">
           <div className="bg-emerald-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-emerald-400/50">
             <CheckCircle2 className="w-5 h-5" />
             <span className="font-bold text-sm tracking-wide">{toastMsg}</span>

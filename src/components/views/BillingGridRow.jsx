@@ -187,8 +187,18 @@ const CustomerSearchInput = ({ item, handleItemUpdate, onCancel }) => {
   useEffect(() => {
     if (query.length >= 2 && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setDirection(spaceBelow < 280 ? 'up' : 'down');
+      const scrollContainer = containerRef.current.closest('.custom-scrollbar');
+      
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const spaceBelowInContainer = containerRect.bottom - rect.bottom;
+        // If there's less than 320px inside the scrollable area, flip up
+        setDirection(spaceBelowInContainer < 320 ? 'up' : 'down');
+      } else {
+        // Fallback to window
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setDirection(spaceBelow < 350 ? 'up' : 'down');
+      }
     }
   }, [query]);
 
@@ -335,7 +345,7 @@ const CustomerSearchInput = ({ item, handleItemUpdate, onCancel }) => {
                     <div className="text-[11px] text-slate-500 truncate">{c.email}</div>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                     <span className="text-[8px] bg-amber-50 text-amber-700 font-black px-1.5 py-0.5 rounded uppercase">
+                     <span className="text-[10px] bg-amber-50 text-amber-700 font-black px-2 py-1 rounded-md uppercase tracking-tight shadow-sm border border-amber-100">
                        {c.booked_activity || 'General'}
                      </span>
                   </div>

@@ -11,7 +11,7 @@ export default function BillingActionBar({
   if (selectedItemIds.size === 0) return null;
 
   return (
-    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-10 duration-300">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-10 duration-300">
       <div className="bg-[#0B1121]/95 backdrop-blur-2xl border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-2xl p-1.5 flex items-center gap-1">
         <div className="px-4 py-2 flex items-center gap-3 border-r border-white/5 mr-1">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-inner shadow-blue-400/50">{selectedItemIds.size}</div>

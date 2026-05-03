@@ -495,13 +495,39 @@ export function useBilling() {
         if (invErr) throw invErr;
         updates.invoice_id = newInv.id;
       }
+      const itemIds = Array.from(selectedItemIds);
+      const allItems = invoices.flatMap(inv => inv.invoice_items || []);
+      
       if (bulkDate) updates.date = bulkDate;
-      if (bulkInstructor) updates.instructor_id = bulkInstructor;
-      if (Object.keys(updates).length > 0) {
-        setInvoices(prev => prev.map(inv => ({ ...inv, invoice_items: (inv.invoice_items || []).map(it => selectedItemIds.has(it.id) ? { ...it, ...updates } : it) })));
-        const { error } = await supabase.from('invoice_items').update(updates).in('id', itemIds);
+
+      // 1. Clasificamos los registros según si permiten instructor o no
+      const idsToClearInstructor = [];
+      const idsToApplyNormal = [];
+
+      itemIds.forEach(id => {
+        const item = allItems.find(it => it.id === id);
+        const act = activities.find(a => a.id === item?.activity_id);
+        const cat = categories.find(c => c.name === act?.category);
+        const allowsStaff = cat ? cat.requires_staff !== false : true;
+
+        if (!allowsStaff) idsToClearInstructor.push(id);
+        else idsToApplyNormal.push(id);
+      });
+
+      // 2. Ejecutar actualizaciones en la base de datos
+      if (idsToApplyNormal.length > 0) {
+        const finalUpdates = { ...updates };
+        if (bulkInstructor) finalUpdates.instructor_id = bulkInstructor;
+        const { error } = await supabase.from('invoice_items').update(finalUpdates).in('id', idsToApplyNormal);
         if (error) throw error;
       }
+
+      if (idsToClearInstructor.length > 0) {
+        const finalUpdates = { ...updates, instructor_id: null };
+        const { error } = await supabase.from('invoice_items').update(finalUpdates).in('id', idsToClearInstructor);
+        if (error) throw error;
+      }
+
       if (bulkGroupAction === 'ungroup') {
         for (const itemId of itemIds) {
           const { data: newInv, error: invErr } = await supabase.from('invoices').insert({ status: 'Open' }).select().single();
