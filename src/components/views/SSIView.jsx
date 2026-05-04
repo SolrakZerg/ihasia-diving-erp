@@ -85,12 +85,6 @@ export default function SSIView() {
       setSettlementId(current.id);
       setManualPaid(current.paid_amount || 0);
       
-      const t = current.total_amount || 0;
-      const p = current.paid_amount || 0;
-      setTotalSsi(t);
-      setFinalPaid(p);
-      setFinalPending(t - p);
-
       const config = current.invoice_config || {};
       setAdjNext(config.adjNext || 0);
     } else {

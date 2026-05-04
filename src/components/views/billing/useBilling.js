@@ -66,7 +66,7 @@ export function useBilling() {
       });
     });
     const cobrado = facturado - pendiente;
-    const { activityBreakdown, ssiEstimated } = allMonthInvoices.reduce((acc, inv) => {
+    const { activityBreakdown } = allMonthInvoices.reduce((acc, inv) => {
       inv.invoice_items?.forEach(item => {
         const qty = Number(item.quantity ?? 1);
         
@@ -105,8 +105,6 @@ export function useBilling() {
         else if (a.startsWith('dsd2') || a.startsWith('sr2') || a.startsWith('fd2')) {
           acc.activityBreakdown.total_tanks += 2 * qty;
         }
-
-        acc.ssiEstimated += (Number(item.activities?.ssi_cost_thb || 0) * qty);
       });
       return acc;
     }, { 
@@ -114,11 +112,10 @@ export function useBilling() {
       activityBreakdown: (activities || []).reduce((acc, act) => {
         if (act.acronym) acc[act.acronym] = 0;
         return acc;
-      }, { total_tanks: 0 }),
-      ssiEstimated: 0 
+      }, { total_tanks: 0 })
     });
 
-    return { facturado, pendiente, cobrado, wiseBT, wiseCR, eurBT, eurCR, balanceCash, dailyBalanceCash, activityBreakdown, ssiEstimated };
+    return { facturado, pendiente, cobrado, wiseBT, wiseCR, eurBT, eurCR, balanceCash, dailyBalanceCash, activityBreakdown };
   }, [allMonthInvoices, arrivalsDate, activities]);
 
   // ESTADO PARA LOS TOTALES OFICIALES DE LA BD
@@ -278,7 +275,6 @@ export function useBilling() {
           bt_wise: stats.wiseBT,
           cr_cash: stats.crCash,
           bt_cash: stats.btCash,
-          ssi_estimated: stats.ssiEstimated,
           updated_at: new Date().toISOString()
         }, { onConflict: 'year, month' });
 

@@ -5,6 +5,8 @@ import {
   Coins, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { recalculateCarabaoSettlement } from '../../lib/carabaoSettlement';
+import { recalculateSSISettlement } from '../../lib/ssiSettlement';
 
 const SmartActivitySelect = ({ value, activities = [], onChange, placeholder = "Elegir Actividad..." }) => {
   const [localValue, setLocalValue] = useState(value);
@@ -453,6 +455,18 @@ export default function BillingGridRow({
               if (error) throw error;
             }
             
+            // Recalculate Carabao and SSI
+            const targetDateStr = items.find(i => String(i.id) === String(itemId))?.date || invoice.created_at;
+            if (targetDateStr) {
+              const dateObj = new Date(targetDateStr);
+              if (!isNaN(dateObj.getTime())) {
+                const mm = dateObj.getMonth() + 1;
+                const yy = dateObj.getFullYear();
+                recalculateCarabaoSettlement(mm, yy);
+                recalculateSSISettlement(mm, yy);
+              }
+            }
+
             if (onUpdate) onUpdate();
             setConfirmConfig(prev => ({ ...prev, show: false }));
           } catch (err) {
@@ -477,6 +491,17 @@ export default function BillingGridRow({
         status: 'Pending'
       });
       if (error) throw error;
+      
+      // Recalculate Carabao and SSI
+      const targetDateStr = invoice.created_at || new Date().toISOString();
+      const dateObj = new Date(targetDateStr);
+      if (!isNaN(dateObj.getTime())) {
+        const mm = dateObj.getMonth() + 1;
+        const yy = dateObj.getFullYear();
+        recalculateCarabaoSettlement(mm, yy);
+        recalculateSSISettlement(mm, yy);
+      }
+      
       onUpdate();
     } catch (err) {
       console.error('Error adding item:', err);
@@ -543,7 +568,21 @@ export default function BillingGridRow({
         throw error;
       }
       
+      
       console.log("[DB] Update confirmed for", itemId);
+      
+      // Recalculate Carabao and SSI (async non-blocking)
+      const targetDateStr = updates.date || item.date || invoice.created_at;
+      if (targetDateStr) {
+        const dateObj = new Date(targetDateStr);
+        if (!isNaN(dateObj.getTime())) {
+          const mm = dateObj.getMonth() + 1;
+          const yy = dateObj.getFullYear();
+          recalculateCarabaoSettlement(mm, yy);
+          recalculateSSISettlement(mm, yy);
+        }
+      }
+
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error('Error updating item:', err);

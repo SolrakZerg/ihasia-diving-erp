@@ -23,6 +23,27 @@ import {
 } from 'recharts';
 import logoFull from '../../assets/Logo_Ihasia.svg';
 
+const tailwindToHex = (twClass) => {
+  if (!twClass) return '#94a3b8';
+  if (twClass.includes('blue-400')) return '#60a5fa';
+  if (twClass.includes('rose-400')) return '#fb7185';
+  if (twClass.includes('white')) return '#ffffff';
+  if (twClass.includes('violet-300')) return '#c4b5fd';
+  if (twClass.includes('orange-400')) return '#fb923c';
+  if (twClass.includes('amber-400')) return '#fbbf24';
+  if (twClass.includes('emerald-400')) return '#34d399';
+  if (twClass.includes('fuchsia-400')) return '#e879f9';
+  if (twClass.includes('purple-400')) return '#c084fc';
+  
+  if (twClass.includes('#00A3FF')) return '#00A3FF';
+  if (twClass.includes('#a855f7')) return '#a855f7';
+  if (twClass.includes('#f97316')) return '#f97316';
+  if (twClass.includes('#d946ef')) return '#d946ef';
+  if (twClass.includes('#ec4899')) return '#ec4899';
+  if (twClass.includes('#eab308')) return '#eab308';
+  return '#94a3b8';
+};
+
 export default function Overview() {
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -64,7 +85,9 @@ export default function Overview() {
         { data: boteMonthly }, 
         { data: fixedSettings },
         { data: sSettlements },
-        metricsRes
+        metricsRes,
+        { data: prevYearReport },
+        { data: prev2YearReport }
       ] = await Promise.all([
         supabase.from('monthly_reports').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('monthly_activity_summary').select('*').eq('year', year).eq('month', month).maybeSingle(),
@@ -74,10 +97,12 @@ export default function Overview() {
         supabase.from('bote_monthly').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('fixed_expenses').select('*').order('name'),
         supabase.from('supplier_settlements').select('*').eq('year', year).eq('month', month),
-        supabase.from('monthly_metrics').select('metric_key, value').eq('year', year).eq('month', month)
+        supabase.from('monthly_expenses').select('*').eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('monthly_reports').select('total_courses, facturado').eq('year', year - 1).eq('month', month).maybeSingle(),
+        supabase.from('monthly_reports').select('total_courses, facturado').eq('year', year - 2).eq('month', month).maybeSingle()
       ]);
 
-      const mObj = (metricsRes.data || []).reduce((acc, m) => ({ ...acc, [m.metric_key]: Number(m.value) }), {});
+      const mObj = metricsRes.data || {};
 
       // 2. Process Invoices (Ya no se calculan aquí, se leen de monthlyReport)
       const facturado = Number(monthlyReport?.facturado || 0);
@@ -126,9 +151,8 @@ export default function Overview() {
       const carabaoPending = Number(carabaoSettlement?.pending_amount || 0);
 
       const ssiSettlement = (sSettlements || []).find(s => s.supplier_name?.toLowerCase().includes('ssi'));
-      const ssiTotal = Number(monthlyReport?.ssi_estimated || 0);
-      const ssiTotalFinal = ssiSettlement ? Number(ssiSettlement.total_amount) : ssiTotal;
-      const ssiPendingFinal = ssiSettlement ? Number(ssiSettlement.pending_amount) : ssiTotal;
+      const ssiTotalFinal = ssiSettlement ? Number(ssiSettlement.total_amount) : 0;
+      const ssiPendingFinal = ssiSettlement ? Number(ssiSettlement.pending_amount) : 0;
 
       const dynamicFixed = (fixedSettings || []).map(f => {
         let col = null;
@@ -181,7 +205,12 @@ export default function Overview() {
       const detailedExpenses = [
         { name: 'CARABAO', value: carabaoTotal, pending: carabaoPending, color: 'text-blue-400' },
         { name: 'SSI', value: ssiTotalFinal, pending: ssiPendingFinal, color: 'text-rose-400' },
-        { name: 'SUELDOS', value: totalStaffCost, pending: totalStaffPending, color: 'text-white' },
+        { 
+          name: 'SUELDOS', 
+          value: Number(monthlyReport?.sueldos_total || 0), 
+          pending: Number(monthlyReport?.sueldos_pendiente || 0), 
+          color: 'text-white' 
+        },
         { name: 'GASTOS', value: realFinanceTotal, pending: realFinancePending, color: 'text-violet-300' },
         { name: 'BOTE', value: boteTotal, pending: botePending, color: 'text-orange-400', isEditable: true, col: 'bote_xpagar' },
         ...sortedDynamic,
@@ -222,7 +251,13 @@ export default function Overview() {
       });
       setExpenseData(detailedExpenses);
 
-      setCourseStats({ count: Number(monthlyActivities?.total_courses || 0), target: 20 });
+      setCourseStats({ 
+        count: Number(monthlyActivities?.total_courses || 0), 
+        target: Number(prevYearReport?.total_courses || 0),
+        prevTarget: Number(prev2YearReport?.total_courses || 0),
+        facturado: dbFacturado,
+        prevFacturado: Number(prevYearReport?.facturado || 0)
+      });
       
       // 5. Process Staff (Leemos directamente de staffSettlements ya sincronizado)
 
@@ -240,6 +275,17 @@ export default function Overview() {
       setStaffData(finalStaff);
       setMetrics(mObj);
       setMonthlyReport(monthlyReport);
+
+      // 6. Sincronizar totales de sueldos con monthly_reports para persistencia
+      // SEGURIDAD: Solo sincronizar automáticamente si estamos en el año en curso
+      const currentYear = new Date().getFullYear();
+      if (monthlyReport && year === currentYear && (Number(monthlyReport.sueldos_total) !== totalStaffCost || Number(monthlyReport.sueldos_pendiente) !== totalStaffPending)) {
+        console.log("[Dashboard] Sincronizando totales de sueldos del año actual...");
+        await supabase.from('monthly_reports').update({
+          sueldos_total: totalStaffCost,
+          sueldos_pendiente: totalStaffPending
+        }).eq('year', year).eq('month', month);
+      }
 
     } catch (e) {
       console.error("Error fetching dashboard data:", e);
@@ -297,11 +343,12 @@ export default function Overview() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_expenses' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_monthly' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_activity_summary' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fixed_expenses' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'supplier_settlements' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_metrics' }, () => fetchDashboardData())
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error("Realtime subscription error:", err);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -329,6 +376,11 @@ export default function Overview() {
           <p className="text-xl font-black text-white font-mono tracking-tighter">
             {Math.round(payload[0].value).toLocaleString()} <span className="text-xs opacity-50 ml-0.5">฿</span>
           </p>
+          {payload[0].payload.perc && (
+            <p className="text-[12px] font-black text-emerald-400/80 font-mono tracking-widest mt-1">
+              {payload[0].payload.perc}%
+            </p>
+          )}
         </div>
       );
     }
@@ -414,19 +466,19 @@ export default function Overview() {
            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 text-center">Gastos</h3>
            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={expenseData}>
+                <BarChart data={[{ name: 'CRBT', value: (monthlyReport?.partner_split || 0) * 2, isProfit: true }, ...expenseData].map(item => ({ ...item, perc: incomeData.total > 0 ? ((item.value / incomeData.total) * 100).toFixed(1) : 0 }))}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
                   {commonTooltip}
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {expenseData.map((entry, index) => {
-                      const colors = ['#3b82f6', '#ef4444', '#a855f7', '#6366f1', '#f59e0b'];
+                    {[{ name: 'CRBT', value: (monthlyReport?.partner_split || 0) * 2, isProfit: true }, ...expenseData].map((entry, index) => {
                       const isHovered = activeExpense === index;
+                      const fillCol = entry.isProfit ? '#10b981' : tailwindToHex(entry.color);
                       return (
                         <Cell 
                           key={`cell-${index}`} 
                           onMouseEnter={() => setActiveExpense(index)}
                           onMouseLeave={() => setActiveExpense(null)}
-                          fill={colors[index % colors.length]} 
+                          fill={fillCol} 
                           fillOpacity={isHovered ? 1 : 0.6}
                           stroke={isHovered ? 'white' : 'transparent'}
                           strokeWidth={isHovered ? 1 : 0}
@@ -440,9 +492,60 @@ export default function Overview() {
            </div>
         </div>
 
-        <div className="lg:col-span-3 bg-black border border-surface-edge rounded-2xl p-4 shadow-2xl flex flex-col items-center justify-center min-h-[240px]">
-           <img src={logoFull} alt="iHasia" className="w-28 h-28 object-contain brightness-0 invert opacity-90" />
-           <h2 className="text-lg font-black text-white tracking-widest uppercase italic mt-2 text-center">IHASIA</h2>
+        <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col justify-center min-h-[240px]">
+           <h3 className="text-[14px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-0 text-center">CRBT</h3>
+           
+           <div className="flex-1 flex flex-col justify-center gap-4">
+             <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 border border-emerald-400/30 shadow-[0_8px_30px_rgba(16,185,129,0.3)] relative overflow-hidden flex items-center justify-between">
+               {(() => {
+                 const profit = (monthlyReport?.partner_split || 0) * 2;
+                 const facturado = monthlyReport?.facturado || 0;
+                 const margin = facturado > 0 ? ((profit / facturado) * 100).toFixed(1) : 0;
+                 return (
+                   <>
+                     <div className="absolute -right-2 -bottom-4 text-[80px] font-black text-emerald-900/10 pointer-events-none select-none tracking-tighter">
+                       {margin}<span className="text-[60px] ml-3 opacity-60">%</span>
+                     </div>
+                     
+                     <div className="flex flex-col relative z-10">
+                        <span className="text-[10px] text-emerald-100/80 uppercase font-black tracking-[0.2em] mb-1">Corte x Socio</span>
+                        <span className="text-[36px] font-black text-white font-mono tracking-tighter drop-shadow-md leading-none">
+                          {Math.round(monthlyReport?.partner_split || 0).toLocaleString()} <span className="text-xl text-emerald-200/80 ml-0.5">฿</span>
+                        </span>
+                     </div>
+                     
+                     <div className="flex flex-col items-end relative z-10">
+                        <span className="text-[10px] text-emerald-100/80 uppercase font-black tracking-[0.2em] mb-1">Margen Total</span>
+                        <div className="bg-white/20 px-3 py-1 rounded-xl backdrop-blur-md border border-white/20 shadow-inner">
+                          <span className="text-[24px] font-black text-white tracking-tighter font-mono leading-none">
+                            {margin}<span className="ml-1 opacity-80">%</span>
+                          </span>
+                        </div>
+                     </div>
+                   </>
+                 );
+               })()}
+             </div>
+
+             <div className="grid grid-cols-2 gap-2">
+               <div className="flex flex-col gap-1.5">
+                 <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest text-center">CR (x cobrar)</span>
+                 <div className="bg-blue-600 rounded-xl p-3 text-center border border-blue-500 shadow-lg">
+                   <span className="text-[24px] font-black text-white font-mono tracking-tighter drop-shadow-md">
+                     {Math.round(monthlyReport?.pending_cr || 0).toLocaleString()}
+                   </span>
+                 </div>
+               </div>
+               <div className="flex flex-col gap-1.5">
+                 <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest text-center">BT (x cobrar)</span>
+                 <div className="bg-pink-600 rounded-xl p-3 text-center border border-pink-500 shadow-lg">
+                   <span className="text-[24px] font-black text-white font-mono tracking-tighter drop-shadow-md">
+                     {Math.round(monthlyReport?.pending_bt || 0).toLocaleString()}
+                   </span>
+                 </div>
+               </div>
+             </div>
+           </div>
         </div>
       </div>
 
@@ -482,75 +585,171 @@ export default function Overview() {
             </div>
          </div>
 
-         <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col justify-center items-center h-[480px]">
-             <span className="text-[13px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center leading-tight">Cursos<br/>este Mes</span>
-             <span className="text-8xl font-black text-white tracking-tighter leading-none">{courseStats.count}</span>
-             <div className="mt-8 p-3 bg-brand/10 rounded-2xl border border-brand/20"><TrendingUp className="w-6 h-6 text-brand" /></div>
-          </div>
+         {(() => {
+            const current = courseStats.count || 0;
+            const target = courseStats.target || 0; // Year-1
+            const progress = target > 0 ? Math.min(current / target, 1) : 0;
+            const r = 80;
+            const circ = 2 * Math.PI * r;
+            const offset = circ - progress * circ;
+            
+            // Porcentajes de crecimiento de Cursos
+            const yoyGrowth = target > 0 ? Math.round(((current - target) / target) * 100) : 0;
+            const yoyGrowthText = yoyGrowth > 0 ? `+${yoyGrowth}%` : `${yoyGrowth}%`;
+            const isPositive = yoyGrowth >= 0;
+            
+            // Comparativa Facturado
+            const factCurrent = courseStats.facturado || 0;
+            const factTarget = courseStats.prevFacturado || 0;
+            const factGrowth = factTarget > 0 ? Math.round(((factCurrent - factTarget) / factTarget) * 100) : 0;
+            const factGrowthText = factGrowth > 0 ? `+${factGrowth}%` : `${factGrowth}%`;
+            const isFactPositive = factGrowth >= 0;
 
-         <div className="lg:col-span-6 bg-surface-soft border border-surface-edge rounded-2xl p-2 shadow-xl h-[480px] flex flex-col">
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Gastos X Pagar</h3>
-            <div className="flex-1 overflow-auto custom-scrollbar pr-1">
+            return (
+              <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col relative overflow-hidden h-[480px]">
+                 <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-brand/10 rounded-full blur-[100px] pointer-events-none"></div>
+                 
+                 <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-auto text-center z-10 pt-2">Cursos<br/>Este Mes</h3>
+                 
+                 <div className="flex flex-col items-center justify-center flex-1 z-10">
+                    <div className="relative flex items-center justify-center mb-6 mt-2">
+                      <div className="absolute inset-0 bg-brand/10 blur-[40px] rounded-full"></div>
+                      <svg className="w-48 h-48 transform -rotate-90 drop-shadow-[0_0_10px_rgba(0,163,255,0.1)]">
+                        <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-surface-edge/40" />
+                        <circle 
+                          cx="96" cy="96" r="80" 
+                          stroke="currentColor" 
+                          strokeWidth="8" 
+                          fill="transparent" 
+                          strokeDasharray={circ} 
+                          strokeDashoffset={offset} 
+                          className="text-brand transition-all duration-1000 ease-out" 
+                          strokeLinecap="round" 
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(0,163,255,0.4)]">{current}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 w-full px-2">
+                       {/* Objetivo del año pasado */}
+                       <div className="flex items-center justify-between bg-surface-edge/10 border border-surface-edge/20 px-4 py-2.5 rounded-xl">
+                          <div className="flex items-center gap-2">
+                             <TrendingUp className="w-4 h-4 text-gray-400" />
+                             <span className="text-xs font-bold text-gray-400 uppercase">Obj. {year - 1}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-sm font-black text-white">{target}</span>
+                             {target > 0 && (
+                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${isPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                   {yoyGrowthText}
+                                </span>
+                             )}
+                          </div>
+                       </div>
+
+                       {/* Comparativa Facturado */}
+                       <div className="flex items-center justify-between bg-surface-edge/10 border border-surface-edge/20 px-4 py-2.5 rounded-xl">
+                          <div className="flex items-center gap-2">
+                             <TrendingUp className="w-4 h-4 text-gray-400" />
+                             <span className="text-xs font-bold text-gray-400 uppercase">Fact. {year - 1}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-surface-edge/30 text-gray-300">
+                                {Math.round(factTarget / 1000)}k
+                             </span>
+                             {factTarget > 0 && (
+                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${isFactPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                   {factGrowthText}
+                                </span>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            );
+         })()}
+
+         <div className="lg:col-span-6 bg-surface-soft border border-surface-edge rounded-3xl p-4 shadow-xl h-[480px] flex flex-col relative overflow-hidden">
+            {/* Glow Ambient */}
+            <div className="absolute top-[-50%] left-[-20%] w-64 h-64 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+            
+            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center z-10">Gastos X Pagar</h3>
+            <div className="flex-1 overflow-auto custom-scrollbar z-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-surface-soft z-10">
-                     <tr className="border-b border-surface-edge/50">
-                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 w-20">Categoría</th>
-                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-right w-24">Gastos</th>
-                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-center w-8">Pag.</th>
-                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-right w-28">X Pagar</th>
-                        <th className="text-[11px] font-black text-gray-500 uppercase py-1 text-right w-10">%</th>
+                  <thead className="sticky top-0 bg-surface-soft/95 backdrop-blur-md z-20">
+                     <tr className="border-b border-surface-edge/40">
+                        <th className="text-[10px] font-black text-gray-400 uppercase py-1 text-center w-20 tracking-widest">Categoría</th>
+                        <th className="text-[10px] font-black text-gray-400 uppercase py-1 text-center w-24 tracking-widest">Gastos</th>
+                        <th className="text-[10px] font-black text-gray-400 uppercase py-1 text-center w-10 tracking-widest">Pag.</th>
+                        <th className="text-[10px] font-black text-rose-400/80 uppercase py-1 text-center w-28 tracking-widest">X Pagar</th>
+                        <th className="text-[10px] font-black text-gray-400 uppercase py-1 text-center w-10 tracking-widest">%</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-surface-edge/10">
+                  <tbody className="divide-y divide-white/5">
                      {expenseData.map((e, idx) => {
-                        const totalExp = expenseData.reduce((acc, curr) => acc + curr.value, 0);
-                        const perc = totalExp > 0 ? ((e.value / totalExp) * 100).toFixed(1) : 0;
+                        const facturado = incomeData.total || 0;
+                        const perc = facturado > 0 ? ((e.value / facturado) * 100).toFixed(1) : 0;
                         const isPaid = e.pending === 0 || e.pending === '0';
-
+                        
                         return (
-                           <tr key={idx} className="group hover:bg-white/5 transition-colors">
-                               <td className="py-1"><span className={`text-[12px] font-black uppercase tracking-tighter ${e.color || 'text-gray-300'}`}>{e.name}</span></td>
-                               <td className="py-1 text-right font-mono text-[18px] text-gray-400 bg-white/5 px-1 rounded-lg">{Math.round(e.value).toLocaleString()}</td>
-                               <td className="py-1 text-center">
+                           <tr key={idx} className="group hover:bg-white-[0.02] transition-colors">
+                               <td className="py-0.5 text-left pl-2"><span className={`text-[12px] font-black uppercase tracking-widest whitespace-nowrap ${e.color || 'text-gray-300'}`}>{e.name}</span></td>
+                               <td className="py-0.5 text-right font-mono text-[16px] text-gray-400 pr-2">{Math.round(e.value).toLocaleString()}</td>
+                               <td className="py-0.5 text-center">
                                  {e.isEditable || e.isGeneric ? (
-                                   <button 
-                                     onClick={() => updateGenericPending(e.col, isPaid ? '' : '0')}
-                                     className={`p-0.5 rounded-lg transition-all ${isPaid ? 'text-emerald-500 bg-emerald-500/10' : 'text-gray-600 hover:text-gray-400 bg-white/5'}`}
-                                   >
-                                     <CheckCircle2 className={`w-4 h-4 ${isPaid ? 'fill-emerald-500/20' : ''}`} />
-                                   </button>
-                                 ) : null}
+                                   <div className="flex justify-center">
+                                     <button 
+                                       onClick={() => updateGenericPending(e.col, isPaid ? '' : '0')}
+                                       className={`p-1 rounded-lg transition-all ${isPaid ? 'text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(16,185,129,0.15)]' : 'text-gray-600 hover:text-gray-300 bg-surface-edge/20 hover:bg-surface-edge/40'}`}
+                                     >
+                                       <CheckCircle2 className={`w-3.5 h-3.5 ${isPaid ? 'fill-emerald-500/20' : ''}`} />
+                                     </button>
+                                   </div>
+                                 ) : <div className="text-gray-700/50 text-center">-</div>}
                                </td>
-                               <td className="py-1 text-right font-mono text-[18px] text-white font-bold bg-white/5 px-1 rounded-lg">
-                                 {e.isEditable || e.isGeneric ? (
-                                   <input 
-                                     type="text"
-                                     inputMode="decimal"
-                                     value={e.pending} 
-                                     onChange={(evt) => updateGenericPending(e.col, evt.target.value)}
-                                     onBlur={() => fetchDashboardData()}
-                                     className="bg-transparent border-none text-right font-mono text-[18px] font-black w-20 outline-none focus:text-brand transition-colors no-spinner"
-                                   />
-                                 ) : (
-                                   Math.round(e.pending || 0).toLocaleString()
-                                 )}
+                               <td className="py-0.5 px-1">
+                                 <div className={`w-full rounded-lg px-2 transition-all ${
+                                    isPaid 
+                                      ? 'bg-transparent text-emerald-400/40' 
+                                      : 'bg-rose-500/10 border border-rose-500/20 shadow-inner text-white'
+                                 }`}>
+                                   {e.isEditable || e.isGeneric ? (
+                                     <input 
+                                       type="text"
+                                       inputMode="decimal"
+                                       value={e.pending} 
+                                       onChange={(evt) => updateGenericPending(e.col, evt.target.value)}
+                                       onBlur={() => fetchDashboardData()}
+                                       className={`bg-transparent border-none text-right font-mono text-[18px] font-black w-full outline-none focus:text-brand transition-colors no-spinner ${isPaid ? 'text-emerald-400/40' : 'text-white'}`}
+                                     />
+                                   ) : (
+                                     <div className="text-right font-mono text-[18px] font-black">{Math.round(e.pending || 0).toLocaleString()}</div>
+                                   )}
+                                 </div>
                                </td>
-                               <td className="py-1 text-right font-mono text-[10px] text-gray-600">{perc}%</td>
+                               <td className="py-0.5 text-center font-mono text-[12px] text-gray-500 font-bold">
+                                 {perc}<span className="ml-1 opacity-60">%</span>
+                               </td>
                            </tr>
                         );
                      })}
                   </tbody>
-                  <tfoot className="sticky bottom-0 bg-surface-soft border-t border-surface-edge shadow-xl">
-                     <tr className="h-8">
-                        <td className="text-[12px] font-black text-white uppercase italic">Total</td>
-                         <td className="text-[20px] font-black text-white text-right font-mono tracking-tighter">
-                            {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0)).toLocaleString()} ฿
+                  <tfoot className="sticky bottom-0 bg-surface-soft/95 backdrop-blur-md border-t border-surface-edge/50 shadow-[0_-10px_20px_rgba(0,0,0,0.2)] z-20">
+                     <tr className="h-10">
+                        <td className="text-[12px] font-black text-gray-400 uppercase tracking-widest text-center">Total</td>
+                         <td className="text-[18px] font-black text-gray-300 text-right font-mono tracking-tighter pr-2">
+                            {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0)).toLocaleString()}
                          </td>
-                         <td></td>
-                         <td className="text-[20px] font-black text-rose-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]">
-                            {Math.round(expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()} ฿
+                         <td className="text-center text-gray-700/50">-</td>
+                         <td className="text-[20px] font-black text-rose-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(244,63,94,0.3)] pr-3">
+                            {Math.round(expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()} <span className="text-[14px] text-rose-500/50">฿</span>
                          </td>
-                        <td className="text-[12px] font-black text-gray-500 text-right font-mono">100%</td>
+                        <td className="text-[12px] font-black text-gray-500 text-center font-mono">
+                          {incomeData.total > 0 ? ((expenseData.reduce((acc, e) => acc + e.value, 0) / incomeData.total) * 100).toFixed(1) : 0}<span className="ml-1 opacity-60">%</span>
+                        </td>
                      </tr>
                   </tfoot>
                </table>
@@ -562,7 +761,14 @@ export default function Overview() {
             <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-gray-400 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Mes Anterior</span>
-                  <input type="number" value={incomeData.openingCash || 0} onChange={(e) => updateOpeningCash(e.target.value)} className="bg-transparent border-none text-right font-mono text-sm font-black w-24 outline-none focus:text-white transition-colors no-spinner" />
+                  <input 
+                    type="number" 
+                    value={incomeData.openingCash === 0 ? 0 : (incomeData.openingCash || '')} 
+                    onChange={(e) => updateOpeningCash(e.target.value)} 
+                    onBlur={() => fetchDashboardData()}
+                    onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                    className="bg-transparent border-none text-right font-mono text-sm font-black w-24 outline-none focus:text-white transition-colors no-spinner" 
+                  />
                </div>
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/20 text-emerald-400 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado</span>
@@ -593,7 +799,7 @@ export default function Overview() {
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Hay o Habrá + Pagado</span>
                   <span className="text-sm font-black font-mono">
-                    {Math.round(monthlyReport?.total_auditoria || 0).toLocaleString()}
+                    {Math.round(monthlyReport?.hay_o_habra_mas_pagado || 0).toLocaleString()}
                   </span>
                </div>
             </div>

@@ -205,15 +205,28 @@ export default function BillingHeader({
               { label: '100', value: 100, state: bills100, setState: setBills100 },
               { label: '50', value: 50, state: bills50, setState: setBills50 },
               { label: '20', value: 20, state: bills20, setState: setBills20 },
-            ].map((b) => (
+            ].map((b, index) => (
               <div key={b.label} className="flex items-center justify-between gap-2 group">
                 <div className="w-10 text-emerald-400/90 font-mono text-[12px] group-hover:text-emerald-400 transition-colors">{b.label}</div>
                 <input 
+                  id={`bill-input-${index}`}
                   type="number" 
                   min="0" 
                   max="999" 
                   value={b.state} 
                   onChange={e => b.setState(e.target.value)} 
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const nextInput = document.getElementById(`bill-input-${index + 1}`);
+                      if (nextInput) {
+                        nextInput.focus();
+                        nextInput.select();
+                      } else {
+                        e.target.blur();
+                      }
+                    }
+                  }}
                   className="w-10 h-[20px] bg-surface text-white border border-surface-edge hover:border-emerald-500/50 rounded text-center outline-none focus:border-emerald-500 py-0 text-xs font-bold transition-all shadow-inner" 
                 />
                 <div className="w-16 text-right text-white/50 font-mono text-[12px]">

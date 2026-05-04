@@ -303,7 +303,7 @@ export default function Expenses() {
       supabase.from('external_promoters').select('*').order('name'),
       supabase.from('activities').select('*').order('name'),
       supabase.from('expense_categories').select('*').order('sort_order', { ascending: true }),
-      supabase.from('monthly_metrics').select('metric_key, value').eq('year', selectedYear).eq('month', selectedMonth + 1)
+      supabase.from('monthly_expenses').select('*').eq('year', selectedYear).eq('month', selectedMonth + 1).maybeSingle()
     ]);
 
     if (expRes.data) setExpenses(expRes.data);
@@ -314,16 +314,14 @@ export default function Expenses() {
     if (actRes.data) setAllActivities(actRes.data);
     if (setRes.data) setCategories(setRes.data);
 
-    // Prioridad a las métricas pre-calculadas en DB para velocidad de los widgets
-    if (metricsRes.data && metricsRes.data.length > 0) {
-        const mData = metricsRes.data;
-        const findVal = (key) => parseFloat(mData.find(m => m.metric_key === key)?.value || 0);
-        
-        setMonthlyTotal(findVal('total_expenses'));
-        setCommissionsPaid(findVal('comm_paid'));
-        setCommissionsPending(findVal('comm_pending'));
-        setOxygenTotal(findVal('snorkel_paid') + findVal('snorkel_pending'));
-        setOxygenPending(findVal('snorkel_pending'));
+    // Prioridad a las métricas pre-calculadas en DB
+    if (metricsRes.data) {
+        const m = metricsRes.data;
+        setMonthlyTotal(Number(m.total_expenses || 0));
+        setCommissionsPaid(Number(m.comm_paid || 0));
+        setCommissionsPending(Number(m.comm_pending || 0));
+        setOxygenTotal(Number(m.snorkel_paid || 0) + Number(m.snorkel_pending || 0));
+        setOxygenPending(Number(m.snorkel_pending || 0));
     } else {
         // Fallback manual si no hay métricas en la tabla (meses antiguos o recién creados)
         if (expRes.data) setMonthlyTotal(expRes.data.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0));
