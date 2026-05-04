@@ -21,7 +21,8 @@ import {
   Search,
   Users,
   Milk,
-  WavesArrowDown
+  WavesArrowDown,
+  Shirt
 } from 'lucide-react';
 
 export default function Activities({ isNested = false }) {
@@ -247,7 +248,8 @@ export default function Activities({ isNested = false }) {
       acronym: act.acronym || '',
       duration_days: act.duration_days?.toString() || '0',
       is_commissionable: act.is_commissionable || false,
-      is_ssi_active: act.is_ssi_active || false
+      is_ssi_active: act.is_ssi_active || false,
+      tshirt_included: act.tshirt_included || false
     });
   };
 
@@ -263,7 +265,8 @@ export default function Activities({ isNested = false }) {
       acronym: editData.acronym,
       duration_days: parseFloat(editData.duration_days) || 0,
       is_commissionable: editData.is_commissionable,
-      is_ssi_active: editData.is_ssi_active
+      is_ssi_active: editData.is_ssi_active,
+      tshirt_included: editData.tshirt_included
     }).eq('id', id);
 
     if (!error) {
@@ -702,6 +705,9 @@ export default function Activities({ isNested = false }) {
                           <button onClick={() => setEditData({...editData, is_ssi_active: !editData.is_ssi_active})} className={`p-1 rounded ${editData.is_ssi_active ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-600'}`} title="SSI Active">
                             <WavesArrowDown className="w-3.5 h-3.5" />
                           </button>
+                          <button onClick={() => setEditData({...editData, tshirt_included: !editData.tshirt_included})} className={`p-1 rounded ${editData.tshirt_included ? 'text-fuchsia-400 bg-fuchsia-500/10' : 'text-gray-600'}`} title="Camiseta incluida">
+                            <Shirt className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                       <td className="px-1 py-1 text-center w-[30px]">
@@ -762,7 +768,8 @@ export default function Activities({ isNested = false }) {
                       <div className="flex flex-col gap-0.5 items-center">
                         {activity.is_commissionable && <Coins className="w-3.5 h-3.5 text-amber-500" title="Comisionable" />}
                         {activity.is_ssi_active && <WavesArrowDown className="w-3.5 h-3.5 text-emerald-500" title="Activo en SSI" />}
-                        {!activity.is_commissionable && !activity.is_ssi_active && <span className="text-gray-700">-</span>}
+                        {activity.tshirt_included && <Shirt className="w-3.5 h-3.5 text-fuchsia-400" title="Incluye camiseta" />}
+                        {!activity.is_commissionable && !activity.is_ssi_active && !activity.tshirt_included && <span className="text-gray-700">-</span>}
                       </div>
                     </td>
                     <td className="px-0 py-2 text-center w-[30px]">
