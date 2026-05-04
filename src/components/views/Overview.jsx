@@ -195,8 +195,8 @@ export default function Overview() {
         return idxA - idxB;
       });
 
-      const realFinanceTotal = (mObj.total_expenses || 0) + (mObj.comm_paid || 0) + (mObj.comm_pending || 0) + (mObj.snorkel_paid || 0) + (mObj.snorkel_pending || 0);
-      const realFinancePending = (mObj.comm_pending || 0) + (mObj.snorkel_pending || 0);
+      const realFinanceTotal = Number(mObj.grand_total_expenses || 0);
+      const realFinancePending = Number(mObj.grand_total_pending || 0);
 
       const rukSettlement = (sSettlements || []).find(s => s.supplier_name?.toLowerCase().includes('ruk'));
       const rukTotal = Number(rukSettlement?.total_amount || 0);
