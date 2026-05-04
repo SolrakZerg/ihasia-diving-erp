@@ -15,6 +15,9 @@
   --color-text-dim: #6b7280;        /* Gray 500 - For icons/decoration only */
   --color-amber-500: oklch(0.77 0.15 88.25); /* Premium High-Contrast Amber */
   --color-rose-400: oklch(0.76 0.19 12.58);  /* Premium High-Contrast Rose */
+  
+  /* Custom Breakpoints */
+  --breakpoint-3xl: 1700px;
 }
 
 /* Global Focus Styles for WCAG Operability */

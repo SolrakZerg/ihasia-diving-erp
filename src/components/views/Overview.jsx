@@ -401,12 +401,12 @@ export default function Overview() {
   return (
     <div className="p-2 md:p-3 space-y-3 w-full animate-in fade-in duration-700 overflow-hidden">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-soft/30 py-8 px-6 rounded-2xl border border-surface-edge shadow-2xl backdrop-blur-sm">
-        <div className="flex items-center gap-8">
-           <img src={logoFull} alt="Logo" className="w-28 h-28 object-contain brightness-0 invert opacity-100" />
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
+           <img src={logoFull} alt="Logo" className="w-24 md:w-28 h-24 md:h-28 object-contain brightness-0 invert opacity-100" />
            <img 
              src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo-ihasia-secondary.webp" 
              alt="iHasia Financial" 
-             className="h-16 w-auto object-contain brightness-0 invert" 
+             className="h-12 md:h-16 w-auto object-contain brightness-0 invert" 
            />
         </div>
 
@@ -433,8 +433,8 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto lg:h-[260px]">
-        <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
+        <div style={{ flex: '3 1 350px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Generado Staff</h3>
            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height={180}>
@@ -463,7 +463,7 @@ export default function Overview() {
            </div>
         </div>
 
-        <div className="lg:col-span-5 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
+        <div style={{ flex: '3 1 450px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 text-center">Gastos</h3>
            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height={180}>
@@ -493,7 +493,7 @@ export default function Overview() {
            </div>
         </div>
 
-        <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col justify-center min-h-[240px]">
+        <div style={{ flex: '0.5 1 300px', maxWidth: '400px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col justify-center min-h-[240px]">
            <h3 className="text-[14px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-0 text-center">CRBT</h3>
            
            <div className="flex-1 flex flex-col justify-center gap-4">
@@ -533,7 +533,7 @@ export default function Overview() {
                  <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest text-center">CR (x cobrar)</span>
                  <div className="bg-blue-600 rounded-xl p-3 text-center border border-blue-500 shadow-lg">
                    <span className="text-[24px] font-black text-white font-mono tracking-tighter drop-shadow-md">
-                     {Math.round(monthlyReport?.pending_cr || 0).toLocaleString()}
+                     {Math.round(monthlyReport?.pending_cr || 0).toLocaleString()} <span className="text-sm opacity-50 ml-0.5">฿</span>
                    </span>
                  </div>
                </div>
@@ -541,7 +541,7 @@ export default function Overview() {
                  <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest text-center">BT (x cobrar)</span>
                  <div className="bg-pink-600 rounded-xl p-3 text-center border border-pink-500 shadow-lg">
                    <span className="text-[24px] font-black text-white font-mono tracking-tighter drop-shadow-md">
-                     {Math.round(monthlyReport?.pending_bt || 0).toLocaleString()}
+                     {Math.round(monthlyReport?.pending_bt || 0).toLocaleString()} <span className="text-sm opacity-50 ml-0.5">฿</span>
                    </span>
                  </div>
                </div>
@@ -550,8 +550,8 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-24 gap-4">
-         <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl h-[480px] flex flex-col">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
+         <div style={{ flex: '1 1 250px', maxWidth: '350px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl h-[480px] flex flex-col">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 px-2">Staff</h3>
             <div className="flex-1 overflow-auto custom-scrollbar">
                <table className="w-full text-left">
@@ -575,10 +575,10 @@ export default function Overview() {
                      <tr className="h-10">
                         <td className="text-[13px] font-black text-gray-400 uppercase italic pl-2">Total</td>
                         <td className="text-[18px] font-black text-cyan-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(34,211,238,0.2)]">
-                           {Math.round(staffData.reduce((acc, s) => acc + s.totalEarned, 0)).toLocaleString()} <span className="text-[10px] ml-0.5 opacity-60">฿</span>
+                           {Math.round(staffData.reduce((acc, s) => acc + s.totalEarned, 0)).toLocaleString()}
                         </td>
                         <td className="text-[18px] font-black text-orange-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(251,146,60,0.2)] pr-2">
-                           {Math.round(staffData.reduce((acc, s) => acc + s.pending, 0)).toLocaleString()} <span className="text-[10px] ml-0.5 opacity-60">฿</span>
+                           {Math.round(staffData.reduce((acc, s) => acc + s.pending, 0)).toLocaleString()}
                         </td>
                      </tr>
                   </tfoot>
@@ -607,7 +607,7 @@ export default function Overview() {
             const isFactPositive = factGrowth >= 0;
 
             return (
-              <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col relative overflow-hidden h-[480px]">
+              <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col relative overflow-hidden h-[480px]">
                  <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-brand/10 rounded-full blur-[100px] pointer-events-none"></div>
                  
                  <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-auto text-center z-10 pt-2">Cursos<br/>Este Mes</h3>
@@ -673,7 +673,7 @@ export default function Overview() {
             );
          })()}
 
-         <div className="lg:col-span-6 bg-surface-soft border border-surface-edge rounded-3xl p-4 shadow-xl h-[480px] flex flex-col relative overflow-hidden">
+         <div style={{ flex: '1.5 1 350px', maxWidth: '550px' }} className="bg-surface-soft border border-surface-edge rounded-3xl p-4 shadow-xl h-[480px] flex flex-col relative overflow-hidden">
             {/* Glow Ambient */}
             <div className="absolute top-[-50%] left-[-20%] w-64 h-64 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none"></div>
             
@@ -746,7 +746,7 @@ export default function Overview() {
                          </td>
                          <td className="text-center text-gray-700/50">-</td>
                          <td className="text-[20px] font-black text-rose-400 text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(244,63,94,0.3)] pr-3">
-                            {Math.round(expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()} <span className="text-[14px] text-rose-500/50">฿</span>
+                            {Math.round(expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()}
                          </td>
                         <td className="text-[12px] font-black text-gray-500 text-center font-mono">
                           {incomeData.total > 0 ? ((expenseData.reduce((acc, e) => acc + e.value, 0) / incomeData.total) * 100).toFixed(1) : 0}<span className="ml-1 opacity-60">%</span>
@@ -757,7 +757,7 @@ export default function Overview() {
             </div>
          </div>
 
-         <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
+         <div style={{ flex: '1 1 250px', maxWidth: '350px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center text-emerald-400">Cuentas</h3>
             <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-gray-400 mb-1.5">
@@ -806,7 +806,7 @@ export default function Overview() {
             </div>
           </div>
 
-         <div className="lg:col-span-4 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
+         <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Ingresos</h3>
             <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
                 {Object.entries(incomeData.breakdown || {}).map(([label, value], idx) => {
@@ -831,7 +831,7 @@ export default function Overview() {
             </div>
          </div>
 
-         <div className="lg:col-span-3 bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
+         <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
             <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Saldos CR</h3>
             <div className="flex-1 flex flex-col items-center justify-center">
                <ResponsiveContainer width="100%" height={180}>
