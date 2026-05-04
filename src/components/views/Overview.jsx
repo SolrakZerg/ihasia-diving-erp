@@ -345,6 +345,7 @@ export default function Overview() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fixed_expenses' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'supplier_settlements' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_expenses' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_metrics' }, () => fetchDashboardData())
       .subscribe((status, err) => {
         if (err) console.error("Realtime subscription error:", err);
