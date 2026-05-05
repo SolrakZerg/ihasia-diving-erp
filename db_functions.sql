@@ -650,3 +650,32 @@ BEGIN
     RETURN NEW;
 END;
 $function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: sync_monthly_activity_logs
+-- Description: Atomically syncs monthly activity counts (Delete + Insert).
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.sync_monthly_activity_logs(
+    p_year INT,
+    p_month INT,
+    p_data JSONB
+)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM public.monthly_activity_logs
+    WHERE year = p_year AND month = p_month;
+
+    IF p_data IS NOT NULL AND jsonb_array_length(p_data) > 0 THEN
+        INSERT INTO public.monthly_activity_logs (year, month, activity_id, count, updated_at)
+        SELECT 
+            p_year, 
+            p_month, 
+            (item->>'activity_id')::UUID, 
+            (item->>'count')::INT, 
+            NOW()
+        FROM jsonb_array_elements(p_data) AS item
+        WHERE (item->>'count')::INT > 0;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+

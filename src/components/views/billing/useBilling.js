@@ -140,37 +140,23 @@ export function useBilling() {
   const syncMonthlyStats = async (breakdown) => {
     if (!breakdown || !activities || activities.length === 0) return;
     
-    const upsertData = activities
+    const syncData = activities
       .map(act => {
         const count = breakdown[act.acronym] || 0;
         if (count <= 0) return null;
         return {
-          year: selectedYear,
-          month: selectedMonth + 1, // +1 para formato 1-indexed
           activity_id: act.id,
-          count: count,
-          updated_at: new Date().toISOString()
+          count: count
         };
       })
       .filter(Boolean);
 
-    // CRÍTICO: Primero borrar todos los registros del mes para evitar datos obsoletos.
-    // Si una actividad pasa de count=1 a count=0, el upsert NO la borraría,
-    // dejando un dato fantasma. El DELETE + INSERT garantiza coherencia total.
-    await supabase
-      .from('monthly_activity_logs')
-      .delete()
-      .eq('year', selectedYear)
-      .eq('month', selectedMonth + 1);
-
-    if (upsertData.length === 0) {
-      fetchDbTotals();
-      return;
-    }
-
-    const { error } = await supabase
-      .from('monthly_activity_logs')
-      .insert(upsertData);
+    // Llamamos a la función RPC atómica (Borrado + Inserción en una sola transacción)
+    const { error } = await supabase.rpc('sync_monthly_activity_logs', {
+      p_year: selectedYear,
+      p_month: selectedMonth + 1,
+      p_data: syncData
+    });
 
     if (error) {
       console.error("[useBilling] Error syncing monthly_activity_logs:", error);

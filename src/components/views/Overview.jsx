@@ -254,7 +254,7 @@ export default function Overview() {
       setExpenseData(detailedExpenses);
 
       setCourseStats({ 
-        count: Number(monthlyActivities?.total_courses || 0), 
+        count: Number(monthlyReport?.total_courses || 0), 
         target: Number(prevYearReport?.total_courses || 0),
         prevTarget: Number(prev2YearReport?.total_courses || 0),
         prev3YearTarget: Number(prev3YearReport?.total_courses || 0),
@@ -438,7 +438,7 @@ export default function Overview() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
         <div style={{ flex: '3 1 350px', maxWidth: '900px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
-           <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Generado Staff</h3>
+           <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Generado Staff</h3>
            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={staffData}>
@@ -467,7 +467,7 @@ export default function Overview() {
         </div>
 
         <div style={{ flex: '3 1 450px', maxWidth: '900px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col min-h-[240px]">
-           <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 text-center">Gastos</h3>
+           <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 text-center">Gastos</h3>
            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={[{ name: 'CRBT', value: (monthlyReport?.partner_split || 0) * 2, isProfit: true }, ...expenseData].map(item => ({ ...item, perc: incomeData.total > 0 ? ((item.value / incomeData.total) * 100).toFixed(1) : 0 }))}>
@@ -534,7 +534,7 @@ export default function Overview() {
 
              <div className="grid grid-cols-2 gap-2">
                <div className="flex flex-col gap-1.5">
-                 <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest text-center">CR (x cobrar)</span>
+                 <span className="text-[12px] font-black text-gray-400 uppercase tracking-widest text-center">CR (x cobrar)</span>
                  <div className="bg-blue-600 rounded-xl p-3 text-center border border-blue-500 shadow-lg">
                    <span className="text-[24px] font-black text-white font-mono tracking-tighter drop-shadow-md">
                      {Math.round(monthlyReport?.pending_cr || 0).toLocaleString()}<span className="text-sm opacity-50 ml-1">฿</span>
@@ -542,7 +542,7 @@ export default function Overview() {
                  </div>
                </div>
                <div className="flex flex-col gap-1.5">
-                 <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest text-center">BT (x cobrar)</span>
+                 <span className="text-[12px] font-black text-gray-400 uppercase tracking-widest text-center">BT (x cobrar)</span>
                  <div className="bg-pink-600 rounded-xl p-3 text-center border border-pink-500 shadow-lg">
                    <span className="text-[24px] font-black text-white font-mono tracking-tighter drop-shadow-md">
                      {Math.round(monthlyReport?.pending_bt || 0).toLocaleString()}<span className="text-sm opacity-50 ml-1">฿</span>
@@ -556,7 +556,7 @@ export default function Overview() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
          <div style={{ flex: '1 1 250px', maxWidth: '350px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl h-[480px] flex flex-col">
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 px-2">Staff</h3>
+            <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 px-2 text-center">Staff</h3>
             <div className="flex-1 overflow-auto custom-scrollbar">
                <table className="w-full text-left">
                   <thead>
@@ -569,9 +569,9 @@ export default function Overview() {
                   <tbody>
                      {staffData.map((s, idx) => (
                         <tr key={idx} className="border-b border-surface-edge/10">
-                           <td className="py-0.5 text-sm font-black text-white uppercase">{s.name}</td>
-                           <td className="py-0.5 text-right text-sm font-mono text-white">{Math.round(s.totalEarned).toLocaleString()}</td>
-                           <td className={`py-0.5 text-right text-sm font-mono ${s.pending > 0 ? 'text-amber-500' : 'text-emerald-500 opacity-30'}`}>{Math.round(s.pending).toLocaleString()}</td>
+                           <td className="py-1 text-sm font-black text-white uppercase">{s.name}</td>
+                           <td className="py-1 text-right text-sm font-mono text-white">{Math.round(s.totalEarned).toLocaleString()}</td>
+                           <td className={`py-1 text-right text-sm font-mono ${s.pending > 0 ? 'text-amber-500' : 'text-emerald-500 opacity-30'}`}>{Math.round(s.pending).toLocaleString()}</td>
                         </tr>
                      ))}
                   </tbody>
@@ -628,7 +628,7 @@ export default function Overview() {
                <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-3xl p-4 shadow-xl flex flex-col relative overflow-hidden h-[480px]">
                   <div className={`absolute top-[-20%] right-[-20%] w-64 h-64 rounded-full blur-[100px] pointer-events-none transition-colors duration-1000 ${isOverTarget ? 'bg-emerald-500/20' : 'bg-brand/10'}`}></div>
                   
-                  <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-auto text-center z-10">CURSOS</h3>
+                  <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-auto text-center z-10">CURSOS</h3>
                   
                   <div className="flex flex-col items-center justify-center flex-1 z-10">
                      <div className="relative flex items-center justify-center mb-6 mt-2">
@@ -707,7 +707,7 @@ export default function Overview() {
             {/* Glow Ambient */}
             <div className="absolute top-[-50%] left-[-20%] w-64 h-64 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none"></div>
             
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center z-10">Gastos X Pagar</h3>
+            <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center z-10">Gastos X Pagar</h3>
             <div className="flex-1 overflow-auto custom-scrollbar z-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-surface-soft/95 backdrop-blur-md z-20">
@@ -788,7 +788,7 @@ export default function Overview() {
          </div>
 
          <div style={{ flex: '1 1 250px', maxWidth: '350px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 text-center text-emerald-400">Cuentas</h3>
+            <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center text-emerald-400">Cuentas</h3>
             <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-gray-400 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Mes Anterior</span>
@@ -801,34 +801,34 @@ export default function Overview() {
                     className="bg-transparent border-none text-right font-mono text-sm font-black w-24 outline-none focus:text-white transition-colors no-spinner" 
                   />
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/20 text-emerald-400 mb-1.5">
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-400/25 border border-emerald-500/70 text-white/90 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado</span>
                   <span className="text-sm font-black font-mono">{Math.round(incomeData.total || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-emerald-400 mb-1.5">
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-400/25 border border-emerald-500/70 text-white/80 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Cobrado</span>
                   <span className="text-sm font-black font-mono">{Math.round(incomeData.collected || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-400 mb-1.5">
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-rose-400/25 border border-rose-400/70 text-white/80 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Por Cobrar</span>
                   <span className="text-sm font-black font-mono">{Math.round(incomeData.pending || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-rose-400 mb-1.5">
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-400/25 border border-amber-500/70 text-white/80 mb-1.5">
                   <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Pagado</span>
                   <span className="text-sm font-black font-mono">
                     {Math.round(monthlyReport?.total_pagado || 0).toLocaleString()}
                   </span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-emerald-400/50 mb-1.5">
-                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Cobrado + Mes Ant.</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/70 text-emerald-400/80 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Cobrado + M. Ant.</span>
                   <span className="text-sm font-black font-mono">{Math.round(monthlyReport?.total_disponible || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
-                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado + Mes Ant.</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/70 text-emerald-400/80 mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Facturado + M. Ant.</span>
                   <span className="text-sm font-black font-mono">{Math.round(monthlyReport?.total_facturado_mes_ant || 0).toLocaleString()}</span>
                </div>
-               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-white/30 mb-1.5">
-                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Hay o Habrá + Pagado</span>
+               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-br from-violet-500/25 to-teal-600/10 border border-violet-500/70 text-white/80 italic mb-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Hay o Habrá + Pag.</span>
                   <span className="text-sm font-black font-mono">
                     {Math.round(monthlyReport?.hay_o_habra_mas_pagado || 0).toLocaleString()}
                   </span>
@@ -837,7 +837,7 @@ export default function Overview() {
           </div>
 
          <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Ingresos</h3>
+            <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 text-center">Ingresos</h3>
             <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
                 {Object.entries(incomeData.breakdown || {}).map(([label, value], idx) => {
                   if (label === '---') return <div key={idx} className="h-px bg-surface-edge/30 my-3 mx-2" />;
@@ -862,7 +862,7 @@ export default function Overview() {
          </div>
 
          <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
-            <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Saldos CR</h3>
+            <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 text-center">Saldos CR</h3>
             <div className="flex-1 flex flex-col items-center justify-center">
                <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
@@ -874,7 +874,7 @@ export default function Overview() {
                </ResponsiveContainer>
             </div>
             <div className="mt-4 pt-4 border-t border-surface-edge/30 flex-1 flex flex-col items-center justify-center">
-               <h3 className="text-[14px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">Saldos BT</h3>
+               <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 text-center">Saldos BT</h3>
                <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
                      <Pie data={incomeData.btData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
