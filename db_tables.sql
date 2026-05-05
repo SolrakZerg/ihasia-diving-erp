@@ -1,0 +1,278 @@
+-- ################################################################################
+-- STEP 3: DATABASE TABLES STRUCTURE BACKUP
+-- Project: IHASIA ERP
+-- Generated: 2026-05-05
+-- ################################################################################
+
+-- Table: activities
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- name (text, NO NULL)
+-- price_thb (numeric)
+-- price_eur (numeric)
+-- ssi_cost_eur (numeric)
+-- tanks_weight (numeric)
+-- category (text)
+-- created_at (timestamp with time zone)
+-- color (text)
+-- ssi_cost_thb (numeric)
+-- acronym (text)
+-- duration_days (numeric)
+-- tshirt_included (boolean)
+-- is_supplier_billable (boolean)
+-- is_commissionable (boolean)
+-- is_ssi_active (boolean)
+-- widget_column (integer)
+-- widget_order (integer)
+
+-- Table: activity_categories
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- name (text, NO NULL)
+-- color (text)
+-- sort_order (integer)
+-- created_at (timestamp with time zone)
+-- is_commissionable (boolean)
+-- requires_staff (boolean)
+
+-- Table: activity_logs
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- date (date, NO NULL)
+-- staff_id (uuid)
+-- customer_id (uuid)
+-- activity_id (uuid)
+-- tanks_used (numeric)
+-- is_ssi_certified (boolean)
+-- notes (text)
+-- created_at (timestamp with time zone)
+
+-- Table: attendance
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- date (date, NO NULL)
+-- staff_id (uuid)
+-- shift (text)
+-- type (text)
+-- created_at (timestamp with time zone)
+
+-- Table: bote_expenses
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- date (date, NO NULL)
+-- amount (numeric, NO NULL)
+-- concept (text, NO NULL)
+-- category (text)
+-- created_at (timestamp with time zone)
+
+-- Table: bote_monthly
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- year (integer, NO NULL)
+-- month (integer, NO NULL)
+-- initial_balance (numeric)
+-- final_balance (numeric)
+-- apartar_amount (numeric)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)
+-- pending_amount (numeric)
+-- expenses_total (numeric)
+
+-- Table: business_entities
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- name (text, NO NULL)
+-- legal_name (text)
+-- brand_name (text)
+-- tax_id (text)
+-- address_line1 (text)
+-- address_line2 (text)
+-- city (text)
+-- province (text)
+-- zip_code (text)
+-- country (text)
+-- email (text)
+-- phone (text)
+-- website (text)
+-- is_own_company (boolean)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)
+-- logo_url (text)
+-- secondary_image_url (text)
+
+-- Table: commissions
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- date (date, NO NULL)
+-- recipient_type (text, NO NULL)
+-- recipient_id (uuid, NO NULL)
+-- customer_id (uuid)
+-- activity_id (uuid)
+-- price (numeric, NO NULL)
+-- pax (integer, NO NULL)
+-- amount (numeric, NO NULL)
+-- is_paid (boolean)
+-- created_at (timestamp with time zone)
+
+-- Table: customers
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- first_name (text, NO NULL)
+-- email (text)
+-- phone (text)
+-- certification_level (text)
+-- birth_date (date)
+-- insurance_expiry (date)
+-- created_at (timestamp with time zone)
+-- last_name (text)
+-- gender (text)
+-- passport_number (text)
+-- emergency_contact (text)
+-- address (text)
+-- lead_source (text)
+-- total_dives (text)
+-- last_dive_date (text)
+-- form_origin (text)
+-- booked_activity (text)
+-- booking_date (date)
+
+-- Table: daily_expenses
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- date (date)
+-- description (text, NO NULL)
+-- amount (numeric, NO NULL)
+-- category (text)
+-- created_at (timestamp with time zone)
+
+-- Table: invoice_items
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- invoice_id (uuid)
+-- customer_id (uuid)
+-- activity_id (uuid)
+-- instructor_id (uuid)
+-- date (date)
+-- quantity (integer)
+-- unit_price_thb (numeric)
+-- total_thb (numeric)
+-- created_at (timestamp with time zone)
+-- status (text)
+-- payment_method (text)
+-- notes (text)
+-- bizum_deposit_eur (numeric)
+-- temporary_name (text)
+-- is_comm (boolean)
+-- comm_recipient_id (uuid)
+-- is_comm_paid (boolean)
+-- is_prov_paid (boolean)
+-- is_ssi_paid (boolean)
+-- comm_amount_thb (numeric)
+
+-- Table: invoices
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- customer_id (uuid)
+-- total_thb (numeric)
+-- total_eur (numeric)
+-- exchange_rate (numeric)
+-- payment_method (text)
+-- status (text)
+-- created_at (timestamp with time zone)
+-- bizum_deposit_eur (numeric)
+-- notes (text)
+
+-- Table: monthly_expenses
+-- --------------------------------------------------------------------------------
+-- year (integer, NO NULL)
+-- month (integer, NO NULL)
+-- total_expenses (numeric)
+-- comm_paid (numeric)
+-- comm_pending (numeric)
+-- snorkel_paid (numeric)
+-- snorkel_pending (numeric)
+-- grand_total_expenses (numeric)
+-- grand_total_pending (numeric)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)
+
+-- Table: monthly_reports
+-- --------------------------------------------------------------------------------
+-- year (integer, NO NULL)
+-- month (integer, NO NULL)
+-- mes_anterior (numeric)
+-- cash (numeric)
+-- cr_eur (numeric)
+-- cr_wise (numeric)
+-- cr_cash (numeric)
+-- bt_cash (numeric)
+-- bt_wise (numeric)
+-- bt_eur (numeric)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)
+-- facturado (numeric)
+-- pendiente (numeric)
+-- cobrado (numeric)
+-- bote_xpagar (numeric)
+-- office_xpagar (numeric)
+-- infinity_xpagar (numeric)
+-- pae_xpagar (numeric)
+-- polimigra_xpagar (numeric)
+-- total_gastos (numeric)
+-- total_xpagar (numeric)
+-- total_disponible (numeric)
+-- total_pagado (numeric)
+-- total_crbt (numeric)
+-- falta_o_sobra (numeric)
+-- total_facturado_mes_ant (numeric)
+-- total_courses (integer)
+-- partner_split (numeric)
+-- pending_cr (numeric)
+-- pending_bt (numeric)
+-- sueldos_total (numeric)
+-- sueldos_pendiente (numeric)
+-- deberia (numeric)
+-- hay_o_habra_mas_pagado (numeric)
+
+-- Table: staff
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- first_name (text, NO NULL)
+-- last_name (text, NO NULL)
+-- initials (text, NO NULL)
+-- email (text)
+-- phone (text)
+-- instructor_number (text)
+-- role (text)
+-- base_salary (numeric)
+-- commission_rate (numeric)
+-- active (boolean)
+-- created_at (timestamp with time zone)
+
+-- Table: staff_settlements
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- year (integer, NO NULL)
+-- month (integer, NO NULL)
+-- staff_id (uuid, NO NULL)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)
+-- total_commissions (numeric)
+-- total_bonus (numeric)
+-- total_advances (numeric)
+-- days_off (numeric)
+-- assists_count (integer)
+-- total_payout (numeric)
+
+-- Table: supplier_settlements
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- supplier_name (text, NO NULL)
+-- month (integer, NO NULL)
+-- year (integer, NO NULL)
+-- paid_amount (numeric)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)
+-- invoice_config (jsonb)
+-- total_amount (numeric)
+-- pending_amount (numeric)
