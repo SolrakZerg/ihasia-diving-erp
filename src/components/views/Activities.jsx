@@ -66,7 +66,8 @@ export default function Activities({ isNested = false }) {
     category: 'Course',
     color: '',
     acronym: '',
-    duration_days: '0'
+    duration_days: '0',
+    payout_group: ''
   });
 
   // Available tailwind color combinations for categories
@@ -171,14 +172,15 @@ export default function Activities({ isNested = false }) {
         color: formData.color,
         acronym: formData.acronym,
         duration_days: parseFloat(formData.duration_days) || 0,
-        is_commissionable: formData.is_commissionable
+        is_commissionable: formData.is_commissionable,
+        payout_group: formData.payout_group || null
       }
     ]);
 
     if (!error) {
       setView('list');
       fetchData();
-      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false });
+      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false, payout_group: '' });
     } else {
       alert('Error guardando: ' + error.message);
     }
@@ -249,7 +251,8 @@ export default function Activities({ isNested = false }) {
       duration_days: act.duration_days?.toString() || '0',
       is_commissionable: act.is_commissionable || false,
       is_ssi_active: act.is_ssi_active || false,
-      tshirt_included: act.tshirt_included || false
+      tshirt_included: act.tshirt_included || false,
+      payout_group: act.payout_group || ''
     });
   };
 
@@ -266,7 +269,8 @@ export default function Activities({ isNested = false }) {
       duration_days: parseFloat(editData.duration_days) || 0,
       is_commissionable: editData.is_commissionable,
       is_ssi_active: editData.is_ssi_active,
-      tshirt_included: editData.tshirt_included
+      tshirt_included: editData.tshirt_included,
+      payout_group: editData.payout_group || null
     }).eq('id', id);
 
     if (!error) {
@@ -385,6 +389,8 @@ export default function Activities({ isNested = false }) {
     if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const payoutGroups = ['FD', 'CAN', 'DSD1', 'DSD2', 'SR1', 'SR2', 'OW', 'AOW', 'SD', 'S&R', 'DMT'];
 
   if (view === 'add') return (
     <div className="flex flex-col h-full bg-background overflow-auto p-4 sm:p-10">
@@ -518,11 +524,14 @@ export default function Activities({ isNested = false }) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-1">Coste SSI (฿)</label>
-                <input 
-                  type="number" value={formData.ssi_cost_thb} onChange={(e) => setFormData({...formData, ssi_cost_thb: e.target.value})}
-                  className="w-full bg-surface border border-rose-500/20 rounded-2xl px-4 py-3 text-white font-bold focus:border-rose-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
+                <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest ml-1">Grupo Carabao</label>
+                <select 
+                  value={formData.payout_group} onChange={(e) => setFormData({...formData, payout_group: e.target.value})}
+                  className="w-full bg-surface border border-emerald-500/20 rounded-2xl px-4 py-3 text-white font-bold focus:border-emerald-400 focus:outline-none appearance-none"
+                >
+                  <option value="">Ninguno</option>
+                  {payoutGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
               </div>
             </div>
 
@@ -660,6 +669,7 @@ export default function Activities({ isNested = false }) {
                 <th onClick={() => handleSort('duration_days')} className="px-2 py-2 text-center cursor-pointer hover:bg-indigo-500/10 transition-colors group w-[50px] min-w-[50px]">
                   <div className="flex items-center justify-center"><Timer className="w-4 h-4 text-indigo-400 opacity-70 group-hover:opacity-100" /></div>
                 </th>
+                <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-center w-16">Grupo</th>
                 <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-center w-16">Color</th>
                 <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-right w-20">Acciones</th>
               </tr>
@@ -715,6 +725,12 @@ export default function Activities({ isNested = false }) {
                       </td>
                       <td className="px-1 py-1 text-center w-[50px]">
                          <input value={editData.duration_days} onChange={e=>setEditData({...editData, duration_days: e.target.value})} className="bg-surface border border-indigo-500/30 rounded-lg px-0.5 py-1.5 text-[12px] text-indigo-200 focus:border-indigo-400 focus:outline-none w-full text-center font-bold" step="0.5" type="number" />
+                      </td>
+                      <td className="px-2 py-1 text-center">
+                         <select value={editData.payout_group} onChange={e=>setEditData({...editData, payout_group: e.target.value})} className="bg-surface border border-emerald-500/30 rounded-lg px-1.5 py-1.5 text-[11px] text-emerald-100 focus:border-emerald-400 focus:outline-none w-full max-w-[80px]">
+                            <option value="">-</option>
+                            {payoutGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                         </select>
                       </td>
                       <td className="px-2 py-1 text-center">
                          <input 
@@ -781,6 +797,11 @@ export default function Activities({ isNested = false }) {
                       <span className={`text-[14px] font-black font-mono ${activity.duration_days > 0 ? 'text-indigo-400' : 'text-gray-600'}`}>
                         {activity.duration_days > 0 ? activity.duration_days : '-'}
                       </span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${activity.payout_group ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'text-gray-700 border-transparent'}`}>
+                         {activity.payout_group || '-'}
+                       </span>
                     </td>
                     <td className="px-6 py-2 text-center">
                       <div className="flex justify-center">

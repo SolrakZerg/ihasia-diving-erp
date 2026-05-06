@@ -95,25 +95,15 @@ export default function SupplierPayout() {
   const [showInvoiceSettings, setShowInvoiceSettings] = useState(false);
   const [selectedInvoiceRows, setSelectedInvoiceRows] = useState([]); 
 
-  const fixedKeys = ['FD', 'CAN', 'DSD1', 'DSD2', 'SR1', 'SR2', 'OW', 'AOW', 'SD', 'S&R', 'DMT'];
+  const fixedKeys = ['FD', 'DSD1', 'DSD2', 'SR1', 'SR2', 'OW', 'AOW', 'SD', 'S&R', 'DMT'];
 
   const fixedColumns = useMemo(() => {
     if (!allActivities.length) return fixedKeys.map(key => ({ key, label: key, activityIds: [] }));
     return fixedKeys.map(key => {
       const matches = allActivities.filter(a => {
-        const acro = (a?.acronym || '').toUpperCase().trim();
-        const name = (a?.name || '').toUpperCase().trim();
+        const pGroup = (a?.payout_group || '').toUpperCase().trim();
         const cleanK = key.toUpperCase().trim();
-        if (cleanK === 'FD') return acro.startsWith('FD') || name.startsWith('FUNDIVE');
-        if (cleanK === 'SR1') return name.includes('REFRESH') && (name.includes('1') || !name.includes('2'));
-        if (cleanK === 'SR2') return name.includes('REFRESH') && name.includes('2');
-        if (cleanK === 'DSD1') return (name.includes('BAUTIZO') || name.includes('DSD')) && (name.includes('1') || !name.includes('2'));
-        if (cleanK === 'DSD2') return (name.includes('BAUTIZO') || name.includes('DSD')) && name.includes('2');
-        if (cleanK === 'OW') return acro === 'OW' || name.includes('OPEN WATER');
-        if (cleanK === 'AOW') return acro === 'AOW' || name.includes('ADVANCED');
-        if (cleanK === 'CAN') return acro === 'CAN' || acro === 'CAN2' || name.includes('CAN');
-        if (cleanK === 'DMT') return acro === 'DMT' || acro === 'DM' || name.includes('DIVEMASTER') || name.startsWith('DM ') || name === 'DM';
-        return acro === cleanK || name === cleanK;
+        return pGroup === cleanK;
       });
       return { key, label: key, activityIds: matches.map(m => m.id) };
     });
@@ -265,7 +255,7 @@ export default function SupplierPayout() {
     const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
     
     const { data } = await supabase.from('invoice_items')
-      .select('*, activities(id, name, category, acronym, tanks_weight, is_supplier_billable)')
+      .select('*, activities(id, name, category, acronym, tanks_weight, is_supplier_billable, payout_group)')
       .gte('date', firstDay)
       .lte('date', lastDay);
       
