@@ -259,7 +259,7 @@ export default function StaffSettlement() {
   const matrixData = useMemo(() => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const data = {};
-    for (let i = 1; i <= daysInMonth; i++) data[i] = { items: {}, total: 0 };
+    for (let i = 1; i <= daysInMonth; i++) data[i] = { items: {}, colTotals: {}, total: 0 };
     invoiceItems.forEach(item => {
       if (!item.date) return;
       const [y, m, d] = item.date.substring(0, 10).split('-').map(Number);
@@ -276,7 +276,11 @@ export default function StaffSettlement() {
         const qty = Number(item.quantity ?? 1);
         data[d].items[colKey] = (data[d].items[colKey] || 0) + qty;
         const rule = payoutRules.find(r => String(r.activity_id) === actId);
-        if (rule) data[d].total += qty * rule.amount_thb;
+        if (rule) {
+          const money = qty * rule.amount_thb;
+          data[d].colTotals[colKey] = (data[d].colTotals[colKey] || 0) + money;
+          data[d].total += money;
+        }
       }
     });
     return data;
@@ -474,6 +478,35 @@ export default function StaffSettlement() {
                     <th className="p-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
                     <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
                   </tr>
+                  {/* SUMMARY ROW (COUNTS) - LIKE CARABAO */}
+                  <tr className="border-b border-surface-edge/50 bg-surface-edge/5 h-8">
+                    <td className="p-0 text-center text-brand font-black text-[10px] uppercase">TOT</td>
+                    {fixedColumns.map(col => (
+                      <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[13px] font-black text-brand italic">
+                        {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
+                      </td>
+                    ))}
+                    {dynamicActivities.map(act => (
+                      <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[12px] font-black text-amber-500 bg-amber-500/5">
+                        {Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}
+                      </td>
+                    ))}
+                    <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 font-black text-[13px] bg-cyan-500/5">
+                      {Object.values(assists).reduce((acc, val) => acc + val, 0)}
+                    </td>
+                    <td className="p-0 text-center border-l border-surface-edge/10 text-brand font-black text-[11px] bg-brand/5">
+                      {totalAdj.toLocaleString()} ฿
+                    </td>
+                    <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-[10px] font-black text-emerald-400">{attendanceData.summary.fullOff}F</span>
+                        <span className="text-[10px] font-black text-amber-400">{attendanceData.summary.halfOff}H</span>
+                      </div>
+                    </td>
+                    <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 font-black text-sm bg-surface-edge/30 pr-4">
+                      {(totalComm + totalAssists + totalAdj).toLocaleString()} ฿
+                    </td>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-edge/40">
                   {Object.keys(matrixData).map(day => (
@@ -498,13 +531,27 @@ export default function StaffSettlement() {
                 </tbody>
                 <tfoot className="sticky bottom-0 z-30 bg-surface-soft border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
                   <tr className="h-9 font-black">
-                    <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOT</td>
-                    {fixedColumns.map(col => (<td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-sm text-gray-300">{Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}</td>))}
-                    {dynamicActivities.map(act => (<td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[13px] text-amber-500/60 bg-amber-500/5">{Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}</td>))}
-                    <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-sm bg-cyan-500/5">{Object.values(assists).reduce((acc, val) => acc + val, 0)}</td>
-                    <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-sm bg-brand/5">{totalAdj.toLocaleString()} ฿</td>
-                    <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5"><div className="flex flex-col items-center leading-none"><span className="text-[12px] font-black text-emerald-400">{attendanceData.summary.fullOff}F</span><span className="text-[12px] font-black text-amber-400 mt-1">{attendanceData.summary.halfOff}H</span></div></td>
-                    <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">{(totalComm + totalAssists + totalAdj).toLocaleString()} ฿</td>
+                    <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOTAL</td>
+                    {fixedColumns.map(col => (
+                      <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[11px] text-gray-400">
+                        {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[col.key] || 0), 0).toLocaleString()}
+                      </td>
+                    ))}
+                    {dynamicActivities.map(act => (
+                      <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[11px] text-amber-500/60 bg-amber-500/5">
+                        {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[`dyn_${act.id}`] || 0), 0).toLocaleString()}
+                      </td>
+                    ))}
+                    <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-[11px] bg-cyan-500/5">
+                      {totalAssists.toLocaleString()}
+                    </td>
+                    <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-[11px] bg-brand/5">
+                      {totalAdj.toLocaleString()}
+                    </td>
+                    <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5"></td>
+                    <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">
+                      {(totalComm + totalAssists + totalAdj).toLocaleString()} ฿
+                    </td>
                   </tr>
                 </tfoot>
               </table>
