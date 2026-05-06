@@ -113,6 +113,9 @@ export default function Billing({ isSidebarCollapsed }) {
         selectedDay={billing.selectedDay} setSelectedDay={billing.setSelectedDay}
         searchTerm={billing.searchTerm} setSearchTerm={billing.setSearchTerm}
         activitySearch={billing.activitySearch} setActivitySearch={billing.setActivitySearch}
+        instructorSearch={billing.instructorSearch} setInstructorSearch={billing.setInstructorSearch}
+        paymentMethodSearch={billing.paymentMethodSearch} setPaymentMethodSearch={billing.setPaymentMethodSearch}
+        showOnlyCommissionable={billing.showOnlyCommissionable} setShowOnlyCommissionable={billing.setShowOnlyCommissionable}
         showOnlyToday={billing.showOnlyToday} setShowOnlyToday={billing.setShowOnlyToday}
         showOnlyUnpaid={billing.showOnlyUnpaid} setShowOnlyUnpaid={billing.setShowOnlyUnpaid}
         activities={billing.activities}

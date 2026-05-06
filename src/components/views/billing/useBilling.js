@@ -34,6 +34,9 @@ export function useBilling() {
   const [bulkDate, setBulkDate] = useState('');
   const [bulkInstructor, setBulkInstructor] = useState('');
   const [bulkGroupAction, setBulkGroupAction] = useState(null);
+  const [instructorSearch, setInstructorSearch] = useState('');
+  const [paymentMethodSearch, setPaymentMethodSearch] = useState('');
+  const [showOnlyCommissionable, setShowOnlyCommissionable] = useState(false);
   const [isSavingCash, setIsSavingCash] = useState(false);
   const [loadingCash, setLoadingCash] = useState(true);
   const [dbExpectedCash, setDbExpectedCash] = useState(0);
@@ -155,7 +158,6 @@ export function useBilling() {
       })
       .filter(Boolean);
 
-    // Llamamos a la función RPC atómica (Borrado + Inserción en una sola transacción)
     const { error } = await supabase.rpc('sync_monthly_activity_logs', {
       p_year: selectedYear,
       p_month: selectedMonth + 1,
@@ -165,19 +167,16 @@ export function useBilling() {
     if (error) {
       console.error("[useBilling] Error syncing monthly_activity_logs:", error);
     } else {
-      // SI EL GUARDADO FUE BIEN, REFRESCAMOS LOS TOTALES DE LA BD
       fetchDbTotals();
     }
   };
 
-  // Sincronizar automáticamente cuando cambien los datos
   useEffect(() => {
     if (stats.activityBreakdown) {
       syncMonthlyStats(stats.activityBreakdown);
     }
   }, [stats.activityBreakdown]);
 
-  // Al cambiar de mes/año, cargamos los totales de la BD
   useEffect(() => {
     fetchDbTotals();
   }, [selectedMonth, selectedYear]);
@@ -191,7 +190,6 @@ export function useBilling() {
         const items = inv.invoice_items || [];
         if (!items.length) return true;
 
-        // 1. Filtro por Mes/Año (Vigente por seguridad, aunque fetch ya lo hace)
         const isThisMonth = items.some(it => {
           if (!it.date) return true;
           const [y, m] = it.date.split('-').map(Number);
@@ -199,13 +197,11 @@ export function useBilling() {
         });
         if (!isThisMonth) return false;
 
-        // 2. Filtro por Día Específico
         if (selectedDay) {
           const targetDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
           if (!items.some(it => it.date === targetDate)) return false;
         }
 
-        // 3. Filtro por Búsqueda de Texto
         if (s !== '') {
           const matches = items.some(it => {
             const parts = [
@@ -217,7 +213,6 @@ export function useBilling() {
           if (!matches) return false;
         }
 
-        // 4. Filtro por Actividad
         if (activitySearch && activitySearch.trim() !== '') {
           const actS = activitySearch.toLowerCase().trim();
           const matchesAct = items.some(it => {
@@ -231,14 +226,39 @@ export function useBilling() {
           if (!matchesAct) return false;
         }
 
-        // 5. Filtro Hoy
         if (showOnlyToday) {
           if (!items.some(it => it.date === today)) return false;
         }
 
-        // 6. Filtro Pendientes
         if (showOnlyUnpaid) {
           if (!items.some(it => it.status !== 'Paid')) return false;
+        }
+
+        if (instructorSearch && instructorSearch.trim() !== '') {
+          const instS = instructorSearch.toLowerCase().trim();
+          const matchesInst = items.some(it => {
+            const instParts = [
+              it.staff?.first_name,
+              it.staff?.last_name,
+              it.staff?.initials
+            ].filter(Boolean).map(v => String(v).toLowerCase());
+            return instParts.some(p => p.includes(instS));
+          });
+          if (!matchesInst) return false;
+        }
+
+        if (paymentMethodSearch && paymentMethodSearch.trim() !== '') {
+          const payS = paymentMethodSearch.toLowerCase().trim();
+          const matchesPay = items.some(it => {
+            if (payS === 'bizum') return Number(it.bizum_deposit_eur || 0) > 0;
+            const method = (it.payment_method || '').toLowerCase();
+            return method.includes(payS);
+          });
+          if (!matchesPay) return false;
+        }
+
+        if (showOnlyCommissionable) {
+          if (!items.some(it => it.is_comm === true)) return false;
         }
 
         return true;
@@ -247,12 +267,10 @@ export function useBilling() {
         const originalCount = inv.invoice_items?.length || 0;
         let items = [...(inv.invoice_items || [])];
 
-        // 1. Filtro Pendientes (Interno al grupo)
         if (showOnlyUnpaid) {
           items = items.filter(i => i.status !== 'Paid');
         }
 
-        // 2. Filtro Búsqueda Texto (Interno al grupo)
         if (s !== '') {
           items = items.filter(it => {
             const parts = [
@@ -263,7 +281,6 @@ export function useBilling() {
           });
         }
 
-        // 3. Filtro Actividad (Interno al grupo)
         const actS = activitySearch.toLowerCase().trim();
         if (actS !== '') {
           items = items.filter(it => {
@@ -274,12 +291,37 @@ export function useBilling() {
           });
         }
 
+        if (instructorSearch && instructorSearch.trim() !== '') {
+          const instS = instructorSearch.toLowerCase().trim();
+          items = items.filter(it => {
+            const instParts = [
+              it.staff?.first_name,
+              it.staff?.last_name,
+              it.staff?.initials
+            ].filter(Boolean).map(v => String(v).toLowerCase());
+            return instParts.some(p => p.includes(instS));
+          });
+        }
+
+        if (paymentMethodSearch && paymentMethodSearch.trim() !== '') {
+          const payS = paymentMethodSearch.toLowerCase().trim();
+          items = items.filter(it => {
+            if (payS === 'bizum') return Number(it.bizum_deposit_eur || 0) > 0;
+            return (it.payment_method || '').toLowerCase().includes(payS);
+          });
+        }
+
+        if (showOnlyCommissionable) {
+          items = items.filter(it => it.is_comm === true);
+        }
+
         return { 
           ...inv, 
           _wasGroup: originalCount > 1, 
           invoice_items: items 
         };
       })
+      .filter(inv => inv.invoice_items.length > 0)
       .sort((a, b) => {
         if (sortBy === 'date') {
           const getMin = (inv) => { const d = (inv.invoice_items || []).map(i => i.date).filter(Boolean); return d.length ? d.sort()[0] : null; };
@@ -300,7 +342,7 @@ export function useBilling() {
         if (nA.localeCompare(nB) !== 0) return nA.localeCompare(nB);
         return String(a.id).localeCompare(String(b.id));
       });
-  }, [invoices, sortBy, showOnlyUnpaid, showOnlyToday, selectedDay, searchTerm, activitySearch, selectedMonth, selectedYear]);
+  }, [invoices, sortBy, showOnlyUnpaid, showOnlyToday, selectedDay, searchTerm, activitySearch, instructorSearch, paymentMethodSearch, showOnlyCommissionable, selectedMonth, selectedYear, arrivalsDate]);
 
   const activityStats = useMemo(() => {
     return stats.activityBreakdown;
@@ -340,7 +382,7 @@ export function useBilling() {
   useEffect(() => { fetchCashControl(); }, [selectedMonth, selectedYear]);
   
   useEffect(() => {
-    if (loadingCash) return; // NO GUARDAR hasta que hayamos terminado de CARGAR
+    if (loadingCash) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => saveCashControl(), 1500);
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
@@ -350,11 +392,7 @@ export function useBilling() {
     if (loadingInvoices || allMonthInvoices.length === 0) return;
     
     const syncReports = async () => {
-      console.log("[useBilling] Intentando sincronizar informe...", { 
-        year: selectedYear, month: selectedMonth + 1, stats 
-      });
       try {
-        // 1. Informe Mensual
         const { error: repError } = await supabase.from('monthly_reports').upsert({
           year: selectedYear,
           month: selectedMonth + 1,
@@ -365,25 +403,19 @@ export function useBilling() {
           cr_wise: stats.wiseCR,
           bt_eur: stats.eurBT,
           bt_wise: stats.wiseBT,
-          cr_cash: stats.crCash,
-          bt_cash: stats.btCash,
           updated_at: new Date().toISOString()
         }, { onConflict: 'year, month' });
 
         if (repError) throw repError;
-
-        console.log("[useBilling] ✅ Informe sincronizado.");
-        
-        // Refrescamos el DEBERIA para que el widget de caja se actualice al momento
         fetchCashControl();
       } catch (err) {
         console.error("[useBilling] ❌ Error sincronizando informe:", err);
       }
     };
 
-    const t = setTimeout(syncReports, 1000); // Bajamos a 1 segundo para que sea más rápido
+    const t = setTimeout(syncReports, 1000);
     return () => clearTimeout(t);
-  }, [stats, selectedMonth, selectedYear, loadingInvoices]); // Ahora depende de TODO el objeto stats
+  }, [stats, selectedMonth, selectedYear, loadingInvoices]);
 
   const fetchCashControl = async () => {
     try {
@@ -400,12 +432,10 @@ export function useBilling() {
         setBills50000(data.b_50000 ?? ''); setBills1000(data.b_1000 ?? ''); setBills500(data.b_500 ?? '');
         setBills100(data.b_100 ?? ''); setBills50(data.b_50 ?? ''); setBills20(data.b_20 ?? '');
       } else {
-        // RESET si no hay datos para el mes seleccionado
         setBills50000(''); setBills1000(''); setBills500('');
         setBills100(''); setBills50(''); setBills20('');
       }
       
-      // TAMBIÉN CARGAR EL DEBERÍA DE monthly_reports
       const { data: reportData } = await supabase
         .from('monthly_reports')
         .select('deberia')
@@ -475,12 +505,8 @@ export function useBilling() {
   const fetchInvoices = async (showLoader = false, overrideToday = null, overrideUnpaid = null, overrideMonth = null, overrideYear = null, overrideDay = undefined, overrideSearch = undefined) => {
     try {
       if (showLoader) setLoadingInvoices(true);
-      const eToday = overrideToday !== null ? overrideToday : showOnlyToday;
-      const eUnpaid = overrideUnpaid !== null ? overrideUnpaid : showOnlyUnpaid;
       const eMonth = overrideMonth !== null ? overrideMonth : selectedMonth;
       const eYear = overrideYear !== null ? overrideYear : selectedYear;
-      const eDay = overrideDay !== undefined ? overrideDay : selectedDay;
-      const eSearch = overrideSearch !== undefined ? overrideSearch : searchTerm;
 
       const { data, error } = await supabase.from('invoices').select(`
         *, customers!invoices_customer_id_fkey(first_name, last_name, email),
@@ -512,7 +538,6 @@ export function useBilling() {
         return new Date(a.created_at) - new Date(b.created_at);
       });
 
-      // Full month data (for widgets — ignores today/unpaid filters)
       const monthOnly = sorted.filter(inv => {
         const items = inv.invoice_items || [];
         if (!items.length) return true;
@@ -597,12 +622,10 @@ export function useBilling() {
         if (invErr) throw invErr;
         updates.invoice_id = newInv.id;
       }
-      const itemIds = Array.from(selectedItemIds);
       const allItems = invoices.flatMap(inv => inv.invoice_items || []);
       
       if (bulkDate) updates.date = bulkDate;
 
-      // 1. Clasificamos los registros según si permiten instructor o no
       const idsToClearInstructor = [];
       const idsToApplyNormal = [];
 
@@ -616,7 +639,6 @@ export function useBilling() {
         else idsToApplyNormal.push(id);
       });
 
-      // 2. Ejecutar actualizaciones en la base de datos
       if (idsToApplyNormal.length > 0) {
         const finalUpdates = { ...updates };
         if (bulkInstructor) finalUpdates.instructor_id = bulkInstructor;
@@ -660,7 +682,6 @@ export function useBilling() {
     const ids = Array.from(selectedItemIds).filter(id => id && typeof id === 'string' && id.length > 20);
     if (ids.length === 0) { setSelectedItemIds(new Set()); setToast("No hay registros válidos seleccionados"); return; }
     
-    // 1. Identificar qué facturas podrían quedarse vacías antes de borrar
     const candidateInvoiceIds = [...new Set(
       invoices
         .filter(inv => inv.invoice_items?.some(it => ids.includes(it.id)))
@@ -674,12 +695,9 @@ export function useBilling() {
       onConfirm: async () => {
         try {
           setLoadingInvoices(true);
-          
-          // 2. Borrar los ítems seleccionados
           const { error } = await supabase.from('invoice_items').delete().in('id', ids);
           if (error) throw error;
           
-          // 3. LIMPIEZA: Borrar facturas que se hayan quedado sin ítems
           for (const invId of candidateInvoiceIds) {
             const { data: items } = await supabase
               .from('invoice_items')
@@ -782,7 +800,6 @@ export function useBilling() {
   };
 
   return {
-    // State
     todayArrivals, loadingArrivals, invoices, loadingInvoices, sortBy, setSortBy,
     activities, categories, staff, bills50000, setBills50000, bills1000, setBills1000,
     bills500, setBills500, bills100, setBills100, bills50, setBills50, bills20, setBills20,
@@ -791,17 +808,17 @@ export function useBilling() {
     arrivalsDate, setArrivalsDate, selectedMonth, setSelectedMonth,
     selectedYear, setSelectedYear,
     selectedDay, setSelectedDay,
-    searchTerm, setSearchTerm,
+    fetchInvoices, searchTerm, setSearchTerm,
     activitySearch, setActivitySearch,
-    showOnlyToday, setShowOnlyToday,
-    showOnlyUnpaid, setShowOnlyUnpaid, bulkDate, setBulkDate,
+    instructorSearch, setInstructorSearch,
+    paymentMethodSearch, setPaymentMethodSearch,
+    showOnlyCommissionable, setShowOnlyCommissionable,
+    showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
+    bulkDate, setBulkDate,
     bulkInstructor, setBulkInstructor, bulkGroupAction, setBulkGroupAction,
     isSavingCash, dateInputRef,
-    // Computed
     actualCash, stats, displayedInvoices, activityStats, expectedCash, diffCash,
-    // Handlers
     handleToggleSelection, changeArrivalsDate, fetchInvoices,
-    handleAddArrivalsToTable, handleApplyBulkChanges, handleCopyEmails,
     handleDeleteItems, handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
     patchInvoiceItem, fetchCatalogs, monthlyDbData,
     uiConfig, setUiConfig, updateUIConfig,

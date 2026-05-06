@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import { Users, ChevronLeft, ChevronRight, Target, Calculator, CheckCircle2, Loader2, Calendar, Search, Plus, Briefcase, Settings, Palette, X as CloseIcon, BookOpen } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Target, Calculator, CheckCircle2, Loader2, Calendar, Search, Plus, Briefcase, Settings, Palette, X as CloseIcon, BookOpen, CreditCard, Zap, DollarSign, Coins } from 'lucide-react';
 import ThemeSettings from './ThemeSettings';
 
 const StatItem = ({ label, value, color = "text-white", noBorder = false, first = false }) => (
-  <div className={`flex items-center justify-between gap-3 ${first ? 'pb-0.5 pt-0' : 'py-0.5'} w-full ${noBorder ? '' : 'border-b border-white/[0.04]'}`}>
-    <span className={`text-[10px] font-bold tracking-wide truncate ${value === 0 ? 'text-gray-400/60' : 'text-gray-300'}`}>{label}</span>
+  <div className={`flex items-center justify-between gap-0.5 ${first ? 'pb-0.5 pt-0' : 'py-0.5'} w-full ${noBorder ? '' : 'border-b border-white/[0.04]'}`}>
+    <span className={`text-[10px] font-bold tracking-tighter truncate ${value === 0 ? 'text-gray-400/60' : 'text-gray-300'}`}>{label}</span>
     <span className={`text-[12px] font-black tabular-nums transition-colors ${value === 0 ? 'text-gray-500' : color}`}>{value}</span>
   </div>
 );
@@ -26,6 +26,9 @@ export default function BillingHeader({
   // Filters
   searchTerm, setSearchTerm,
   activitySearch, setActivitySearch,
+  instructorSearch, setInstructorSearch,
+  paymentMethodSearch, setPaymentMethodSearch,
+  showOnlyCommissionable, setShowOnlyCommissionable,
   showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
   fetchInvoices,
   isSidebarCollapsed,
@@ -103,12 +106,12 @@ export default function BillingHeader({
       </div>
 
       {/* Widget 2: ACTIVIDADES */}
-      <div className="flex-none w-[480px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-2xl overflow-hidden hidden lg:flex shrink-0">
+      <div className="flex-none w-[250px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-2xl overflow-hidden shrink-0">
         <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
           <span className="flex items-center gap-1.5 text-brand text-xs font-bold"><Target className="w-3.5 h-3.5" /> Actividades</span>
         </div>
 
-        <div className="flex-1 grid grid-cols-3 divide-x divide-white/10 p-2 overflow-y-auto">
+        <div className="flex-1 grid grid-cols-3 divide-x divide-white/10 p-1.5 overflow-y-auto">
           {/* COLUMNA 1: CURSOS */}
           <div className="pr-2 flex flex-col justify-between">
             <div className="flex flex-col gap-0">
@@ -125,7 +128,7 @@ export default function BillingHeader({
                   />
                 ))}
             </div>
-            <div className="mt-2 pt-1 border-t border-white/10 flex justify-between items-center px-1">
+            <div className="mt-1 pt-1 border-t border-white/10 flex justify-between items-center">
               <span className="text-[9px] font-black text-brand uppercase">CURSOS</span>
               <span className="text-xs font-black text-white">
                 {monthlyDbData?.total_courses || 0}
@@ -149,8 +152,8 @@ export default function BillingHeader({
                   />
                 ))}
             </div>
-            <div className="mt-2 pt-1 border-t border-white/10 flex justify-between items-center px-1">
-              <span className="text-[9px] font-black text-brand uppercase">TANQUES</span>
+            <div className="mt-1 pt-1 border-t border-white/10 flex justify-between items-center">
+              <span className="text-[9px] font-black text-brand uppercase">TANKS</span>
               <span className="text-xs font-black text-white">
                 {monthlyDbData?.total_tanks || 0}
               </span>
@@ -175,14 +178,14 @@ export default function BillingHeader({
                       label={isCancel ? 'CANCEL' : (act.acronym || act.name)} 
                       value={val} 
                       first={idx === 0} 
-                      statusColor={isCancel ? "text-red-400" : undefined} 
+                      color={isCancel ? "text-red-400" : undefined} 
                       noBorder={idx === arr.length - 1} 
                     />
                   );
                 })}
             </div>
-            <div className="mt-2 pt-1 border-t border-white/10 flex justify-between items-center px-1">
-              <span className="text-[9px] font-black text-brand uppercase">ESPECIALIDADES</span>
+            <div className="mt-1 pt-1 border-t border-white/10 flex justify-between items-center">
+              <span className="text-[9px] font-black text-brand uppercase">ESPEC</span>
               <span className="text-xs font-black text-white">
                 {monthlyDbData?.total_spec || 0}
               </span>
@@ -251,7 +254,7 @@ export default function BillingHeader({
       </div>
 
       {/* Widget 4: FINANZAS */}
-      <div className="flex-none w-full max-w-[280px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
+      <div className="flex-none w-[200px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
         <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
           <span className="flex items-center gap-1.5 text-blue-400 text-xs font-bold"><Target className="w-3.5 h-3.5" /> Finanzas</span>
           <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest leading-none">Global</span>
@@ -290,22 +293,119 @@ export default function BillingHeader({
               <span className="text-blue-400 font-black text-[16px]">{stats.eurCR.toLocaleString()} <span className="text-[10px] opacity-50">฿</span></span>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* ACCIONES GLOBALES: buscador y selector de fecha */}
-      <div className="flex flex-col justify-between items-end ml-auto pb-2 gap-2 shrink min-w-[200px]">
-        {/* NUEVO CONTROLADOR DE FECHA HÍBRIDO (DÍA / MES / AÑO) */}
+      {/* Widget 5: FILTROS */}
+      <div className="flex-none w-[300px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
+        <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
+          <span className="flex items-center gap-1.5 text-brand text-xs font-bold"><Search className="w-3.5 h-3.5" /> Filtros</span>
+          <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest leading-none">Búsqueda</span>
+        </div>
+        <div className="flex-1 flex flex-col p-2 gap-2 bg-surface-soft/30">
+          {/* BUSCADOR DE CLIENTES */}
+          <div className="relative group w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 group-focus-within:text-brand transition-colors" />
+            <input 
+              type="text"
+              placeholder="NOMBRE O APELLIDO..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-8 w-full bg-surface-soft/40 border border-gray-500 rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-gray-400 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1">
+                <CloseIcon className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* BUSCADOR DE ACTIVIDADES */}
+          <div className="relative group w-full">
+            <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 group-focus-within:text-brand transition-colors" />
+            <input 
+              type="text"
+              placeholder="ACTIVIDAD (EJ. OPEN...)"
+              value={activitySearch}
+              onChange={(e) => setActivitySearch(e.target.value)}
+              className="h-8 w-full bg-surface-soft/40 border border-gray-500 rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-gray-400 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
+            />
+            {activitySearch && (
+              <button onClick={() => setActivitySearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1">
+                <CloseIcon className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* BUSCADOR DE INSTRUCTOR (NUEVO) */}
+          <div className="relative group w-full">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+            <input 
+              type="text"
+              placeholder="INSTRUCTOR..."
+              value={instructorSearch}
+              onChange={(e) => setInstructorSearch(e.target.value)}
+              className="h-8 w-full bg-surface-soft/40 border border-gray-500 rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-gray-400 outline-none focus:border-blue-400/40 focus:ring-4 focus:ring-blue-400/5 transition-all shadow-inner tracking-widest uppercase"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-surface-edge/20">
+            {/* PAGO Y COMISION (AHORA EN FILA 1) */}
+            <div className="relative group">
+              <CreditCard className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 transition-colors pointer-events-none ${paymentMethodSearch ? 'text-amber-400' : 'text-gray-500'}`} />
+              <select 
+                value={paymentMethodSearch}
+                onChange={(e) => setPaymentMethodSearch(e.target.value)}
+                className={`h-8 w-full rounded-lg pl-8 pr-2 text-[9px] font-black outline-none transition-all border shadow-sm cursor-pointer appearance-none uppercase tracking-tighter ${
+                  paymentMethodSearch 
+                    ? 'bg-amber-600/10 border-amber-500/50 text-amber-400' 
+                    : 'bg-surface border-surface-edge text-gray-400 hover:text-white'
+                }`}
+              >
+                <option value="" className="bg-slate-900 text-gray-400">PAGO (TODO)</option>
+                <option value="WISE BT" className="bg-slate-900 text-white">WISE BT</option>
+                <option value="WISE CR" className="bg-slate-900 text-white">WISE CR</option>
+                <option value="EUR BT" className="bg-slate-900 text-white">EUR BT</option>
+                <option value="EUR CR" className="bg-slate-900 text-white">EUR CR</option>
+                <option value="BIZUM" className="bg-slate-900 text-white">BIZUM</option>
+              </select>
+            </div>
+            <button 
+              onClick={() => setShowOnlyCommissionable(!showOnlyCommissionable)} 
+              className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 ${showOnlyCommissionable ? 'bg-amber-600/10 border-amber-500/50 text-amber-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap uppercase tracking-tighter`}
+            >
+              <Coins className={`w-3 h-3 ${showOnlyCommissionable ? 'text-amber-400' : ''}`} />
+              {showOnlyCommissionable ? 'COMISIONABLE' : 'TODOS'}
+            </button>
+
+            {/* DIAS Y ESTADOS (AHORA EN FILA 2) */}
+            <button 
+              onClick={() => setShowOnlyToday(!showOnlyToday)} 
+              className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 ${showOnlyToday ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap uppercase tracking-tighter`}
+            >
+              <Calendar className={`w-3 h-3 ${showOnlyToday ? 'text-blue-400' : ''}`} />
+              {showOnlyToday ? 'HOY' : 'TODOS LOS DIAS'}
+            </button>
+            <button 
+              onClick={() => setShowOnlyUnpaid(!showOnlyUnpaid)} 
+              className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 ${showOnlyUnpaid ? 'bg-amber-600/10 border-amber-500/50 text-amber-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap uppercase tracking-tighter`}
+            >
+              <Search className={`w-3 h-3 ${showOnlyUnpaid ? 'text-amber-500' : ''}`} />
+              {showOnlyUnpaid ? 'PENDIENTES' : 'TODOS LOS ESTADOS'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* CONTROL DE FECHA (PEGADO ARRIBA DERECHA) */}
+      <div className="flex flex-col justify-start pt-1.5 items-end ml-auto pr-2 shrink-0 h-full">
         <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner h-11">
-          
           {/* Selector de DÍA */}
           <select 
             value={selectedDay || ''} 
             onChange={(e) => { 
               const v = e.target.value === '' ? null : Number(e.target.value); 
               setSelectedDay(v); 
-              // Si seleccionamos un día concreto, desactivamos el "Hoy" para evitar conflictos
               if (v !== null) setShowOnlyToday(false);
             }}
             className={`bg-transparent text-[11px] font-black outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter ${selectedDay ? 'text-brand' : 'text-gray-400'}`}
@@ -337,9 +437,7 @@ export default function BillingHeader({
             >
               {['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'].map((m, i) => <option key={i} value={i} className="bg-slate-900 text-white">{m}</option>)}
             </select>
-            
             <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-
             <select 
               value={selectedYear} 
               onChange={(e) => { const v = Number(e.target.value); setSelectedYear(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, selectedMonth, v, selectedDay); }}
@@ -359,61 +457,6 @@ export default function BillingHeader({
           >
             <ChevronRight className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* BUSCADOR DE CLIENTES */}
-        <div className="relative group w-full max-w-[280px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-brand transition-colors" />
-          <input 
-            type="text"
-            placeholder="BUSCAR POR NOMBRE O APELLIDO..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-            }}
-            className="h-10 w-full bg-surface-soft/40 border border-surface-edge/30 rounded-xl pl-9 pr-10 text-[10px] font-black text-white placeholder:text-gray-500 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
-          />
-          {searchTerm && (
-            <button 
-              onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
-            >
-              <CloseIcon className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* BUSCADOR DE ACTIVIDADES */}
-        <div className="relative group w-full max-w-[280px]">
-          <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-brand transition-colors" />
-          <input 
-            type="text"
-            placeholder="FILTRAR POR ACTIVIDAD (P.EJ. OPEN...)"
-            value={activitySearch}
-            onChange={(e) => setActivitySearch(e.target.value)}
-            className="h-10 w-full bg-surface-soft/40 border border-surface-edge/30 rounded-xl pl-9 pr-10 text-[10px] font-black text-white placeholder:text-gray-500 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
-          />
-          {activitySearch && (
-            <button 
-              onClick={() => setActivitySearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
-            >
-              <CloseIcon className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Filtros + añadir fila — abajo */}
-        <div className="flex flex-wrap justify-end items-center gap-2">
-          <button onClick={() => setShowOnlyToday(!showOnlyToday)} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyToday ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
-            <Calendar className={`w-3.5 h-3.5 ${showOnlyToday ? 'text-blue-400' : ''}`} />
-            {showOnlyToday ? 'MOSTRANDO: HOY' : 'MOSTRANDO: TODO'}
-          </button>
-          <button onClick={() => setShowOnlyUnpaid(!showOnlyUnpaid)} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyUnpaid ? 'bg-amber-600/10 border-amber-500/50 text-amber-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
-            <Search className={`w-3.5 h-3.5 ${showOnlyUnpaid ? 'text-amber-500' : ''}`} />
-            {showOnlyUnpaid ? 'FILTRO: PENDIENTES' : 'FILTRO: TODOS'}
-          </button>
-          {/* El botón de Añadir Fila se ha movido a posición flotante abajo a la izquierda */}
         </div>
       </div>
     </div>
