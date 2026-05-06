@@ -37,6 +37,21 @@
   -moz-appearance: textfield;
 }
 
+@keyframes unfold {
+  from { 
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-unfold {
+  animation: unfold 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 :root {
   background-color: #0f172a;
   color: #f8fafc;
@@ -75,4 +90,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 input[type="date"] {
   position: relative;
+}
+
+@keyframes fold-up {
+  from { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to { 
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.animate-fold-up {
+  animation: fold-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
 }

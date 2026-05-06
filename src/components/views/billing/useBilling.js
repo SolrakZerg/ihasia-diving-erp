@@ -26,14 +26,18 @@ export function useBilling() {
   const [arrivalsDate, setArrivalsDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showOnlyToday, setShowOnlyToday] = useState(false);
   const [showOnlyUnpaid, setShowOnlyUnpaid] = useState(false);
+  const [activitySearch, setActivitySearch] = useState('');
   const [bulkDate, setBulkDate] = useState('');
   const [bulkInstructor, setBulkInstructor] = useState('');
   const [bulkGroupAction, setBulkGroupAction] = useState(null);
   const [isSavingCash, setIsSavingCash] = useState(false);
   const [loadingCash, setLoadingCash] = useState(true);
   const [dbExpectedCash, setDbExpectedCash] = useState(0);
+  const [uiConfig, setUiConfig] = useState(null);
   const dateInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
 
@@ -179,12 +183,102 @@ export function useBilling() {
   }, [selectedMonth, selectedYear]);
 
   const displayedInvoices = useMemo(() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    const s = searchTerm.toLowerCase().trim();
+
     return [...invoices]
-      .filter(inv => !showOnlyUnpaid || inv.invoice_items?.some(i => i.status !== 'Paid'))
+      .filter(inv => {
+        const items = inv.invoice_items || [];
+        if (!items.length) return true;
+
+        // 1. Filtro por Mes/Año (Vigente por seguridad, aunque fetch ya lo hace)
+        const isThisMonth = items.some(it => {
+          if (!it.date) return true;
+          const [y, m] = it.date.split('-').map(Number);
+          return y === selectedYear && (m - 1) === selectedMonth;
+        });
+        if (!isThisMonth) return false;
+
+        // 2. Filtro por Día Específico
+        if (selectedDay) {
+          const targetDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+          if (!items.some(it => it.date === targetDate)) return false;
+        }
+
+        // 3. Filtro por Búsqueda de Texto
+        if (s !== '') {
+          const matches = items.some(it => {
+            const parts = [
+              it.customers?.first_name, it.customers?.last_name, it.customers?.email, it.temporary_name,
+              inv.customers?.first_name, inv.customers?.last_name, inv.customers?.email
+            ].filter(Boolean).map(v => String(v).toLowerCase());
+            return parts.some(p => p.includes(s));
+          });
+          if (!matches) return false;
+        }
+
+        // 4. Filtro por Actividad
+        if (activitySearch && activitySearch.trim() !== '') {
+          const actS = activitySearch.toLowerCase().trim();
+          const matchesAct = items.some(it => {
+            const actParts = [
+              it.activities?.name,
+              it.activities?.acronym,
+              it.activities?.category
+            ].filter(Boolean).map(v => String(v).toLowerCase());
+            return actParts.some(p => p.includes(actS));
+          });
+          if (!matchesAct) return false;
+        }
+
+        // 5. Filtro Hoy
+        if (showOnlyToday) {
+          if (!items.some(it => it.date === today)) return false;
+        }
+
+        // 6. Filtro Pendientes
+        if (showOnlyUnpaid) {
+          if (!items.some(it => it.status !== 'Paid')) return false;
+        }
+
+        return true;
+      })
       .map(inv => {
         const originalCount = inv.invoice_items?.length || 0;
-        if (!showOnlyUnpaid) return { ...inv, _wasGroup: originalCount > 1 };
-        return { ...inv, _wasGroup: originalCount > 1, invoice_items: (inv.invoice_items || []).filter(i => i.status !== 'Paid') };
+        let items = [...(inv.invoice_items || [])];
+
+        // 1. Filtro Pendientes (Interno al grupo)
+        if (showOnlyUnpaid) {
+          items = items.filter(i => i.status !== 'Paid');
+        }
+
+        // 2. Filtro Búsqueda Texto (Interno al grupo)
+        if (s !== '') {
+          items = items.filter(it => {
+            const parts = [
+              it.customers?.first_name, it.customers?.last_name, it.customers?.email, it.temporary_name,
+              inv.customers?.first_name, inv.customers?.last_name, inv.customers?.email
+            ].filter(Boolean).map(v => String(v).toLowerCase());
+            return parts.some(p => p.includes(s));
+          });
+        }
+
+        // 3. Filtro Actividad (Interno al grupo)
+        const actS = activitySearch.toLowerCase().trim();
+        if (actS !== '') {
+          items = items.filter(it => {
+            const actParts = [
+              it.activities?.name, it.activities?.acronym, it.activities?.category
+            ].filter(Boolean).map(v => String(v).toLowerCase());
+            return actParts.some(p => p.includes(actS));
+          });
+        }
+
+        return { 
+          ...inv, 
+          _wasGroup: originalCount > 1, 
+          invoice_items: items 
+        };
       })
       .sort((a, b) => {
         if (sortBy === 'date') {
@@ -206,7 +300,7 @@ export function useBilling() {
         if (nA.localeCompare(nB) !== 0) return nA.localeCompare(nB);
         return String(a.id).localeCompare(String(b.id));
       });
-  }, [invoices, sortBy, showOnlyUnpaid]);
+  }, [invoices, sortBy, showOnlyUnpaid, showOnlyToday, selectedDay, searchTerm, activitySearch, selectedMonth, selectedYear]);
 
   const activityStats = useMemo(() => {
     return stats.activityBreakdown;
@@ -241,7 +335,7 @@ export function useBilling() {
   };
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
-  useEffect(() => { fetchCatalogs(); fetchTodayArrivals(); fetchInvoices(true); }, []);
+  useEffect(() => { fetchCatalogs(); fetchTodayArrivals(); fetchInvoices(true); fetchUIConfig(); }, []);
   useEffect(() => { fetchTodayArrivals(); }, [arrivalsDate]);
   useEffect(() => { fetchCashControl(); }, [selectedMonth, selectedYear]);
   
@@ -378,13 +472,15 @@ export function useBilling() {
     if (catRes.data) setCategories(catRes.data);
   };
 
-  const fetchInvoices = async (showLoader = false, overrideToday = null, overrideUnpaid = null, overrideMonth = null, overrideYear = null) => {
+  const fetchInvoices = async (showLoader = false, overrideToday = null, overrideUnpaid = null, overrideMonth = null, overrideYear = null, overrideDay = undefined, overrideSearch = undefined) => {
     try {
       if (showLoader) setLoadingInvoices(true);
       const eToday = overrideToday !== null ? overrideToday : showOnlyToday;
       const eUnpaid = overrideUnpaid !== null ? overrideUnpaid : showOnlyUnpaid;
       const eMonth = overrideMonth !== null ? overrideMonth : selectedMonth;
       const eYear = overrideYear !== null ? overrideYear : selectedYear;
+      const eDay = overrideDay !== undefined ? overrideDay : selectedDay;
+      const eSearch = overrideSearch !== undefined ? overrideSearch : searchTerm;
 
       const { data, error } = await supabase.from('invoices').select(`
         *, customers!invoices_customer_id_fkey(first_name, last_name, email),
@@ -422,19 +518,9 @@ export function useBilling() {
         if (!items.length) return true;
         return items.some(it => { if (!it.date) return true; const [y, m] = it.date.split('-').map(Number); return y === eYear && (m - 1) === eMonth; });
       });
+
+      setInvoices(sorted);
       setAllMonthInvoices(monthOnly);
-
-      // Filtered data for the table
-      const today = new Date().toLocaleDateString('en-CA');
-      const filtered = monthOnly.filter(inv => {
-        const items = inv.invoice_items || [];
-        if (!items.length) return true;
-        if (eToday) { const hasToday = items.some(it => it.date === today); if (eUnpaid) return hasToday && items.some(it => it.status !== 'Paid'); return hasToday; }
-        if (eUnpaid) return items.some(it => it.status !== 'Paid');
-        return true;
-      });
-
-      setInvoices(filtered);
       if (showLoader) setSelectedItemIds(new Set());
     } catch (error) { console.error('Error fetching invoices:', error); }
     finally { setLoadingInvoices(false); }
@@ -444,6 +530,28 @@ export function useBilling() {
     const d = new Date(arrivalsDate + 'T00:00:00');
     d.setDate(d.getDate() + days);
     setArrivalsDate(d.toLocaleDateString('en-CA'));
+  };
+
+  const fetchUIConfig = async () => {
+    try {
+      const { data, error } = await supabase.from('ui_config').select('*').single();
+      if (error) throw error;
+      setUiConfig(data);
+    } catch (err) {
+      console.error('Error fetching UI config:', err);
+    }
+  };
+
+  const updateUIConfig = async (updates) => {
+    try {
+      const { error } = await supabase.from('ui_config').update(updates).eq('id', uiConfig.id);
+      if (error) throw error;
+      setUiConfig(prev => ({ ...prev, ...updates }));
+      setToast({ title: 'Configuración guardada', message: 'Los colores se han actualizado correctamente.', type: 'success' });
+    } catch (err) {
+      console.error('Error updating UI config:', err);
+      setToast({ title: 'Error', message: 'No se pudo guardar la configuración.', type: 'error' });
+    }
   };
 
   const fetchTodayArrivals = async () => {
@@ -681,7 +789,11 @@ export function useBilling() {
     selectedArrivalIds, setSelectedArrivalIds, selectedItemIds, setSelectedItemIds,
     toast, setToast, confirmConfig, setConfirmConfig,
     arrivalsDate, setArrivalsDate, selectedMonth, setSelectedMonth,
-    selectedYear, setSelectedYear, showOnlyToday, setShowOnlyToday,
+    selectedYear, setSelectedYear,
+    selectedDay, setSelectedDay,
+    searchTerm, setSearchTerm,
+    activitySearch, setActivitySearch,
+    showOnlyToday, setShowOnlyToday,
     showOnlyUnpaid, setShowOnlyUnpaid, bulkDate, setBulkDate,
     bulkInstructor, setBulkInstructor, bulkGroupAction, setBulkGroupAction,
     isSavingCash, dateInputRef,
@@ -692,5 +804,6 @@ export function useBilling() {
     handleAddArrivalsToTable, handleApplyBulkChanges, handleCopyEmails,
     handleDeleteItems, handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
     patchInvoiceItem, fetchCatalogs, monthlyDbData,
+    uiConfig, setUiConfig, updateUIConfig,
   };
 }

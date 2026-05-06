@@ -28,7 +28,7 @@ const RH = ({ children, colKey, startResize, className = '' }) => (
   </th>
 );
 
-export default function Billing() {
+export default function Billing({ isSidebarCollapsed }) {
   const billing = useBilling();
   const { widths, startResize, resetWidths } = useColumnResize();
   const scrollRef = useRef(null);
@@ -76,7 +76,9 @@ export default function Billing() {
     toast, setToast, confirmConfig, setConfirmConfig,
     bulkDate, setBulkDate, bulkInstructor, setBulkInstructor,
     bulkGroupAction, setBulkGroupAction,
-    handleToggleSelection, fetchInvoices,
+    handleToggleSelection, fetchInvoices, searchTerm, setSearchTerm,
+    activitySearch, setActivitySearch,
+    showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
     handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
     handleApplyBulkChanges, handleCopyEmails, handleDeleteItems,
   } = billing;
@@ -85,6 +87,7 @@ export default function Billing() {
     <div className="h-full flex flex-col animate-in fade-in duration-500 bg-surface">
 
       <BillingHeader
+        isSidebarCollapsed={isSidebarCollapsed}
         arrivalsDate={billing.arrivalsDate}
         setArrivalsDate={billing.setArrivalsDate}
         changeArrivalsDate={billing.changeArrivalsDate}
@@ -107,6 +110,9 @@ export default function Billing() {
         stats={billing.stats}
         selectedMonth={billing.selectedMonth} setSelectedMonth={billing.setSelectedMonth}
         selectedYear={billing.selectedYear} setSelectedYear={billing.setSelectedYear}
+        selectedDay={billing.selectedDay} setSelectedDay={billing.setSelectedDay}
+        searchTerm={billing.searchTerm} setSearchTerm={billing.setSearchTerm}
+        activitySearch={billing.activitySearch} setActivitySearch={billing.setActivitySearch}
         showOnlyToday={billing.showOnlyToday} setShowOnlyToday={billing.setShowOnlyToday}
         showOnlyUnpaid={billing.showOnlyUnpaid} setShowOnlyUnpaid={billing.setShowOnlyUnpaid}
         activities={billing.activities}
@@ -115,6 +121,9 @@ export default function Billing() {
         fetchCatalogs={billing.fetchCatalogs}
         monthlyDbData={billing.monthlyDbData}
         supabase={supabase}
+        uiConfig={billing.uiConfig}
+        setUiConfig={billing.setUiConfig}
+        updateUIConfig={billing.updateUIConfig}
       />
 
       {/* GRID PRINCIPAL - single scroll container: fit-content hugs table, maxWidth 100% constrains when screen narrows */}
@@ -217,7 +226,7 @@ export default function Billing() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.02]">
-                  {invoices.map((inv, index) => (
+                  {billing.displayedInvoices.map((inv, index) => (
                     <BillingGridRow
                       key={inv.id}
                       invoice={inv}
@@ -252,6 +261,7 @@ export default function Billing() {
                       onExtractItem={handleExtractItem}
                       handleDissolveGroup={handleDissolveGroup}
                       setConfirmConfig={billing.setConfirmConfig}
+                      uiConfig={billing.uiConfig}
                     />
                   ))}
                 </tbody>
@@ -266,7 +276,9 @@ export default function Billing() {
           <div className="fixed bottom-6 right-8 z-[150] animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400/30">
               <CheckCircle2 className="w-5 h-5" />
-              <span className="font-bold text-sm">{toast}</span>
+              <span className="font-bold text-sm">
+                {typeof toast === 'object' ? toast.message : toast}
+              </span>
               <button onClick={() => setToast(null)} className="ml-2 hover:bg-white/10 rounded-lg p-1 transition-colors"><X className="w-4 h-4" /></button>
             </div>
           </div>

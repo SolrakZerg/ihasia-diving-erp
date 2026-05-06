@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Users, ChevronLeft, ChevronRight, Target, Calculator, CheckCircle2, Loader2, Calendar, Search, Plus, Briefcase, Settings, X as CloseIcon } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Target, Calculator, CheckCircle2, Loader2, Calendar, Search, Plus, Briefcase, Settings, Palette, X as CloseIcon, BookOpen } from 'lucide-react';
+import ThemeSettings from './ThemeSettings';
 
 const StatItem = ({ label, value, color = "text-white", noBorder = false, first = false }) => (
   <div className={`flex items-center justify-between gap-3 ${first ? 'pb-0.5 pt-0' : 'py-0.5'} w-full ${noBorder ? '' : 'border-b border-white/[0.04]'}`}>
@@ -20,19 +21,26 @@ export default function BillingHeader({
   actualCash, expectedCash, diffCash, isSavingCash,
   // Finance
   stats,
-  // Month/Year
-  selectedMonth, setSelectedMonth, selectedYear, setSelectedYear,
+  // Month/Year/Day
+  selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, selectedDay, setSelectedDay,
   // Filters
+  searchTerm, setSearchTerm,
+  activitySearch, setActivitySearch,
   showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
   fetchInvoices,
+  isSidebarCollapsed,
   // Add row
   fetchCatalogs,
   monthlyDbData,
   categories = [],
   supabase,
+  uiConfig,
+  setUiConfig,
+  updateUIConfig
 }) {
   const dateInputRef = useRef(null);
   const [showConfig, setShowConfig] = useState(false);
+  const [showThemeSettings, setShowThemeSettings] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [catFilter, setCatFilter] = useState(['Course', 'Fun Dive', 'Pro']);
 
@@ -98,14 +106,8 @@ export default function BillingHeader({
       <div className="flex-none w-[480px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-2xl overflow-hidden hidden lg:flex shrink-0">
         <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
           <span className="flex items-center gap-1.5 text-brand text-xs font-bold"><Target className="w-3.5 h-3.5" /> Actividades</span>
-          <button 
-            onClick={() => setShowConfig(true)}
-            className="p-1 hover:bg-white/10 text-gray-500 hover:text-brand transition-colors rounded"
-            title="Configurar columnas"
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
         </div>
+
         <div className="flex-1 grid grid-cols-3 divide-x divide-white/10 p-2 overflow-y-auto">
           {/* COLUMNA 1: CURSOS */}
           <div className="pr-2 flex flex-col justify-between">
@@ -292,15 +294,35 @@ export default function BillingHeader({
         </div>
       </div>
 
-      {/* ACCIONES GLOBALES: selector arriba-derecha, botones abajo */}
+      {/* ACCIONES GLOBALES: buscador y selector de fecha */}
       <div className="flex flex-col justify-between items-end ml-auto pb-2 gap-2 shrink min-w-[200px]">
-        {/* NUEVO CONTROLADOR DE FECHA HÍBRIDO (MES/AÑO) */}
+        {/* NUEVO CONTROLADOR DE FECHA HÍBRIDO (DÍA / MES / AÑO) */}
         <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner h-11">
+          
+          {/* Selector de DÍA */}
+          <select 
+            value={selectedDay || ''} 
+            onChange={(e) => { 
+              const v = e.target.value === '' ? null : Number(e.target.value); 
+              setSelectedDay(v); 
+              // Si seleccionamos un día concreto, desactivamos el "Hoy" para evitar conflictos
+              if (v !== null) setShowOnlyToday(false);
+            }}
+            className={`bg-transparent text-[11px] font-black outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter ${selectedDay ? 'text-brand' : 'text-gray-400'}`}
+          >
+            <option value="" className="bg-slate-900 text-gray-400">DÍA</option>
+            {Array.from({ length: new Date(selectedYear, selectedMonth + 1, 0).getDate() }, (_, i) => i + 1).map(d => (
+              <option key={d} value={d} className="bg-slate-900 text-white">{d}</option>
+            ))}
+          </select>
+
+          <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
           <button 
             onClick={() => {
               let nm = selectedMonth - 1, ny = selectedYear;
               if (nm < 0) { nm = 11; ny--; }
-              setSelectedMonth(nm); setSelectedYear(ny); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny);
+              setSelectedMonth(nm); setSelectedYear(ny); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny, selectedDay);
             }}
             className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
           >
@@ -310,7 +332,7 @@ export default function BillingHeader({
           <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
             <select 
               value={selectedMonth} 
-              onChange={(e) => { const v = Number(e.target.value); setSelectedMonth(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, v, selectedYear); }}
+              onChange={(e) => { const v = Number(e.target.value); setSelectedMonth(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, v, selectedYear, selectedDay); }}
               className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
             >
               {['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'].map((m, i) => <option key={i} value={i} className="bg-slate-900 text-white">{m}</option>)}
@@ -320,7 +342,7 @@ export default function BillingHeader({
 
             <select 
               value={selectedYear} 
-              onChange={(e) => { const v = Number(e.target.value); setSelectedYear(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, selectedMonth, v); }}
+              onChange={(e) => { const v = Number(e.target.value); setSelectedYear(v); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, selectedMonth, v, selectedDay); }}
               className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center"
             >
               {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>)}
@@ -331,7 +353,7 @@ export default function BillingHeader({
             onClick={() => {
               let nm = selectedMonth + 1, ny = selectedYear;
               if (nm > 11) { nm = 0; ny++; }
-              setSelectedMonth(nm); setSelectedYear(ny); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny);
+              setSelectedMonth(nm); setSelectedYear(ny); fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny, selectedDay);
             }}
             className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
           >
@@ -339,58 +361,126 @@ export default function BillingHeader({
           </button>
         </div>
 
+        {/* BUSCADOR DE CLIENTES */}
+        <div className="relative group w-full max-w-[280px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-brand transition-colors" />
+          <input 
+            type="text"
+            placeholder="BUSCAR POR NOMBRE O APELLIDO..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+            }}
+            className="h-10 w-full bg-surface-soft/40 border border-surface-edge/30 rounded-xl pl-9 pr-10 text-[10px] font-black text-white placeholder:text-gray-500 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
+          />
+          {searchTerm && (
+            <button 
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+            >
+              <CloseIcon className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* BUSCADOR DE ACTIVIDADES */}
+        <div className="relative group w-full max-w-[280px]">
+          <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-brand transition-colors" />
+          <input 
+            type="text"
+            placeholder="FILTRAR POR ACTIVIDAD (P.EJ. OPEN...)"
+            value={activitySearch}
+            onChange={(e) => setActivitySearch(e.target.value)}
+            className="h-10 w-full bg-surface-soft/40 border border-surface-edge/30 rounded-xl pl-9 pr-10 text-[10px] font-black text-white placeholder:text-gray-500 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
+          />
+          {activitySearch && (
+            <button 
+              onClick={() => setActivitySearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+            >
+              <CloseIcon className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* Filtros + añadir fila — abajo */}
         <div className="flex flex-wrap justify-end items-center gap-2">
-          <button onClick={() => { const v = !showOnlyToday; setShowOnlyToday(v); fetchInvoices(false, v, showOnlyUnpaid); }} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyToday ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
+          <button onClick={() => setShowOnlyToday(!showOnlyToday)} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyToday ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
             <Calendar className={`w-3.5 h-3.5 ${showOnlyToday ? 'text-blue-400' : ''}`} />
             {showOnlyToday ? 'MOSTRANDO: HOY' : 'MOSTRANDO: TODO'}
           </button>
-          <button onClick={() => { const v = !showOnlyUnpaid; setShowOnlyUnpaid(v); fetchInvoices(false, showOnlyToday, v); }} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyUnpaid ? 'bg-amber-600/10 border-amber-500/50 text-amber-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
+          <button onClick={() => setShowOnlyUnpaid(!showOnlyUnpaid)} className={`flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all border shadow-sm h-11 ${showOnlyUnpaid ? 'bg-amber-600/10 border-amber-500/50 text-amber-400' : 'bg-surface border-surface-edge text-gray-400 hover:text-white'} whitespace-nowrap`}>
             <Search className={`w-3.5 h-3.5 ${showOnlyUnpaid ? 'text-amber-500' : ''}`} />
             {showOnlyUnpaid ? 'FILTRO: PENDIENTES' : 'FILTRO: TODOS'}
           </button>
-          <button onClick={async () => {
-            try {
-              const { data: inv, error: invErr } = await supabase.from('invoices').insert({ 
-                status: 'Open'
-              }).select().single();
-              
-              if (invErr) {
-                console.error("[BillingHeader] Error creating invoice:", invErr);
-                alert("Error al crear factura: " + invErr.message);
-                return;
-              }
-
-              console.log("[BillingHeader] Invoice created, adding first item...", inv.id);
-              const { error: itemErr } = await supabase.from('invoice_items').insert({ 
-                invoice_id: inv.id, 
-                quantity: 1, 
-                unit_price_thb: 0, 
-                total_thb: 0, 
-                status: 'Pending', 
-                date: null
-              });
-
-              if (!itemErr) {
-                // Indicamos que queremos scroll al final
-                sessionStorage.setItem('shouldScrollToBottom', 'true');
-              }
-
-              if (itemErr) {
-                console.error("[BillingHeader] Error creating item:", itemErr);
-                alert("Error al crear registro: " + itemErr.message);
-                return;
-              }
-
-              fetchInvoices(false);
-            } catch (err) {
-              console.error("[BillingHeader] Unexpected error:", err);
-            }
-          }} className="flex-none flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black rounded-xl transition-all shadow-lg active:scale-95 group h-11 whitespace-nowrap">
-            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> AÑADIR FILA
-          </button>
+          {/* El botón de Añadir Fila se ha movido a posición flotante abajo a la izquierda */}
         </div>
       </div>
+    </div>
+
+    {/* BOTÓN AÑADIR FILA FLOTANTE (Abajo a la izquierda, evitando la barra lateral) */}
+    <div className={`fixed bottom-6 transition-all duration-300 z-[100] ${isSidebarCollapsed ? 'left-[calc(5rem+1.5rem)]' : 'left-[calc(16rem+1.5rem)]'}`}>
+      <button 
+        onClick={async () => {
+          try {
+            const { data: inv, error: invErr } = await supabase.from('invoices').insert({ 
+              status: 'Open'
+            }).select().single();
+            
+            if (invErr) {
+              console.error("[BillingHeader] Error creating invoice:", invErr);
+              alert("Error al crear factura: " + invErr.message);
+              return;
+            }
+
+            const { error: itemErr } = await supabase.from('invoice_items').insert({ 
+              invoice_id: inv.id, 
+              quantity: 1, 
+              unit_price_thb: 0, 
+              total_thb: 0, 
+              status: 'Pending', 
+              date: null
+            });
+
+            if (!itemErr) {
+              sessionStorage.setItem('shouldScrollToBottom', 'true');
+            }
+
+            if (itemErr) {
+              console.error("[BillingHeader] Error creating item:", itemErr);
+              alert("Error al crear registro: " + itemErr.message);
+              return;
+            }
+
+            fetchInvoices(false);
+          } catch (err) {
+            console.error("[BillingHeader] Unexpected error:", err);
+          }
+        }}
+        className="group flex items-center gap-2 px-5 bg-brand hover:bg-brand-light text-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-brand/40 transition-all active:scale-95 border border-white/10 h-11 uppercase"
+      >
+        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+        <span className="text-[11px] font-black tracking-widest">Añadir Fila</span>
+      </button>
+    </div>
+
+    {/* BOTONES DE CONFIGURACIÓN FLOTANTES (Abajo a la derecha) */}
+    <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3">
+      <button 
+        onClick={() => setShowThemeSettings(true)}
+        className="flex items-center justify-center w-12 h-12 bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl text-gray-400 hover:text-brand hover:border-brand/50 transition-all shadow-2xl group"
+        title="Personalizar Colores del ERP"
+      >
+        <Palette className="w-6 h-6 text-brand group-hover:scale-110 transition-transform" />
+      </button>
+      
+      <button 
+        onClick={() => setShowConfig(true)}
+        className="flex items-center justify-center w-12 h-12 bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl text-gray-400 hover:text-amber-500 hover:border-amber-500/50 transition-all shadow-2xl group"
+        title="Configurar Columnas de Actividades"
+      >
+        <Settings className="w-6 h-6 text-amber-500 group-hover:rotate-90 transition-transform duration-500" />
+      </button>
     </div>
 
     {/* MODAL DE CONFIGURACIÓN DE ACTIVIDADES */}
@@ -442,7 +532,6 @@ export default function BillingHeader({
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-white group-hover:text-brand transition-colors">{act.name}</span>
                     <div className="flex items-center gap-2 mt-1">
-                      {/* ACRÓNIMO con color de ACTIVIDAD */}
                       <span 
                         className="text-[10px] font-black px-1.5 py-0.5 rounded border"
                         style={{ 
@@ -453,8 +542,6 @@ export default function BillingHeader({
                       >
                         {act.acronym || 'SIN ACRÓNIMO'}
                       </span>
-                      
-                      {/* CATEGORÍA con color de CATEGORÍA (usa clases de Tailwind) */}
                       {(() => {
                         const catObj = categories.find(c => c.name === act.category);
                         return (
@@ -469,39 +556,23 @@ export default function BillingHeader({
                   </div>
                   
                   <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-end">
-                          <span className="text-[9px] font-black text-gray-600 uppercase leading-none mb-1">Columna</span>
-                          {(() => {
-                            const col1Color = categories.find(c => c.name === 'Course')?.color || '';
-                            const col2Color = categories.find(c => c.name === 'Fun Dive')?.color || '';
-                            const col3Color = categories.find(c => c.name === 'Pro')?.color || '';
-                            
-                            let currentBg = 'bg-slate-800';
-                            if (act.widget_column === 1) currentBg = col1Color;
-                            if (act.widget_column === 2) currentBg = col2Color;
-                            if (act.widget_column === 3) currentBg = col3Color;
-
-                            return (
-                              <select 
-                                value={act.widget_column || ''}
-                                onChange={async (e) => {
-                                  const val = e.target.value === '' ? null : Number(e.target.value);
-                                  setIsSavingConfig(true);
-                                  await supabase.from('activities').update({ widget_column: val }).eq('id', act.id);
-                                  await fetchCatalogs();
-                                  await fetchInvoices(false);
-                                  setIsSavingConfig(false);
-                                }}
-                                className={`border-none text-[11px] font-bold rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-brand cursor-pointer min-w-[120px] transition-all ${currentBg} ${!act.widget_column ? 'text-white' : ''}`}
-                              >
-                                <option value="" className="bg-slate-900 text-white">Ocultar</option>
-                                <option value="1" className="bg-slate-900 text-blue-400">Columna 1 (Cursos)</option>
-                                <option value="2" className="bg-slate-900 text-cyan-400">Columna 2 (Tanques)</option>
-                                <option value="3" className="bg-slate-900 text-purple-400">Columna 3 (Especialidades)</option>
-                              </select>
-                            );
-                          })()}
-                        </div>
+                    <select 
+                      value={act.widget_column || ''}
+                      onChange={async (e) => {
+                        const val = e.target.value === '' ? null : Number(e.target.value);
+                        setIsSavingConfig(true);
+                        await supabase.from('activities').update({ widget_column: val }).eq('id', act.id);
+                        await fetchCatalogs();
+                        await fetchInvoices(false);
+                        setIsSavingConfig(false);
+                      }}
+                      className="bg-slate-800 border-none text-[11px] font-bold text-white rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-brand cursor-pointer min-w-[120px]"
+                    >
+                      <option value="">Ocultar</option>
+                      <option value="1">Columna 1 (Cursos)</option>
+                      <option value="2">Columna 2 (Tanques)</option>
+                      <option value="3">Columna 3 (Especialidades)</option>
+                    </select>
                     
                     <input 
                       type="number"
@@ -531,18 +602,16 @@ export default function BillingHeader({
               Cerrar Configurador
             </button>
           </div>
-          
-          {isSavingConfig && (
-            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px] flex items-center justify-center z-[1100]">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-10 h-10 animate-spin text-brand" />
-                <span className="text-xs font-bold text-white uppercase tracking-widest">Guardando...</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     )}
-    </>
-  );
+
+    {/* MODAL DE TEMAS */}
+    {showThemeSettings && (
+      <ThemeSettings 
+        onClose={() => setShowThemeSettings(false)} 
+      />
+    )}
+  </>
+);
 }

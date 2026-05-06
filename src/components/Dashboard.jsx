@@ -48,7 +48,7 @@ export default function Dashboard({ user }) {
       case 'customers': return <CustomerTable onNavigate={navigateTo} />;
       case 'insurance': return <InsuranceView initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
       case 'settings': return <AdminSettings />;
-      case 'billing': return <Billing />;
+      case 'billing': return <Billing isSidebarCollapsed={isSidebarCollapsed} />;
       case 'expenses': return <Expenses />;
       case 'ssi': return <SSIView />;
       case 'staff-settlement': return <StaffSettlement />;

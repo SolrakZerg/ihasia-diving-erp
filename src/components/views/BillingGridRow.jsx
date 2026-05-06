@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronDown, ChevronUp, Trash2, Target, User, Search, 
   CheckCircle2, X, Plus, Unlink, LogOut, Calendar,
@@ -428,7 +429,8 @@ export default function BillingGridRow({
   onDeleteInvoice,
   onExtractItem,
   handleDissolveGroup,
-  setConfirmConfig
+  setConfirmConfig,
+  uiConfig
 }) {
   const storageKey = `billing-group-expanded-${invoice.id}`;
   const [expanded, setExpanded] = useState(() => {
@@ -650,20 +652,25 @@ export default function BillingGridRow({
 
   let groupStatus = 'ROJO';
   let groupStatusLabel = 'POR PAGAR';
-  let groupColorClass = 'bg-red-700/80 text-white border-red-800'; 
-  let groupTextColor = 'text-red-400';
+  
+  // Colores dinámicos desde uiConfig para grupos
+  let gBg = uiConfig?.pending_bg || '#b91c1c';
+  let gTextColor = uiConfig?.pending_text || '#ffffff';
+  let gStyle = uiConfig?.pending_style || 'font-black uppercase tracking-widest';
 
   if (totalCount > 0) {
     if (paidItems.length === totalCount) {
       groupStatus = 'VERDE';
       groupStatusLabel = 'PAGADA';
-      groupColorClass = 'bg-emerald-500 text-white border-emerald-500';
-      groupTextColor = 'text-emerald-500';
+      gBg = uiConfig?.paid_bg || '#10b981';
+      gTextColor = uiConfig?.paid_text || '#ffffff';
+      gStyle = uiConfig?.paid_style || 'font-black uppercase tracking-widest';
     } else if (paidItems.length > 0) {
       groupStatus = 'NARANJA';
       groupStatusLabel = 'PARCIAL';
-      groupColorClass = 'bg-orange-500 text-white border-orange-500';
-      groupTextColor = 'text-orange-500';
+      gBg = uiConfig?.partial_bg || '#f59e0b';
+      gTextColor = uiConfig?.partial_text || '#ffffff';
+      gStyle = uiConfig?.partial_style || 'font-black uppercase tracking-widest';
     }
   }
 
@@ -825,7 +832,7 @@ export default function BillingGridRow({
             value={item.unit_price_thb ?? 0} 
             onChange={(e) => handleItemUpdate(item, 'unit_price_thb', e.target.value)}
             aria-label="Precio unitario"
-            className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+            className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner" 
           />
         </td>
 
@@ -836,7 +843,7 @@ export default function BillingGridRow({
             value={item.quantity ?? 1} 
             onChange={(e) => handleItemUpdate(item, 'quantity', e.target.value)}
             aria-label="Cantidad"
-            className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0" 
+            className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner" 
           />
         </td>
 
@@ -1007,8 +1014,23 @@ export default function BillingGridRow({
     );
   };
 
-  // Configuración de Estilo del Grupo
-  const mainGroupColor = '#4f4f4f'; 
+  // 🎨 PANEL DE CONTROL DINÁMICO (Viene de la Base de Datos)
+  const cfg = uiConfig || {
+    bg_open: '#234181', bg_closed: '#545b6b',
+    title_open: 'text-white', title_closed: 'text-gray-300',
+    amount_paid_open: 'text-white', amount_paid_closed: 'text-emerald-400',
+    amount_partial_open: 'text-white', amount_partial_closed: 'text-orange-400',
+    amount_pending_open: 'text-white', amount_pending_closed: 'text-red-400'
+  };
+
+  const mainGroupColor = expanded ? cfg.bg_open : cfg.bg_closed;
+  const groupTitleClass = expanded ? cfg.title_open : cfg.title_closed;
+  
+  let groupAmountClass = '';
+  if (groupStatus === 'VERDE') groupAmountClass = expanded ? cfg.amount_paid_open : cfg.amount_paid_closed;
+  else if (groupStatus === 'NARANJA') groupAmountClass = expanded ? cfg.amount_partial_open : cfg.amount_partial_closed;
+  else groupAmountClass = expanded ? cfg.amount_pending_open : cfg.amount_pending_closed;
+
   const lb = 'border-l-4 border-l-[var(--group-color)]'; 
   const rb = 'border-r-4 border-r-[var(--group-color)]'; 
   const tb = 'border-t-4 border-t-[var(--group-color)]'; 
@@ -1083,16 +1105,30 @@ export default function BillingGridRow({
         <td className={`px-1 py-0 ${tb}`}></td>
         {/* colspan: nombre(1) + apellidos(1) + email(1) = 3 cols */}
         <td colSpan={3} className={`px-2 py-0 text-left overflow-hidden ${tb}`}>
-           <span className="text-[15px] font-bold text-white tracking-tight uppercase leading-tight truncate block w-full">{groupDisplayName}</span>
+           <span className={`text-[15px] font-bold tracking-tight uppercase leading-tight truncate block w-full ${groupTitleClass}`}>
+             {groupDisplayName}
+           </span>
         </td>
         {/* Actividad */}
         <td className={`px-1 py-0 ${tb}`}></td>
-        {/* Precio + Q + Total combinados → 1 celda alineada derecha */}
-        <td colSpan={3} className={`px-3 py-0 text-right ${tb}`}>
-           <span className={`font-bold text-[15px] ${groupTextColor} leading-tight`}>{displayTotal.toLocaleString()} ฿</span>
+        {/* Precio (vacío) */}
+        <td className={`px-1 py-0 ${tb}`}></td>
+        {/* Cantidad (vacío) */}
+        <td className={`px-1 py-0 ${tb}`}></td>
+        {/* Total (alineado) */}
+        <td className={`px-1 py-0 text-right ${tb}`}>
+           <div 
+             className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm tracking-tight whitespace-nowrap ${gStyle}`}
+             style={{ backgroundColor: gBg, borderColor: gBg, color: gTextColor }}
+           >
+             {displayTotal.toLocaleString()} ฿
+           </div>
         </td>
         <td className={`px-0 py-0 w-[90px] min-w-[90px] text-center px-1 ${tb}`}>
-            <div className={`h-6 flex items-center justify-center rounded font-black text-xs uppercase tracking-wider shadow-lg leading-none ${groupColorClass}`}>
+            <div 
+              className={`h-6 flex items-center justify-center rounded text-xs uppercase shadow-lg leading-none ${gStyle}`}
+              style={{ backgroundColor: gBg, borderColor: gBg, color: gTextColor }}
+            >
               {groupStatusLabel}
             </div>
         </td>
@@ -1111,14 +1147,14 @@ export default function BillingGridRow({
            <div className="flex items-center justify-center gap-1.5 px-2">
              <button 
                onClick={() => handleDissolveGroup(invoice.id)} 
-               className="p-1 hover:bg-gray-900/10 text-gray-900 hover:text-black transition-all rounded"
+               className="p-1 hover:bg-white/10 text-white/50 hover:text-white transition-all rounded"
                title="Desagrupar todos (romper grupo)"
              >
                <Unlink className="w-4 h-4" />
              </button>
              <button 
                onClick={handleDeleteInvoice} 
-               className="p-1 hover:bg-red-50 text-red-600/50 hover:text-red-600 transition-all rounded"
+               className="p-1 hover:bg-white/10 text-white/50 hover:text-red-400 transition-all rounded"
                title="ELIMINAR FACTURA COMPLETA"
              >
                <Trash2 className="w-4 h-4" />
@@ -1127,38 +1163,50 @@ export default function BillingGridRow({
         </td>
       </tr>
 
-      {expanded && items.map((item, idx) => {
-        const isLast = idx === items.length - 1;
-        const bLine = isLast ? bb : ''; 
-        
-        return (
-          <tr 
-            key={item.id} 
-            className="font-bold bg-white hover:bg-gray-50 group h-[30px] leading-none border-b border-gray-100 transition-colors relative focus-within:z-[100]"
-            style={{ '--group-color': mainGroupColor }}
-          >
-            <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative ${bLine}`}>
-               <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.status === 'Paid' ? 'bg-emerald-500' : 'bg-red-400'}`} />
-               <div className="flex justify-center items-center h-full pl-1">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedItemIds.has(item.id)} 
-                    onChange={() => onSelectItem(item.id)} 
-                    className="w-5 h-5 rounded hover:opacity-100 transition-opacity cursor-pointer" 
-                  />
-               </div>
-            </td>
-             <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 ${bLine}`}>
-              <div className="flex justify-center items-center h-full">
-                <button onClick={(e) => handleAddChildItem(e, item)} className="p-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded transition-all">
-                   <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            </td>
-            {renderItemCells(item, false, bLine)}
-          </tr>
-        );
-      })}
+      <AnimatePresence mode="popLayout">
+        {expanded && items.map((item, idx) => {
+          const isLast = idx === items.length - 1;
+          const bLine = isLast ? bb : ''; 
+          
+          return (
+            <motion.tr 
+              key={item.id} 
+              layout
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+              transition={{ 
+                type: "spring",
+                stiffness: 400,
+                damping: 40,
+                delay: idx * 0.03 
+              }}
+              className="font-bold bg-white hover:bg-gray-50 group h-[30px] leading-none border-b border-gray-100 transition-colors relative focus-within:z-[100]"
+              style={{ '--group-color': mainGroupColor }}
+            >
+              <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative ${bLine}`}>
+                 <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.status === 'Paid' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                 <div className="flex justify-center items-center h-full pl-1">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedItemIds.has(item.id)} 
+                      onChange={() => onSelectItem(item.id)} 
+                      className="w-5 h-5 rounded hover:opacity-100 transition-opacity cursor-pointer accent-brand" 
+                    />
+                 </div>
+              </td>
+               <td className={`px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 ${bLine}`}>
+                <div className="flex justify-center items-center h-full">
+                  <button onClick={(e) => handleAddChildItem(e, item)} className="p-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded transition-all">
+                     <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </td>
+              {renderItemCells(item, false, bLine)}
+            </motion.tr>
+          );
+        })}
+      </AnimatePresence>
     </>
   );
 }
