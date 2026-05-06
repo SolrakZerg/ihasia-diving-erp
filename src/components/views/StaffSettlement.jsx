@@ -37,7 +37,8 @@ export default function StaffSettlement() {
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   
   // Manual Adjustments & Advances
-  const [manualAdj, setManualAdj] = useState({}); // { day: amount }
+  const [manualAdj, setManualAdj] = useState({}); // { day: { amount, concept } }
+  const [adjModal, setAdjModal] = useState({ open: false, day: null, amount: 0, concept: '' });
   const [assists, setAssists] = useState({}); // { day: count }
   const [attendanceOverrides, setAttendanceOverrides] = useState({}); // { day: 'OFF' | 'HALF' | 'WORK' }
   const [advances, setAdvances] = useState([]); // [ { id, amount, date, concept } ]
@@ -148,7 +149,9 @@ export default function StaffSettlement() {
     setAttendanceOverrides(attMap);
 
     const adjMap = {};
-    sAdjs?.forEach(row => { if (row.amount !== 0) adjMap[row.day] = row.amount; });
+    sAdjs?.forEach(row => { 
+      if (row.amount !== 0 || row.concept) adjMap[row.day] = { amount: row.amount, concept: row.concept || '' }; 
+    });
     setManualAdj(adjMap);
     
     setLoading(false);
@@ -166,8 +169,11 @@ export default function StaffSettlement() {
     await supabase.from('staff_daily_activity').upsert(payload, { onConflict: 'year, month, day, staff_id' });
   };
 
-  const handleAdjChange = async (day, value) => {
-    if (value === '') {
+  const handleAdjUpdate = async (day, amount, concept) => {
+    const newAmount = amount !== undefined ? (parseFloat(amount) || 0) : (manualAdj[day]?.amount || 0);
+    const newConcept = concept !== undefined ? concept : (manualAdj[day]?.concept || '');
+
+    if (newAmount === 0 && !newConcept) {
       setManualAdj(prev => {
         const newMap = { ...prev };
         delete newMap[day];
@@ -175,10 +181,9 @@ export default function StaffSettlement() {
       });
       await supabase.from('staff_adjustments').delete().eq('year', year).eq('month', month).eq('day', day).eq('staff_id', selectedStaffId);
     } else {
-      const val = parseFloat(value) || 0;
-      setManualAdj(prev => ({ ...prev, [day]: val }));
+      setManualAdj(prev => ({ ...prev, [day]: { amount: newAmount, concept: newConcept } }));
       await supabase.from('staff_adjustments').upsert({
-        year, month, day, staff_id: selectedStaffId, amount: val
+        year, month, day, staff_id: selectedStaffId, amount: newAmount, concept: newConcept
       }, { onConflict: 'year, month, day, staff_id' });
     }
   };
@@ -324,7 +329,7 @@ export default function StaffSettlement() {
 
   const totalComm = Object.values(matrixData).reduce((acc, d) => acc + d.total, 0);
   const totalAssists = Object.values(assists).reduce((acc, val) => acc + (val * 2000), 0);
-  const totalAdj = Object.values(manualAdj).reduce((acc, val) => acc + val, 0);
+  const totalAdj = Object.values(manualAdj).reduce((acc, val) => acc + (val.amount || 0), 0);
   const totalAdvances = advances.reduce((acc, a) => acc + a.amount, 0);
   const finalBalance = totalComm + totalAssists + totalAdj - totalAdvances;
 
@@ -478,9 +483,8 @@ export default function StaffSettlement() {
                     <th className="p-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
                     <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-surface-edge/30 w-auto">Total</th>
                   </tr>
-                  {/* SUMMARY ROW (COUNTS) - LIKE CARABAO */}
                   <tr className="border-b border-surface-edge/50 bg-surface-edge/5 h-8">
-                    <td className="p-0 text-center text-brand font-black text-[10px] uppercase">TOT</td>
+                    <td className="p-0 text-center text-gray-500 font-black text-[10px] uppercase tracking-widest bg-surface-soft">TOT</td>
                     {fixedColumns.map(col => (
                       <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[13px] font-black text-brand italic">
                         {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
@@ -510,7 +514,7 @@ export default function StaffSettlement() {
                 </thead>
                 <tbody className="divide-y divide-surface-edge/40">
                   {Object.keys(matrixData).map(day => (
-                    <tr key={day} className="group hover:bg-white/5 transition-colors h-9">
+                    <tr key={day} className="group hover:bg-white/5 transition-colors h-[34px]">
                       <td className="p-0 text-center font-black text-gray-600 text-sm">{day}</td>
                       {fixedColumns.map(col => {
                          const count = matrixData[day].items[col.key] || 0;
@@ -521,17 +525,43 @@ export default function StaffSettlement() {
                           return (<td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]"><span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>{count || ''}</span></td>);
                        })}
                       <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5"><input type="number" value={assists[day] || ''} onChange={(e) => handleAssChange(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0" /></td>
-                      <td className="p-0 border-l border-surface-edge/10 bg-brand/5"><input type="number" value={manualAdj[day] || ''} onChange={(e) => handleAdjChange(day, e.target.value)} className="w-full bg-transparent text-center text-brand font-black text-sm outline-none focus:bg-brand/10 rounded py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /></td>
-                      <td className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => handleAttendanceToggle(day)}>
-                        <span className={`text-[11px] font-black ${attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-gray-800'}`}>{attendanceData.grid[day] === 'OFF' ? 'OFF' : attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}</span>
+                      <td 
+                        className="p-0 border-x border-brand/10 bg-slate-500/30 relative cursor-pointer hover:bg-brand/20 transition-all group/adj shadow-[inset_0_0_10px_rgba(59,130,246,0.05)]"
+                        onClick={() => setAdjModal({ 
+                          open: true, 
+                          day, 
+                          amount: manualAdj[day]?.amount || 0, 
+                          concept: manualAdj[day]?.concept || '' 
+                        })}
+                      >
+                        {/* CUSTOM TOOLTIP */}
+                        {manualAdj[day]?.concept && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-[11px] font-medium rounded-lg shadow-2xl opacity-0 group-hover/adj:opacity-100 pointer-events-none transition-all duration-200 z-50 whitespace-nowrap border border-white/10 flex flex-col items-center">
+                            {manualAdj[day].concept}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-center h-full gap-1">
+                          {manualAdj[day]?.amount ? (
+                            <span className="text-sm font-black text-white/80 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">
+                              {manualAdj[day].amount}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-brand/20 group-hover/adj:text-brand/60 transition-colors font-black">+</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
+                      <td className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => handleAttendanceToggle(day)}>
+                        <span className={`text-[11px] font-black ${attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-blue-400/90'}`}>{attendanceData.grid[day] === 'OFF' ? 'OFF' : attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}</span>
+                      </td>
+                      <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="sticky bottom-0 z-30 bg-surface-soft border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
                   <tr className="h-9 font-black">
-                    <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOTAL</td>
+                    <td className="p-0 text-center text-gray-500 font-black text-[10px] uppercase tracking-widest">TOTAL</td>
                     {fixedColumns.map(col => (
                       <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[11px] text-gray-400">
                         {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[col.key] || 0), 0).toLocaleString()}
@@ -563,7 +593,7 @@ export default function StaffSettlement() {
           <div className="bg-emerald-600 rounded-[32px] p-8 shadow-xl shadow-emerald-900/20 relative overflow-hidden group border border-emerald-400/20">
             <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
             <div className="flex justify-between items-start relative z-10">
-               <p className="text-[11px] font-black text-emerald-100 uppercase tracking-[0.2em] mb-4 opacity-80">Sueldo Acumulado</p>
+               <p className="text-lg font-black text-emerald-100 uppercase tracking-[0.2em] mb-4 opacity-80">Sueldo</p>
                {syncing && <Loader2 className="w-4 h-4 text-white/50 animate-spin" />}
             </div>
             <div className="relative z-10">
@@ -573,39 +603,101 @@ export default function StaffSettlement() {
                </h3>
                <div className="flex items-center gap-4 mt-6">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Días Libres</span>
+                    <span className="text-[12px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Días Libres</span>
                     <span className="text-xl font-black text-white leading-none">{attendanceData.summary.totalOff}</span>
                   </div>
                   <div className="w-px h-8 bg-emerald-950/10" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Asistencias</span>
+                    <span className="text-[12px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Asistencias</span>
                     <span className="text-xl font-black text-white leading-none">{Object.values(assists).reduce((acc, v) => acc + v, 0)}</span>
                   </div>
                </div>
-               <div className="flex items-center gap-2 text-emerald-950/30 text-[10px] font-black uppercase tracking-[0.2em] mt-6 border-t border-emerald-950/5 pt-4">
+               <div className="flex items-center gap-2 text-emerald-950/50 text-[10px] font-black uppercase tracking-[0.2em] mt-6 border-t border-emerald-950/5 pt-4">
                  <TrendingUp className="w-3.5 h-3.5" />
-                 <span>Sincronizado en Tiempo Real</span>
+                 <span>Sincronizado</span>
                </div>
             </div>
           </div>
 
           <section className="space-y-4">
-            <h4 className="text-[12px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4" /> Desglose Económico</h4>
+            <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4" /> Desglose Económico</h4>
             <div className="bg-surface p-6 rounded-2xl border border-surface-edge space-y-4">
-              <div className="flex justify-between items-center group/item"><span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Cursos</span><span className="text-base font-black text-white">{totalComm.toLocaleString()} ฿</span></div>
-              <div className="flex justify-between items-center group/item"><span className="text-sm font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Extras y Ajustes</span><span className={`text-base font-black ${totalAdj + totalAssists >= 0 ? 'text-brand' : 'text-rose-400'}`}>{totalAdj + totalAssists >= 0 ? '+' : ''}{(totalAdj + totalAssists).toLocaleString()} ฿</span></div>
+              <div className="flex justify-between items-center group/item"><span className="text-base font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Cursos</span><span className="text-base font-black text-white">{totalComm.toLocaleString()} ฿</span></div>
+              <div className="flex justify-between items-center group/item"><span className="text-base font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Extras y Ajustes</span><span className={`text-base font-black ${totalAdj + totalAssists >= 0 ? 'text-brand' : 'text-rose-400'}`}>{totalAdj + totalAssists >= 0 ? '+' : ''}{(totalAdj + totalAssists).toLocaleString()}</span></div>
               <div className="h-px bg-surface-edge/50 my-2" />
-              <div className="flex justify-between items-center text-rose-400"><span className="text-sm font-bold">Cobrado</span><span className="text-base font-black">-{totalAdvances.toLocaleString()} ฿</span></div>
+              <div className="flex justify-between items-center text-rose-400"><span className="text-base font-bold">Cobrado</span><span className="text-base font-black">-{totalAdvances.toLocaleString()} ฿</span></div>
             </div>
           </section>
 
           <section className="space-y-4 flex-1">
-             <div className="flex items-center justify-between"><h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Banknote className="w-4 h-4" /> Pagos</h4><button onClick={() => setShowAdvForm(!showAdvForm)} className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}>{showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button></div>
+             <div className="flex items-center justify-between"><h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Banknote className="w-4 h-4" /> Pagos</h4><button onClick={() => setShowAdvForm(!showAdvForm)} className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}>{showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button></div>
              {showAdvForm && (<div className="bg-surface p-4 rounded-xl border border-brand/30 animate-in slide-in-from-top-2 duration-300 space-y-3"><input type="number" placeholder="Cantidad (฿)" value={newAdv.amount} onChange={e => setNewAdv({...newAdv, amount: e.target.value})} className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-white font-black outline-none focus:border-brand" /><input type="text" placeholder="Concepto" value={newAdv.concept} onChange={e => setNewAdv({...newAdv, concept: e.target.value})} className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand" /><button onClick={() => { if (newAdv.amount) { addAdvance(newAdv.amount, newAdv.concept); setNewAdv({ amount: '', concept: 'Adelanto' }); setShowAdvForm(false); } }} className="w-full bg-brand py-2 rounded-lg text-white font-black text-xs shadow-lg shadow-brand/20">Confirmar Pago</button></div>)}
-             <div className="space-y-2">{advances.length === 0 ? (<div className="p-8 border-2 border-dashed border-surface-edge rounded-2xl flex flex-col items-center text-center"><div className="p-3 bg-surface rounded-full mb-3"><AlertCircle className="w-5 h-5 text-gray-600" /></div><p className="text-[10px] font-bold text-gray-600 uppercase">Sin pagos este mes</p></div>) : (advances.map((adv, idx) => (<div key={idx} className="bg-surface border border-surface-edge p-4 rounded-xl flex items-center justify-between group/adv hover:border-brand/30 transition-all"><div className="flex flex-col"><span className="text-xs font-black text-white">{adv.amount.toLocaleString()} ฿</span><span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">{new Date(adv.date).toLocaleDateString()} • {adv.concept}</span></div><button onClick={() => removeAdvance(idx)} className="opacity-0 group-hover/adv:opacity-100 p-1.5 text-gray-500 hover:text-rose-500 transition-all"><Plus className="w-3.5 h-3.5 rotate-45" /></button></div>)))}</div>
+             <div className="space-y-2">{advances.length === 0 ? (<div className="p-8 border-2 border-dashed border-surface-edge rounded-2xl flex flex-col items-center text-center"><div className="p-3 bg-surface rounded-full mb-3"><AlertCircle className="w-5 h-5 text-gray-600" /></div><p className="text-[10px] font-bold text-gray-600 uppercase">Sin pagos este mes</p></div>) : (advances.map((adv, idx) => (<div key={idx} className="bg-surface border border-surface-edge p-4 rounded-xl flex items-center justify-between group/adv hover:border-brand/30 transition-all"><div className="flex flex-col"><span className="text-base font-black text-white">{adv.amount.toLocaleString()} ฿</span><span className="text-sm text-gray-500 uppercase font-bold tracking-tighter">{new Date(adv.date).toLocaleDateString()} • {adv.concept}</span></div><button onClick={() => removeAdvance(idx)} className="opacity-0 group-hover/adv:opacity-100 p-1.5 text-gray-500 hover:text-rose-500 transition-all"><Plus className="w-3.5 h-3.5 rotate-45" /></button></div>)))}</div>
           </section>
         </div>
       </div>
+
+      {/* MODAL DE AJUSTE PREMIUM */}
+      {adjModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-[#1a1c2d]/90 border border-surface-edge/50 w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 backdrop-blur-xl">
+            <div className="p-8 border-b border-surface-edge/30 bg-white/5 flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-white leading-none">Ajuste Manual</h3>
+                <p className="text-sm font-black text-brand uppercase tracking-[0.2em] mt-3">Día {adjModal.day} · {months[month-1]} {year}</p>
+              </div>
+              <button onClick={() => setAdjModal({ open: false, day: null, amount: 0, concept: '' })} className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-500 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              <div className="space-y-3">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Cantidad del Extra</label>
+                <div className="relative group">
+                  <span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black text-brand transition-colors">฿</span>
+                  <input 
+                    type="number" 
+                    autoFocus
+                    value={adjModal.amount} 
+                    onChange={(e) => setAdjModal(prev => ({ ...prev, amount: e.target.value }))}
+                    className="w-full bg-surface-edge/20 border border-surface-edge/50 rounded-[20px] p-6 pl-12 text-4xl font-black text-white outline-none focus:border-brand/50 focus:bg-brand/5 transition-all appearance-none"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Concepto o Motivo</label>
+                <textarea 
+                  value={adjModal.concept} 
+                  onChange={(e) => setAdjModal(prev => ({ ...prev, concept: e.target.value }))}
+                  className="w-full bg-surface-edge/20 border border-surface-edge/50 rounded-[20px] p-6 text-base font-bold text-gray-300 outline-none focus:border-brand/50 focus:bg-brand/5 transition-all min-h-[140px] resize-none placeholder:text-gray-700"
+                  placeholder="Escribe aquí el motivo del ajuste..."
+                />
+              </div>
+            </div>
+
+            <div className="p-6 bg-white/5 flex gap-4">
+              <button 
+                onClick={() => setAdjModal({ open: false, day: null, amount: 0, concept: '' })}
+                className="flex-1 px-6 py-5 rounded-2xl font-black text-sm uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  handleAdjUpdate(adjModal.day, adjModal.amount, adjModal.concept);
+                  setAdjModal({ open: false, day: null, amount: 0, concept: '' });
+                }}
+                className="flex-[2] px-6 py-5 rounded-2xl font-black text-base uppercase tracking-widest bg-brand text-[#1a1c2d] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand/20"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
