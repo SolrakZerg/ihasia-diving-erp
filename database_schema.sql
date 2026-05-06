@@ -7,37 +7,6 @@
 -- 1. FUNCTIONS
 -------------------------------------------------------
 
--- Recalculate Monthly Report (Motor B - Fixed version)
-CREATE OR REPLACE FUNCTION public.recalculate_monthly_report(p_year integer, p_month integer)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
-AS $function$
-DECLARE
-    v_facturado numeric;
-    v_cobrado numeric;
-    v_pendiente numeric;
-BEGIN
-    -- FIXED: Using 'Paid' status and SUM from invoices based on created_at
-    SELECT 
-        COALESCE(SUM(total_thb), 0),
-        COALESCE(SUM(CASE WHEN status = 'Paid' THEN total_thb ELSE 0 END), 0),
-        COALESCE(SUM(CASE WHEN status != 'Paid' THEN total_thb ELSE 0 END), 0)
-    INTO v_facturado, v_cobrado, v_pendiente
-    FROM invoices
-    WHERE EXTRACT(YEAR FROM created_at) = p_year 
-      AND EXTRACT(MONTH FROM created_at) = p_month;
-
-    INSERT INTO monthly_reports (year, month, facturado, cobrado, pendiente)
-    VALUES (p_year, p_month, v_facturado, v_cobrado, v_pendiente)
-    ON CONFLICT (year, month) DO UPDATE SET
-        facturado = v_facturado,
-        cobrado = v_cobrado,
-        pendiente = v_pendiente,
-        updated_at = NOW();
-END;
-$function$;
-
 -- Sync Invoice Report (Motor A - Fixed version)
 CREATE OR REPLACE FUNCTION public.sync_invoice_report()
  RETURNS trigger

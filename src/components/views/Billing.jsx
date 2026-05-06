@@ -225,6 +225,9 @@ export default function Billing() {
                       activities={activities}
                       categories={categories}
                       selectedItemIds={selectedItemIds}
+                      selectedMonth={billing.selectedMonth}
+                      selectedYear={billing.selectedYear}
+                      setToast={setToast}
                       onSelectItem={(itemId) => {
                         setSelectedItemIds(prev => {
                           const newSet = new Set(prev);
@@ -293,6 +296,9 @@ export default function Billing() {
       <BillingActionBar
         selectedItemIds={selectedItemIds}
         setSelectedItemIds={setSelectedItemIds}
+        selectedMonth={billing.selectedMonth}
+        selectedYear={billing.selectedYear}
+        setToast={setToast}
         bulkGroupAction={bulkGroupAction}
         setBulkGroupAction={setBulkGroupAction}
         bulkDate={bulkDate}

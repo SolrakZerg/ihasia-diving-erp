@@ -2,6 +2,7 @@ import { Link, ArrowDownRight, Calendar, Briefcase, CheckCircle2, Copy, Trash2, 
 
 export default function BillingActionBar({
   selectedItemIds, setSelectedItemIds,
+  selectedMonth, selectedYear, setToast,
   bulkGroupAction, setBulkGroupAction,
   bulkDate, setBulkDate,
   bulkInstructor, setBulkInstructor,
@@ -38,7 +39,29 @@ export default function BillingActionBar({
               <Calendar className="w-4 h-4" />
               {bulkDate ? bulkDate : 'FECHA?'}
             </button>
-            <input id="bulk-date-input" type="date" className="absolute w-0 h-0 opacity-0 pointer-events-none" onChange={(e) => setBulkDate(e.target.value)} />
+            <input 
+              id="bulk-date-input" 
+              type="date" 
+              className="absolute w-0 h-0 opacity-0 pointer-events-none" 
+              min={`${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`}
+              max={`${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`}
+              onChange={(e) => {
+                const newDate = e.target.value;
+                if (!newDate) {
+                  setBulkDate('');
+                  return;
+                }
+                const [y, m] = newDate.split('-').map(Number);
+                if (y !== selectedYear || (m - 1) !== selectedMonth) {
+                  if (setToast) {
+                    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                    setToast(`⚠️ Solo puedes asignar fechas de ${monthNames[selectedMonth]} en este informe`);
+                  }
+                  return;
+                }
+                setBulkDate(newDate);
+              }} 
+            />
           </div>
 
           {/* Bulk Instructor */}

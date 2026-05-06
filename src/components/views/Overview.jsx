@@ -280,10 +280,10 @@ export default function Overview() {
       setMonthlyReport(monthlyReport);
 
       // 6. Sincronizar totales de sueldos con monthly_reports para persistencia
-      // SEGURIDAD: Solo sincronizar automáticamente si estamos en el año en curso
-      const currentYear = new Date().getFullYear();
-      if (monthlyReport && year === currentYear && (Number(monthlyReport.sueldos_total) !== totalStaffCost || Number(monthlyReport.sueldos_pendiente) !== totalStaffPending)) {
-        console.log("[Dashboard] Sincronizando totales de sueldos del año actual...");
+      // SEGURIDAD: Solo sincronizar automáticamente si año > 2026 O (año = 2026 Y mes > 3)
+      const shouldSync = (year > 2026) || (year === 2026 && month > 3);
+      if (monthlyReport && shouldSync && (Number(monthlyReport.sueldos_total) !== totalStaffCost || Number(monthlyReport.sueldos_pendiente) !== totalStaffPending)) {
+        console.log("[Dashboard] Sincronizando totales de sueldos...");
         await supabase.from('monthly_reports').update({
           sueldos_total: totalStaffCost,
           sueldos_pendiente: totalStaffPending
