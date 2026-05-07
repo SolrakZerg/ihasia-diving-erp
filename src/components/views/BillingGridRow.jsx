@@ -1118,7 +1118,7 @@ export default function BillingGridRow({
         {/* Total (alineado) */}
         <td className={`px-1 py-0 text-right ${tb}`}>
            <div 
-             className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm tracking-tight whitespace-nowrap ${gStyle}`}
+             className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm tracking-tight whitespace-nowrap transform translate-y-[-2px] ${gStyle}`}
              style={{ backgroundColor: gBg, borderColor: gBg, color: gTextColor }}
            >
              {displayTotal.toLocaleString()} ฿
@@ -1126,7 +1126,7 @@ export default function BillingGridRow({
         </td>
         <td className={`px-0 py-0 w-[90px] min-w-[90px] text-center px-1 ${tb}`}>
             <div 
-              className={`h-6 flex items-center justify-center rounded text-xs uppercase shadow-lg leading-none ${gStyle}`}
+              className={`h-6 flex items-center justify-center rounded text-xs uppercase shadow-lg leading-none transform translate-y-[-2px] ${gStyle}`}
               style={{ backgroundColor: gBg, borderColor: gBg, color: gTextColor }}
             >
               {groupStatusLabel}

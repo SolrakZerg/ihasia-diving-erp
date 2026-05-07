@@ -316,15 +316,15 @@ export default function SSIView() {
         <div className="max-w-[1700px] mx-auto px-8 h-full flex items-center justify-center gap-24">
           
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
-              <div className="bg-brand/20 p-3 rounded-2xl ring-1 ring-brand/30">
-                <Waves className="w-8 h-8 text-brand" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-black text-white tracking-tight">Pagos SSI</h1>
-                <p className="text-gray-400 text-sm font-bold mt-1">Certificaciones Mensuales</p>
-              </div>
+          <div className="flex items-center gap-10">
+            <div className="flex flex-col">
+              <img 
+                src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png" 
+                alt="SSI Branding" 
+                className="h-24 w-auto object-contain drop-shadow-[0_0_25px_rgba(239,68,68,0.5)] drop-shadow-[0_10px_40px_rgba(239,68,68,0.3)]" 
+              />
             </div>
+          </div>
 
             {/* HYBRID DATE SELECTOR */}
             <div className="flex items-center gap-3">

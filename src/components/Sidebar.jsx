@@ -17,6 +17,43 @@ import {
   Ship
 } from 'lucide-react';
 
+const SSIIcon = ({ className }) => (
+  <div 
+    className={className}
+    style={{
+      backgroundColor: 'currentColor',
+      maskImage: 'url(https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi2.svg)',
+      WebkitMaskImage: 'url(https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi2.svg)',
+      maskSize: 'contain',
+      WebkitMaskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center',
+      transform: 'scale(1.3)',
+      filter: 'brightness(1.2)'
+    }}
+  />
+);
+
+const CarabaoIcon = ({ className }) => (
+  <div 
+    className={className}
+    style={{
+      backgroundColor: 'currentColor',
+      maskImage: 'url(https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.svg)',
+      WebkitMaskImage: 'url(https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.svg)',
+      maskSize: 'contain',
+      WebkitMaskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center',
+      transform: 'scale(1.3)'
+    }}
+  />
+);
+
 import logoFullFallback from '../assets/Logo_Ihasia.svg';
 import logoSmallFallback from '../assets/logo-version-movil-ihasia.webp';
 import { supabase } from '../lib/supabaseClient';
@@ -53,10 +90,10 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
     { id: 'billing', label: 'Facturas', icon: Wallet },
     { id: 'staff-settlement', label: 'Liquidación Staff', icon: Banknote },
     { id: 'expenses', label: 'Gastos', icon: Receipt },
-    { id: 'ssi', label: 'Pagos SSI', icon: Waves },
+    { id: 'ssi', label: 'Pagos SSI', icon: SSIIcon },
     { id: 'customers', label: 'Buceadores', icon: Users },
     { id: 'insurance', label: 'Seguros Diarios', icon: ShieldCheck },
-    { id: 'supplier-payout', label: 'Carabao', icon: Ship },
+    { id: 'supplier-payout', label: 'Carabao', icon: CarabaoIcon },
     { id: 'partners-payouts', label: 'CRBT', icon: UsersRound },
     { id: 'settings', label: 'Configuración', icon: SettingsIcon },
   ];
@@ -111,7 +148,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
               }`}
             >
               <div className="flex items-center gap-3">
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-brand-light'}`} />
+                <Icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-brand-light'}`} />
                 {!isCollapsed && <span className="font-semibold text-sm animate-in slide-in-from-left-2 duration-300">{item.label}</span>}
               </div>
               {!isCollapsed && isActive && <ChevronRight className="w-4 h-4" />}
@@ -130,7 +167,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
       <div className="p-3 border-t border-surface-edge space-y-4">
         <div className={`px-3 py-2 bg-surface rounded-xl border border-surface-edge overflow-hidden ${isCollapsed ? 'flex justify-center' : ''}`}>
           {isCollapsed ? (
-            <User className="w-5 h-5 text-gray-400" />
+            <User className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} text-gray-400`} />
           ) : (
             <>
               <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider mb-1">Usuario Activo</p>

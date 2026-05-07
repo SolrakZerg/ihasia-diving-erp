@@ -23,7 +23,8 @@ import {
   X as CloseIcon,
   Plus,
   Trash2,
-  Pencil
+  Pencil,
+  TrendingUp as TrendingIcon
 } from 'lucide-react';
 
 import logoFull from '../../assets/Logo_Ihasia.svg';
@@ -33,6 +34,7 @@ import Staff from './Staff';
 import Activities from './Activities';
 import StaffPayouts from './StaffPayouts';
 import BoteManagement from './BoteManagement';
+import BusinessAnalytics from './analytics/BusinessAnalytics';
 
 const GeneralSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -632,6 +634,7 @@ export default function AdminSettings() {
     { id: 'catalog', label: 'Catálogo y Precios', icon: Receipt },
     { id: 'bote', label: 'Gestión de Bote', icon: Coins },
     { id: 'payout_rules', label: 'Tarifas Staff', icon: Receipt },
+    { id: 'analytics', label: 'Estadísticas', icon: TrendingIcon },
   ];
 
   return (
@@ -674,6 +677,7 @@ export default function AdminSettings() {
           {activeTab === 'catalog' && <Activities isNested />}
           {activeTab === 'bote' && <BoteManagement />}
           {activeTab === 'payout_rules' && <StaffPayouts />}
+          {activeTab === 'analytics' && <BusinessAnalytics />}
         </div>
       </div>
     </div>

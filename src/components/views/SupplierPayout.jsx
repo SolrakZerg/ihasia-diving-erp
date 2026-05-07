@@ -404,12 +404,13 @@ export default function SupplierPayout() {
       {/* Top Header (CALCO EXACTO DE PARTNERSPAYOUTS) - NO PRINT */}
       <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0 no-print print:hidden">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-brand/10 rounded-2xl text-brand border border-brand/20">
-            <Ship className="w-6 h-6" />
-          </div>
+          <img 
+            src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png" 
+            alt="Carabao Logo" 
+            className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(56,189,248,0.2)]" 
+          />
           <div>
             <h1 className="text-2xl font-black text-white leading-tight tracking-tight">Carabao Diving</h1>
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-none mt-1">Gestión de Tanques & Facturación</p>
           </div>
         </div>
 
@@ -596,8 +597,12 @@ export default function SupplierPayout() {
                 {/* SUMMARY WIDGET - ORIGINAL DESIGN WITH NEW COLORS */}
                 <div className="flex-none w-72 flex flex-col gap-4">
                   <div className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <Ship className="w-24 h-24 text-emerald-500" />
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <img 
+                        src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png" 
+                        alt="Carabao Watermark" 
+                        className="w-24 h-24 object-contain grayscale brightness-200" 
+                      />
                     </div>
                     
                     <div className="space-y-6 relative z-10">
