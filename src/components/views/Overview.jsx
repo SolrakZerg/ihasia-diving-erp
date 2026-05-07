@@ -297,10 +297,14 @@ export default function Overview() {
   }, [month, year]);
 
   const updateOpeningCash = async (val) => {
+    if (year === 2026 && month <= 3) {
+      console.warn("[Dashboard] 🛡️ Edición bloqueada para meses protegidos.");
+      return;
+    }
     const isBlank = val === '';
     const num = isBlank ? 0 : Number(val);
     setIncomeData(prev => ({ ...prev, openingCash: isBlank ? '' : num }));
-    
+
     if (!isBlank) {
       await supabase.from('monthly_reports').upsert({ 
         year, 
@@ -312,6 +316,10 @@ export default function Overview() {
   };
 
   const updateGenericPending = async (col, val) => {
+    if (year === 2026 && month <= 3) {
+      console.warn("[Dashboard] 🛡️ Edición bloqueada para meses protegidos.");
+      return;
+    }
     const isBlank = val === '';
     const num = isBlank ? null : Number(val);
     

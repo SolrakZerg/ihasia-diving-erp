@@ -509,16 +509,16 @@ export default function BusinessAnalytics() {
       </div>
 
       {/* Main Chart Section */}
-      <div className="bg-surface-soft border border-surface-edge rounded-[2.5rem] px-8 py-4 shadow-2xl">
-        <div className="flex items-center mb-2">
+      <div className="bg-surface-soft border border-surface-edge rounded-[2.5rem] py-4 shadow-2xl">
+        <div className="flex items-center mb-2 px-8">
           {/* Left: Logos */}
           <div className="w-1/4 flex justify-start">
              {(() => {
                   if (activeMetric === 'comparativa') {
                     const compLogos = [
                       { id: 'ihasia', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo-ihasia-main.svg', color: '#ffffff', size: 'w-10 h-10' },
-                      { id: 'carabao', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.svg', color: COMPARISON_COLORS.carabao, size: 'w-10 h-10' },
-                      { id: 'ssi', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi2.svg', color: COMPARISON_COLORS.ssi, size: 'w-10 h-10' }
+                      { id: 'carabao', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png', color: COMPARISON_COLORS.carabao, size: 'w-10 h-10' },
+                      { id: 'ssi', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png', color: COMPARISON_COLORS.ssi, size: 'w-10 h-10' }
                     ];
                     return (
                       <div className="flex items-center gap-4">
@@ -545,8 +545,8 @@ export default function BusinessAnalytics() {
 
                   const metricConfig = [
                     { id: 'facturado', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo-ihasia-main.svg' },
-                    { id: 'carabao', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.svg' },
-                    { id: 'ssi', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi2.svg' }
+                    { id: 'carabao', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png' },
+                    { id: 'ssi', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png' }
                   ].find(m => m.id === activeMetric);
 
                   if (metricConfig?.logo) {
@@ -621,7 +621,7 @@ export default function BusinessAnalytics() {
           </div>
         </div>
 
-        <div className="h-[400px] w-full">
+        <div className="h-[400px] w-full px-8">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
@@ -687,8 +687,8 @@ export default function BusinessAnalytics() {
                   if (activeMetric === 'comparativa') {
                     const compLogos = [
                       { id: 'ihasia', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo-ihasia-main.svg', color: '#ffffff', size: 'w-10 h-10' },
-                      { id: 'carabao', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.svg', color: COMPARISON_COLORS.carabao, size: 'w-10 h-10' },
-                      { id: 'ssi', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi2.svg', color: COMPARISON_COLORS.ssi, size: 'w-10 h-10' }
+                      { id: 'carabao', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png', color: COMPARISON_COLORS.carabao, size: 'w-10 h-10' },
+                      { id: 'ssi', src: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png', color: COMPARISON_COLORS.ssi, size: 'w-10 h-10' }
                     ];
                     return (
                       <div className="flex items-center gap-4">
@@ -715,8 +715,8 @@ export default function BusinessAnalytics() {
 
                   const metricConfig = [
                     { id: 'facturado', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo-ihasia-main.svg' },
-                    { id: 'carabao', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.svg' },
-                    { id: 'ssi', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi2.svg' }
+                    { id: 'carabao', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png' },
+                    { id: 'ssi', logo: 'https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png' }
                   ].find(m => m.id === activeMetric);
 
                   if (metricConfig?.logo) {
@@ -809,7 +809,7 @@ export default function BusinessAnalytics() {
                   const facturadoRow = comparisonData.map(d => d.facturado);
                   const facturadoTotal = facturadoRow.reduce((a, b) => a + b, 0);
 
-                  return categories.map((catId) => {
+                  return categories.filter(catId => !hiddenMetrics.includes(catId)).map((catId) => {
                     const catLabel = catId === 'crbt' ? 'CRBT' : catId === 'ihasia' ? 'IHASIA' : catId === 'sueldos' ? 'SUELDOS' : catId.toUpperCase();
                     const catColor = COMPARISON_COLORS[catId];
                     const values = comparisonData.map(d => d[catId]);
@@ -849,7 +849,8 @@ export default function BusinessAnalytics() {
                   });
                 })()
               ) : (
-                availableYears.map((year, idx) => {
+                availableYears.filter(year => !hiddenYears.includes(year)).map((year) => {
+                  const idx = availableYears.indexOf(year);
                   const yearRow = currentMetricGrid[year];
                   const yearTotal = yearRow.reduce((a, b) => a + b, 0);
                   const yearStyle = getYearStyle(year);

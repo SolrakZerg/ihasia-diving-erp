@@ -390,6 +390,9 @@ export function useBilling() {
 
   useEffect(() => {
     if (loadingInvoices || allMonthInvoices.length === 0) return;
+
+    // PROTECCIÓN: No sincronizar meses bloqueados (Ene-Mar 2026)
+    if (selectedYear === 2026 && selectedMonth < 3) return;
     
     const syncReports = async () => {
       try {
@@ -453,6 +456,10 @@ export function useBilling() {
   };
 
   const saveCashControl = async () => {
+    if (selectedYear === 2026 && selectedMonth < 3) {
+      console.warn("[useBilling] 🛡️ Bloqueada edición de Cash Control en mes protegido.");
+      return;
+    }
     try {
       setIsSavingCash(true);
       const b50000 = bills50000 === '' ? 0 : Number(bills50000);

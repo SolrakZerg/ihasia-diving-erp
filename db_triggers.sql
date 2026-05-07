@@ -7,13 +7,13 @@
 -- --------------------------------------------------------------------------------
 -- Table: bote_expenses
 -- --------------------------------------------------------------------------------
-CREATE TRIGGER trg_sync_monthly_expenses AFTER INSERT OR UPDATE OR DELETE ON public.bote_expenses FOR EACH ROW EXECUTE FUNCTION sync_monthly_report_totals();
+
 
 -- --------------------------------------------------------------------------------
 -- Table: bote_monthly
 -- --------------------------------------------------------------------------------
 -- [ELIMINADO 05/05/2026] -- CREATE TRIGGER trg_refresh_bote AFTER INSERT OR UPDATE OR DELETE ON public.bote_monthly FOR EACH ROW EXECUTE FUNCTION trigger_refresh_monthly_report();
-CREATE TRIGGER trg_sync_bote_to_report AFTER INSERT OR UPDATE OR DELETE ON public.bote_monthly FOR EACH ROW EXECUTE FUNCTION trg_call_sync_total_gastos();
+CREATE TRIGGER trg_sync_bote_to_report AFTER INSERT OR UPDATE OR DELETE ON public.bote_monthly FOR EACH ROW EXECUTE FUNCTION trg_sync_total_gastos_to_report();
 
 -- --------------------------------------------------------------------------------
 -- Table: commissions
@@ -47,7 +47,7 @@ CREATE TRIGGER trg_sync_staff_invoices AFTER INSERT OR UPDATE OR DELETE ON publi
 -- --------------------------------------------------------------------------------
 -- Table: monthly_expenses
 -- --------------------------------------------------------------------------------
-CREATE TRIGGER trg_sync_monthly_expenses_to_report AFTER INSERT OR UPDATE OR DELETE ON public.monthly_expenses FOR EACH ROW EXECUTE FUNCTION trg_call_sync_total_gastos();
+CREATE TRIGGER trg_sync_monthly_expenses_to_report AFTER INSERT OR UPDATE OR DELETE ON public.monthly_expenses FOR EACH ROW EXECUTE FUNCTION trg_sync_total_gastos_to_report();
 
 -- --------------------------------------------------------------------------------
 -- Table: monthly_reports
@@ -78,10 +78,10 @@ CREATE TRIGGER trg_sync_staff_activity AFTER INSERT OR UPDATE OR DELETE ON publi
 -- Table: staff_settlements
 -- --------------------------------------------------------------------------------
 -- [ELIMINADO 05/05/2026] -- CREATE TRIGGER trg_refresh_staff AFTER INSERT OR UPDATE OR DELETE ON public.staff_settlements FOR EACH ROW EXECUTE FUNCTION trigger_refresh_monthly_report();
-CREATE TRIGGER trg_sync_staff_to_report AFTER INSERT OR UPDATE OR DELETE ON public.staff_settlements FOR EACH ROW EXECUTE FUNCTION trg_call_sync_total_gastos();
+CREATE TRIGGER trg_sync_staff_to_report AFTER INSERT OR UPDATE OR DELETE ON public.staff_settlements FOR EACH ROW EXECUTE FUNCTION trg_sync_total_gastos_to_report();
 
 -- --------------------------------------------------------------------------------
 -- Table: supplier_settlements
 -- --------------------------------------------------------------------------------
 -- [ELIMINADO 05/05/2026] -- CREATE TRIGGER trg_refresh_suppliers AFTER INSERT OR UPDATE OR DELETE ON public.supplier_settlements FOR EACH ROW EXECUTE FUNCTION trigger_refresh_monthly_report();
-CREATE TRIGGER trg_sync_suppliers_to_report AFTER INSERT OR UPDATE OR DELETE ON public.supplier_settlements FOR EACH ROW EXECUTE FUNCTION trg_call_sync_total_gastos();
+CREATE TRIGGER trg_sync_suppliers_to_report AFTER INSERT OR UPDATE OR DELETE ON public.supplier_settlements FOR EACH ROW EXECUTE FUNCTION trg_sync_total_gastos_to_report();
