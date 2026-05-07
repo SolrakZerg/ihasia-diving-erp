@@ -1,15 +1,122 @@
 -- ################################################################################
--- STEP 1: DATABASE FUNCTIONS BACKUP
+-- STEP 1: DATABASE FUNCTIONS (Bunker Q1 2026 Edition)
 -- Project: IHASIA ERP
--- Generated: 2026-05-05
+-- Organization: public (API) and logic (Internal)
 -- ################################################################################
 
+-- ================================================================================
+-- SECTION 1: PUBLIC API FUNCTIONS (Accessible via PostgREST)
+-- ================================================================================
+
 -- --------------------------------------------------------------------------------
--- Function: calc_total_xpagar
+-- Function: public.search_customers_v3
+-- Description: Advanced customer search using tokens and unaccent.
+-- Esta es el buscador avanzado de clientes que permite usar fragmentos de texto y tildes.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.search_customers_v3(query_text text)
+ RETURNS TABLE(id uuid, first_name text, last_name text, email text, booking_date date, booked_activity text, passport_number text, created_at timestamp with time zone)
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  tokens text[];
+BEGIN
+  tokens := regexp_split_to_array(trim(query_text), '\\s+');
+  
+  RETURN QUERY
+  SELECT 
+    c.id, 
+    c.first_name, 
+    c.last_name, 
+    c.email, 
+    c.booking_date, 
+    c.booked_activity,
+    c.passport_number,
+    c.created_at
+  FROM customers c
+  WHERE (
+    SELECT bool_and(
+      unaccent(COALESCE(c.first_name, '')) ILIKE unaccent('%' || t || '%') OR 
+      unaccent(COALESCE(c.last_name, '')) ILIKE unaccent('%' || t || '%') OR 
+      unaccent(COALESCE(c.email, '')) ILIKE unaccent('%' || t || '%') OR
+      unaccent(COALESCE(c.passport_number, '')) ILIKE unaccent('%' || t || '%')
+    )
+    FROM unnest(tokens) t
+  )
+  ORDER BY c.booking_date DESC NULLS LAST, c.created_at DESC
+  LIMIT 15;
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: public.get_duplicate_customers
+-- Description: Finds customers with duplicate email and names.
+-- Esta busca clientes duplicados por nombre y email.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_duplicate_customers()
+ RETURNS SETOF customers
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+    RETURN QUERY
+    SELECT c.*
+    FROM customers c
+    WHERE EXISTS (
+        SELECT 1
+        FROM customers c2
+        WHERE c2.id <> c.id
+          AND LOWER(TRIM(c2.email)) = LOWER(TRIM(c.email))
+          AND LOWER(TRIM(c2.first_name)) = LOWER(TRIM(c.first_name))
+          AND LOWER(TRIM(c2.last_name)) = LOWER(TRIM(c.last_name))
+    )
+    ORDER BY c.email, c.created_at;
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: public.sync_monthly_activity_logs
+-- Description: Atomically syncs monthly activity counts (Delete + Insert).
+-- Esta sincroniza el conteo de actividades mensuales para las estadísticas del ERP.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.sync_monthly_activity_logs(p_year integer, p_month integer, p_data jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+    -- 1. Borrar registros existentes para ese mes/año (Limpieza total)
+    DELETE FROM public.monthly_activity_logs
+    WHERE year = p_year AND month = p_month;
+
+    -- 2. Insertar solo si hay datos y el contador es mayor que 0
+    IF p_data IS NOT NULL AND jsonb_array_length(p_data) > 0 THEN
+        INSERT INTO public.monthly_activity_logs (year, month, activity_id, count, updated_at)
+        SELECT 
+            p_year, 
+            p_month, 
+            (item->>'activity_id')::UUID, 
+            (item->>'count')::INT, 
+            NOW()
+        FROM jsonb_array_elements(p_data) AS item
+        WHERE (item->>'count')::INT > 0;
+    END IF;
+END;
+$function$;
+
+
+-- ================================================================================
+-- SECTION 2: INTERNAL LOGIC FUNCTIONS (Schema: logic)
+-- ================================================================================
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.calc_total_xpagar
 -- Description: Trigger that sums all pending payments for the month in monthly_reports.
 -- Esta suma todo lo que queda pendiente de pagar en el mes (proveedores, sueldos, fijos, etc.) en el reporte mensual.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.calc_total_xpagar()
+CREATE OR REPLACE FUNCTION logic.calc_total_xpagar()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -67,38 +174,11 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: get_duplicate_customers
--- Description: Finds customers with duplicate email and names.
--- Esta busca clientes duplicados por nombre y email.
--- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.get_duplicate_customers()
- RETURNS SETOF customers
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-BEGIN
-    RETURN QUERY
-    SELECT c.*
-    FROM customers c
-    WHERE EXISTS (
-        SELECT 1
-        FROM customers c2
-        WHERE c2.id <> c.id
-          AND LOWER(TRIM(c2.email)) = LOWER(TRIM(c.email))
-          AND LOWER(TRIM(c2.first_name)) = LOWER(TRIM(c.first_name))
-          AND LOWER(TRIM(c2.last_name)) = LOWER(TRIM(c.last_name))
-    )
-    ORDER BY c.email, c.created_at;
-END;
-$function$;
-
--- --------------------------------------------------------------------------------
--- Function: recalculate_bote_apartar
+-- Function: logic.recalculate_bote_apartar
 -- Description: Calculates total amount to set aside for 'Bote' (t-shirts and insurance).
 -- Esta calcula cuánto dinero hay que "apartar" para el bote por cada camiseta y seguro.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.recalculate_bote_apartar(p_year integer, p_month integer)
+CREATE OR REPLACE FUNCTION logic.recalculate_bote_apartar(p_year integer, p_month integer)
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -140,19 +220,18 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: trigger_recalculate_bote
+-- Function: logic.trigger_recalculate_bote
 -- Description: Bridge trigger for insurance and invoices to call recalculate_bote_apartar.
 -- Esta es el "puente" que llama a la función anterior cuando hay cambios en seguros o ítems de facturas.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.trigger_recalculate_bote()
+CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
 BEGIN
-    -- Obtenemos el año y mes del registro afectado
-    PERFORM public.recalculate_bote_apartar(
+    PERFORM logic.recalculate_bote_apartar(
         EXTRACT(YEAR FROM COALESCE(NEW.created_at, OLD.created_at))::INT,
         EXTRACT(MONTH FROM COALESCE(NEW.created_at, OLD.created_at))::INT
     );
@@ -160,13 +239,12 @@ BEGIN
 END;
 $function$;
 
-
-
 -- --------------------------------------------------------------------------------
--- Function: sync_total_gastos_to_report (La Jefa)
+-- Function: logic.sync_total_gastos_to_report
 -- Description: Aggregates all expenses (suppliers, staff, bote, fixed, finance) into monthly_reports.
+-- Esta es "La Jefa", agrega todos los gastos mensuales en el reporte.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_total_gastos_to_report(p_year integer, p_month integer)
+CREATE OR REPLACE FUNCTION logic.sync_total_gastos_to_report(p_year integer, p_month integer)
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -181,7 +259,7 @@ DECLARE
     v_gastos_fin numeric;
     v_total_gastos numeric;
 BEGIN
-    -- SUPER ESCUDO PROTECTOR: No tocar nada de Enero a Marzo de 2026
+    -- SUPER ESCUDO PROTECTOR
     IF p_year < 2026 OR (p_year = 2026 AND p_month <= 3) THEN 
         RETURN; 
     END IF;
@@ -224,11 +302,11 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: trg_sync_total_gastos_to_report
+-- Function: logic.trg_sync_total_gastos_to_report
 -- Description: Bridge trigger for bote/expenses to sync total expenses to report.
 -- Esta es el puente que actualiza el reporte cuando cambian los gastos del bote o financieros.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.trg_sync_total_gastos_to_report()
+CREATE OR REPLACE FUNCTION logic.trg_sync_total_gastos_to_report()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -239,68 +317,21 @@ DECLARE
     v_month INTEGER;
 BEGIN
     IF TG_OP = 'DELETE' THEN
-        v_year  := OLD.year;
-        v_month := OLD.month;
+        v_year := OLD.year; v_month := OLD.month;
     ELSE
-        v_year  := NEW.year;
-        v_month := NEW.month;
+        v_year := NEW.year; v_month := NEW.month;
     END IF;
-
-    PERFORM public.sync_total_gastos_to_report(v_year, v_month);
-
+    PERFORM logic.sync_total_gastos_to_report(v_year, v_month);
     IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $function$;
 
-
 -- --------------------------------------------------------------------------------
--- Function: search_customers_v3
--- Description: Advanced customer search using tokens and unaccent.
--- Esta es el buscador avanzado de clientes que permite usar fragmentos de texto y tildes.
--- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.search_customers_v3(query_text text)
- RETURNS TABLE(id uuid, first_name text, last_name text, email text, booking_date date, booked_activity text, passport_number text, created_at timestamp with time zone)
- LANGUAGE plpgsql
- SET search_path TO 'public'
-AS $function$
-DECLARE
-  tokens text[];
-BEGIN
-  tokens := regexp_split_to_array(trim(query_text), '\\s+');
-  
-  RETURN QUERY
-  SELECT 
-    c.id, 
-    c.first_name, 
-    c.last_name, 
-    c.email, 
-    c.booking_date, 
-    c.booked_activity,
-    c.passport_number,
-    c.created_at
-  FROM customers c
-  WHERE (
-    SELECT bool_and(
-      unaccent(COALESCE(c.first_name, '')) ILIKE unaccent('%' || t || '%') OR 
-      unaccent(COALESCE(c.last_name, '')) ILIKE unaccent('%' || t || '%') OR 
-      unaccent(COALESCE(c.email, '')) ILIKE unaccent('%' || t || '%') OR
-      unaccent(COALESCE(c.passport_number, '')) ILIKE unaccent('%' || t || '%')
-    )
-    FROM unnest(tokens) t
-  )
-  ORDER BY c.booking_date DESC NULLS LAST, c.created_at DESC
-  LIMIT 15;
-END;
-$function$;
-
-
-
--- --------------------------------------------------------------------------------
--- Function: sync_invoice_report
+-- Function: logic.sync_invoice_report
 -- Description: Syncs invoiced, pending, and collected totals to monthly_reports.
 -- Esta sincroniza los totales de facturas (Facturado, Pendiente, Cobrado) con el reporte mensual.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_invoice_report()
+CREATE OR REPLACE FUNCTION logic.sync_invoice_report()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -331,41 +362,30 @@ BEGIN
         COALESCE(SUM(CASE WHEN status != 'Paid' THEN total_thb ELSE 0 END), 0),
         COALESCE(SUM(CASE WHEN status = 'Paid' THEN total_thb ELSE 0 END), 0)
     INTO t_total, t_pending, t_cobrado
-    FROM invoice_items
-    WHERE EXTRACT(YEAR FROM date) = target_year AND EXTRACT(MONTH FROM date) = target_month;
+    FROM invoice_items WHERE EXTRACT(YEAR FROM date) = target_year AND EXTRACT(MONTH FROM date) = target_month;
 
     INSERT INTO monthly_reports (year, month, facturado, pendiente, cobrado, updated_at)
     VALUES (target_year, target_month, t_total, t_pending, t_cobrado, NOW())
-    ON CONFLICT (year, month) DO UPDATE SET
-        facturado = EXCLUDED.facturado,
-        pendiente = EXCLUDED.pendiente,
-        cobrado = EXCLUDED.cobrado,
-        updated_at = NOW();
+    ON CONFLICT (year, month) DO UPDATE SET facturado = EXCLUDED.facturado, pendiente = EXCLUDED.pendiente, cobrado = EXCLUDED.cobrado, updated_at = NOW();
 
     IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: sync_monthly_finances
+-- Function: logic.sync_monthly_finances
 -- Description: Syncs daily expenses and commissions to monthly_expenses.
 -- Se encarga de sincronizar los gastos diarios (daily_expenses) y las comisiones al reporte mensual de gastos. 
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_monthly_finances()
+CREATE OR REPLACE FUNCTION logic.sync_monthly_finances()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
 DECLARE
-    target_date DATE;
-    target_year INTEGER;
-    target_month INTEGER;
-    t_expenses NUMERIC;
-    c_paid NUMERIC;
-    c_pending NUMERIC;
-    s_paid NUMERIC;
-    s_pending NUMERIC;
+    target_date DATE; target_year INTEGER; target_month INTEGER;
+    t_expenses NUMERIC; c_paid NUMERIC; c_pending NUMERIC; s_paid NUMERIC; s_pending NUMERIC;
 BEGIN
     IF TG_OP = 'DELETE' THEN target_date := OLD.date; ELSE target_date := NEW.date; END IF;
     IF target_date IS NULL THEN IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF; END IF;
@@ -421,29 +441,18 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: sync_staff_settlement
+-- Function: logic.sync_staff_settlement
 -- Description: Calculates commissions, assistance bonuses and salary adjustments.
 -- Esta calcula las comisiones, bonus por asistencia (2000 THB) y ajustes de sueldos del personal.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_staff_settlement()
+CREATE OR REPLACE FUNCTION logic.sync_staff_settlement()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
 DECLARE
-    v_staff_id uuid;
-    v_year int;
-    v_month int;
-    v_commissions numeric;
-    v_advances numeric;
-    v_bonus numeric;
-    v_adjustments numeric;
-    v_assists_count int;
-    v_staff_ids uuid[] := '{}';
-    v_years int[] := '{}';
-    v_months int[] := '{}';
-    i int;
+    v_staff_id uuid; v_year int; v_month int; v_commissions numeric; v_advances numeric; v_bonus numeric; v_adjustments numeric; v_assists_count int; v_staff_ids uuid[] := '{}'; v_years int[] := '{}'; v_months int[] := '{}'; i int;
 BEGIN
     -- 1. Recolectar datos
     IF TG_TABLE_NAME = 'invoice_items' THEN
@@ -472,23 +481,14 @@ BEGIN
 
     -- 2. Iterar sobre los afectados
     FOR i IN 1 .. array_length(v_staff_ids, 1) LOOP
-        v_staff_id := v_staff_ids[i];
-        v_year := v_years[i];
-        v_month := v_months[i];
-
+        v_staff_id := v_staff_ids[i]; v_year := v_years[i]; v_month := v_months[i];
         IF v_staff_id IS NULL OR v_year IS NULL OR v_month IS NULL THEN CONTINUE; END IF;
         
         -- SUPER ESCUDO PROTECTOR (Ene-Mar 2026)
-        IF v_year < 2026 OR (v_year = 2026 AND v_month <= 3) THEN 
-            CONTINUE; 
-        END IF;
+        IF v_year < 2026 OR (v_year = 2026 AND v_month <= 3) THEN CONTINUE; END IF;
 
         -- 3. Calcular
-        SELECT COALESCE(SUM(ip.amount_thb * ii.quantity), 0) INTO v_commissions
-        FROM public.invoice_items ii
-        JOIN public.instructor_payouts ip ON ii.activity_id = ip.activity_id
-        WHERE ii.instructor_id = v_staff_id AND EXTRACT(YEAR FROM ii.date) = v_year AND EXTRACT(MONTH FROM ii.date) = v_month;
-
+        SELECT COALESCE(SUM(ip.amount_thb * ii.quantity), 0) INTO v_commissions FROM public.invoice_items ii JOIN public.instructor_payouts ip ON ii.activity_id = ip.activity_id WHERE ii.instructor_id = v_staff_id AND EXTRACT(YEAR FROM ii.date) = v_year AND EXTRACT(MONTH FROM ii.date) = v_month;
         SELECT COALESCE(SUM(amount), 0) INTO v_advances FROM public.staff_advances WHERE staff_id = v_staff_id AND year = v_year AND month = v_month;
         SELECT COALESCE(SUM(assists * 2000), 0), COALESCE(SUM(assists), 0) INTO v_bonus, v_assists_count FROM public.staff_daily_activity WHERE staff_id = v_staff_id AND year = v_year AND month = v_month;
         SELECT COALESCE(SUM(amount), 0) INTO v_adjustments FROM public.staff_adjustments WHERE staff_id = v_staff_id AND year = v_year AND month = v_month;
@@ -499,25 +499,24 @@ BEGIN
         ELSE
             INSERT INTO public.staff_settlements (staff_id, year, month, total_commissions, total_advances, total_bonus, assists_count, updated_at)
             VALUES (v_staff_id, v_year, v_month, v_commissions, v_advances, v_bonus + v_adjustments, v_assists_count, now())
-            ON CONFLICT (staff_id, year, month) DO UPDATE SET
-                total_commissions = EXCLUDED.total_commissions,
-                total_advances = EXCLUDED.total_advances,
-                total_bonus = EXCLUDED.total_bonus,
-                assists_count = EXCLUDED.assists_count,
+            ON CONFLICT (staff_id, year, month) DO UPDATE SET 
+                total_commissions = EXCLUDED.total_commissions, 
+                total_advances = EXCLUDED.total_advances, 
+                total_bonus = EXCLUDED.total_bonus, 
+                assists_count = EXCLUDED.assists_count, 
                 updated_at = EXCLUDED.updated_at;
         END IF;
     END LOOP;
-
     RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: update_updated_at_column
+-- Function: logic.update_updated_at_column
 -- Description: Standard trigger to auto-update updated_at timestamps.
 -- Esta es la función estándar que actualiza automáticamente la fecha de modificación de un registro.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+CREATE OR REPLACE FUNCTION logic.update_updated_at_column()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
@@ -529,111 +528,72 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: sync_monthly_activity_logs
--- Description: Atomically syncs monthly activity counts (Delete + Insert).
--- Esta sincroniza el conteo de actividades mensuales para las estadísticas del ERP.
--- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_monthly_activity_logs(p_year integer, p_month integer, p_data jsonb)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-BEGIN
-    -- 1. Borrar registros existentes para ese mes/año (Limpieza total)
-    DELETE FROM public.monthly_activity_logs
-    WHERE year = p_year AND month = p_month;
-
-    -- 2. Insertar solo si hay datos y el contador es mayor que 0
-    IF p_data IS NOT NULL AND jsonb_array_length(p_data) > 0 THEN
-        INSERT INTO public.monthly_activity_logs (year, month, activity_id, count, updated_at)
-        SELECT 
-            p_year, 
-            p_month, 
-            (item->>'activity_id')::UUID, 
-            (item->>'count')::INT, 
-            NOW()
-        FROM jsonb_array_elements(p_data) AS item
-        WHERE (item->>'count')::INT > 0;
-    END IF;
-END;
-$function$;
-
--- --------------------------------------------------------------------------------
--- Function: trg_call_sync_fixed_expenses
+-- Function: logic.trg_call_sync_fixed_expenses
 -- Description: Trigger bridge to sync total expenses when fixed expenses change.
 -- Esta es el puente que actualiza el reporte de gastos totales cuando cambian los gastos fijos configurados.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.trg_call_sync_fixed_expenses()
+CREATE OR REPLACE FUNCTION logic.trg_call_sync_fixed_expenses()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-DECLARE
-    v_year  INTEGER;
-    v_month INTEGER;
+DECLARE v_year INTEGER; v_month INTEGER;
 BEGIN
-    v_year  := EXTRACT(YEAR FROM NOW())::INTEGER;
-    v_month := EXTRACT(MONTH FROM NOW())::INTEGER;
-    PERFORM sync_total_gastos_to_report(v_year, v_month);
+    v_year := EXTRACT(YEAR FROM NOW())::INTEGER; v_month := EXTRACT(MONTH FROM NOW())::INTEGER;
+    PERFORM logic.sync_total_gastos_to_report(v_year, v_month);
     IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: sync_total_courses_from_logs
+-- Function: logic.sync_total_courses_from_logs
 -- Description: Updates total_courses in monthly_reports based on activity logs.
 -- Esta sincroniza el sumatorio total de cursos en el reporte mensual basándose en los logs de actividad.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_total_courses_from_logs()
+CREATE OR REPLACE FUNCTION logic.sync_total_courses_from_logs()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-DECLARE
-    v_year INT;
-    v_month INT;
-    v_total_courses INT;
+DECLARE v_year INT; v_month INT; v_total_courses INT;
 BEGIN
-    IF TG_OP = 'DELETE' THEN
-        v_year := OLD.year;
-        v_month := OLD.month;
-    ELSE
-        v_year := NEW.year;
-        v_month := NEW.month;
+    -- 1. Identificar periodo
+    IF TG_OP = 'DELETE' THEN 
+        v_year := OLD.year; v_month := OLD.month; 
+    ELSE 
+        v_year := NEW.year; v_month := NEW.month; 
     END IF;
 
-    -- SUPER ESCUDO PROTECTOR
+    -- SUPER ESCUDO PROTECTOR (No tocar nada anterior a Abril 2026)
     IF v_year < 2026 OR (v_year = 2026 AND v_month <= 3) THEN 
-        IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+        IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF; 
     END IF;
-    
-    SELECT COALESCE(SUM(CASE WHEN a.widget_column = 1 THEN l.count ELSE 0 END), 0)::INT
-    INTO v_total_courses
-    FROM monthly_activity_logs l
-    JOIN activities a ON l.activity_id = a.id
+
+    -- 2. Calcular total de cursos (donde widget_column = 1)
+    SELECT COALESCE(SUM(CASE WHEN a.widget_column = 1 THEN l.count ELSE 0 END), 0)::INT 
+    INTO v_total_courses 
+    FROM monthly_activity_logs l 
+    JOIN activities a ON l.activity_id = a.id 
     WHERE l.year = v_year AND l.month = v_month;
-    
+
+    -- 3. Actualizar el reporte mensual
     UPDATE monthly_reports 
-    SET total_courses = v_total_courses
+    SET total_courses = v_total_courses 
     WHERE year = v_year AND month = v_month;
-    
-    IF TG_OP = 'DELETE' THEN
-        RETURN OLD;
-    END IF;
-    
+
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
 END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: sync_total_courses_trigger
+-- Function: logic.sync_total_courses_trigger
 -- Description: Auxiliary sync for total_courses on monthly_reports updates.
 -- Esta es el puente que asegura que el total de cursos se actualice en el reporte cuando cambian los logs.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_total_courses_trigger()
+CREATE OR REPLACE FUNCTION logic.sync_total_courses_trigger()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -645,19 +605,15 @@ BEGIN
         RETURN NEW; 
     END IF;
 
-    IF NEW.year >= 2026 
-    AND NEW.total_courses IS NOT NULL 
-    AND NEW.total_courses > 0 
-    THEN
+    -- Asegurar que si el reporte se actualiza y no tiene cursos, los coja de los logs
+    IF NEW.year >= 2026 AND NEW.total_courses IS NOT NULL AND NEW.total_courses > 0 THEN
         UPDATE monthly_reports 
-        SET total_courses = NEW.total_courses
+        SET total_courses = NEW.total_courses 
         WHERE year = NEW.year 
-        AND month = NEW.month
-        AND (total_courses IS NULL OR total_courses = 0);
+          AND month = NEW.month 
+          AND (total_courses IS NULL OR total_courses = 0);
     END IF;
-    
+
     RETURN NEW;
 END;
 $function$;
-
-
