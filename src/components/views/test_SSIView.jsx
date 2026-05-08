@@ -71,6 +71,14 @@ export default function TestSSIView() {
     fetchData();
   }, [selectedMonth, selectedYear, allActivities]);
 
+  // Recalcular el Total SSI cuando cambian los datos o los ajustes
+  useEffect(() => {
+    if (!loading) {
+      const calculatedTotal = data.reduce((sum, item) => sum + item.total_fila, 0);
+      setTotalSsi(calculatedTotal + adjustmentsTotal);
+    }
+  }, [data, adjustmentsTotal, loading]);
+
   const fetchInitialData = async () => {
     // Cargar todas las actividades para saber cuáles son de SSI
     const { data: activities } = await supabase
@@ -83,8 +91,8 @@ export default function TestSSIView() {
     }
   };
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isUpdate = false) => {
+    if (!isUpdate) setLoading(true);
     const mm = selectedMonth + 1;
     const yy = selectedYear;
 
@@ -155,27 +163,44 @@ export default function TestSSIView() {
         }
       });
 
-      // Ordenar: Las actividades fijas con cantidad 0 se van al final
-      result.sort((a, b) => {
-        const aIsFixedZero = MUST_SHOW_NAMES.includes(a.name) && a.unidades_reales === 0;
-        const bIsFixedZero = MUST_SHOW_NAMES.includes(b.name) && b.unidades_reales === 0;
+      // Ordenar por lista predefinida de IDs
+      const PREDEFINED_ORDER = [
+        '744d63b8-bab2-464c-b536-04597de66bc0', // OW
+        'd232f6fe-8943-4225-8f23-2f7a3eac1b99', // AOW
+        '77d5e1e6-a593-4778-94f8-56696e2a6562', // SD
+        'dd4ac678-c288-4465-ad7e-432fc5bb8ab3', // KIT
+        'b4e2ea56-cd18-43d1-991d-58371859e6fe', // S&R
+        '120aa12e-9bca-4e81-a1ca-3208ef6a2a5b', // R&R
+        'fe0002f2-e4ec-4e70-87f0-3f5aa2647e7c', // SR&RR
+        '61a5beb1-affe-4f2b-990b-ae595112fec3', // DG + SOD
+        '156f7e85-0fa9-4cf1-912a-ca58e1c9fa41', // DM_mat
+        '9ecc9f7f-703b-498e-94f3-8f8f35ae6c24', // PRO_reg
+        '1c1f7c02-d535-4a4f-ad34-d90e309f0a7f', // SR RR DG SOD
+        '7c7b3c3c-9242-49bb-b94e-d8328b7a6cb6', // DM + 3 espc
+        'DSD_3', // Fallback string
+        'dab5b623-6d22-4154-8bda-cacfa5ba344a', // DSD_2
+        '501e735a-3863-444b-a0b3-b9821b4339d6', // EAN
+        'fe6a5598-5bbb-4b46-8449-69bb91afb507', // EAN_aa
+        'b838e71f-be1a-4aff-977b-c9b22ce02d59', // Deep Adv
+        '34fa46af-1ccb-4e93-884c-a440cac189f3'  // Update RR
+      ];
 
-        if (aIsFixedZero && !bIsFixedZero) return 1;
-        if (!aIsFixedZero && bIsFixedZero) return -1;
-        
-        // Si ambos son del mismo grupo, ordenar por cantidad descendente
-        if (a.unidades_reales !== b.unidades_reales) {
-          return b.unidades_reales - a.unidades_reales;
+      result.sort((a, b) => {
+        let indexA = PREDEFINED_ORDER.indexOf(a.id);
+        let indexB = PREDEFINED_ORDER.indexOf(b.id);
+
+        if (indexA === -1) indexA = 999;
+        if (indexB === -1) indexB = 999;
+
+        if (indexA !== indexB) {
+          return indexA - indexB;
         }
-        // Y luego por nombre
         return a.name.localeCompare(b.name);
       });
 
       setData(result);
 
-      // Calcular el Total SSI
-      const calculatedTotal = result.reduce((sum, item) => sum + item.total_fila, 0);
-      setTotalSsi(calculatedTotal + adjustmentsTotal);
+      // El total se calcula en el useEffect automático
 
     } catch (error) {
       console.error('Error fetching test SSI data:', error);
@@ -212,7 +237,7 @@ export default function TestSSIView() {
     
     // El trigger en la BD actualizará el total en test_supplier_settlements
     // Recargamos los datos para estar seguros
-    setTimeout(fetchData, 500);
+    setTimeout(() => fetchData(true), 500);
   };
 
   const saveSettlement = async (next, manual) => {
