@@ -827,6 +827,7 @@ export function useBilling() {
     actualCash, stats, displayedInvoices, activityStats, expectedCash, diffCash,
     handleToggleSelection, changeArrivalsDate, fetchInvoices,
     handleDeleteItems, handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
+    handleApplyBulkChanges, handleCopyEmails,
     patchInvoiceItem, fetchCatalogs, monthlyDbData,
     uiConfig, setUiConfig, updateUIConfig,
   };
