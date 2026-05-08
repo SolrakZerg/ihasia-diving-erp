@@ -617,3 +617,137 @@ BEGIN
     RETURN NEW;
 END;
 $function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.test_func_recount_ssi_month
+-- Description: Recalculates all SSI activities for a specific month.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.test_func_recount_ssi_month(p_year integer, p_month integer)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+BEGIN
+    DELETE FROM public.test_ssi_monthly_breakdown 
+    WHERE year = p_year AND month = p_month;
+
+    INSERT INTO public.test_ssi_monthly_breakdown (year, month, activity_id, system_quantity)
+    SELECT 
+        p_year, 
+        p_month, 
+        ii.activity_id,
+        SUM(ii.quantity)
+    FROM public.invoice_items ii
+    JOIN public.activities a ON ii.activity_id = a.id
+    WHERE a.is_ssi_active = true
+      AND (
+        (EXTRACT(YEAR FROM ii.date) = p_year AND EXTRACT(MONTH FROM ii.date) = p_month)
+        OR 
+        (ii.date IS NULL AND 
+         EXTRACT(YEAR FROM (SELECT created_at FROM public.invoices WHERE id = ii.invoice_id)) = p_year AND 
+         EXTRACT(MONTH FROM (SELECT created_at FROM public.invoices WHERE id = ii.invoice_id)) = p_month)
+      )
+    GROUP BY ii.activity_id;
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.test_func_trigger_invoice_to_ssi
+-- Description: Trigger that calls recount_ssi_month when invoice items change.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.test_func_trigger_invoice_to_ssi()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+    v_date DATE;
+    v_old_date DATE;
+    v_year INTEGER;
+    v_month INTEGER;
+    v_old_year INTEGER;
+    v_old_month INTEGER;
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        v_date := OLD.date;
+        IF (v_date IS NULL) THEN
+            SELECT created_at::DATE INTO v_date FROM public.invoices WHERE id = OLD.invoice_id;
+        END IF;
+        v_year := EXTRACT(YEAR FROM v_date)::INTEGER;
+        v_month := EXTRACT(MONTH FROM v_date)::INTEGER;
+        PERFORM logic.test_func_recount_ssi_month(v_year, v_month);
+        RETURN OLD;
+    END IF;
+
+    v_date := NEW.date;
+    IF (v_date IS NULL) THEN
+        SELECT created_at::DATE INTO v_date FROM public.invoices WHERE id = NEW.invoice_id;
+    END IF;
+    v_year := EXTRACT(YEAR FROM v_date)::INTEGER;
+    v_month := EXTRACT(MONTH FROM v_date)::INTEGER;
+
+    IF (TG_OP = 'INSERT') THEN
+        PERFORM logic.test_func_recount_ssi_month(v_year, v_month);
+        RETURN NEW;
+    END IF;
+
+    IF (TG_OP = 'UPDATE') THEN
+        IF (OLD.activity_id IS DISTINCT FROM NEW.activity_id OR
+            OLD.quantity IS DISTINCT FROM NEW.quantity OR
+            OLD.date IS DISTINCT FROM NEW.date) THEN
+            
+            v_old_date := OLD.date;
+            IF (v_old_date IS NULL) THEN
+                SELECT created_at::DATE INTO v_old_date FROM public.invoices WHERE id = OLD.invoice_id;
+            END IF;
+            v_old_year := EXTRACT(YEAR FROM v_old_date)::INTEGER;
+            v_old_month := EXTRACT(MONTH FROM v_old_date)::INTEGER;
+            
+            IF (v_old_year != v_year OR v_old_month != v_month) THEN
+                PERFORM logic.test_func_recount_ssi_month(v_old_year, v_old_month);
+            END IF;
+            PERFORM logic.test_func_recount_ssi_month(v_year, v_month);
+        END IF;
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.test_func_update_settlement
+-- Description: Trigger that updates supplier settlements when ssi breakdown changes.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.test_func_update_settlement()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_total NUMERIC;
+    v_year INTEGER;
+    v_month INTEGER;
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        v_year := OLD.year;
+        v_month := OLD.month;
+    ELSE
+        v_year := NEW.year;
+        v_month := NEW.month;
+    END IF;
+
+    SELECT COALESCE(SUM(total_fila), 0) INTO v_total
+    FROM public.test_ssi_monthly_breakdown
+    WHERE year = v_year AND month = v_month;
+
+    INSERT INTO public.test_supplier_settlements (year, month, supplier_name, total_amount)
+    VALUES (v_year, v_month, 'SSI', v_total)
+    ON CONFLICT (year, month, supplier_name)
+    DO UPDATE SET total_amount = EXCLUDED.total_amount, updated_at = NOW();
+
+    IF (TG_OP = 'DELETE') THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$function$;

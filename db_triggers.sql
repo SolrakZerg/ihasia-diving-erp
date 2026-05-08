@@ -90,3 +90,15 @@ CREATE TRIGGER trg_sync_staff_to_report AFTER INSERT OR UPDATE OR DELETE ON publ
 -- --------------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS trg_sync_suppliers_to_report ON public.supplier_settlements;
 CREATE TRIGGER trg_sync_suppliers_to_report AFTER INSERT OR UPDATE OR DELETE ON public.supplier_settlements FOR EACH ROW EXECUTE FUNCTION logic.trg_sync_total_gastos_to_report();
+
+-- --------------------------------------------------------------------------------
+-- Table: invoice_items (Test SSI)
+-- --------------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS test_trg_sync_invoice_to_ssi ON public.invoice_items;
+CREATE TRIGGER test_trg_sync_invoice_to_ssi AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.test_func_trigger_invoice_to_ssi();
+
+-- --------------------------------------------------------------------------------
+-- Table: test_ssi_monthly_breakdown
+-- --------------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS test_trg_update_settlement ON public.test_ssi_monthly_breakdown;
+CREATE TRIGGER test_trg_update_settlement AFTER INSERT OR UPDATE OR DELETE ON public.test_ssi_monthly_breakdown FOR EACH ROW EXECUTE FUNCTION logic.test_func_update_settlement();

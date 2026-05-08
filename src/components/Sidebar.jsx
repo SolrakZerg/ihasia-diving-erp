@@ -91,6 +91,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
     { id: 'staff-settlement', label: 'Liquidación Staff', icon: Banknote },
     { id: 'expenses', label: 'Gastos', icon: Receipt },
     { id: 'ssi', label: 'Pagos SSI', icon: SSIIcon },
+    { id: 'test-ssi', label: 'SSI (Pruebas)', icon: SSIIcon },
     { id: 'customers', label: 'Buceadores', icon: Users },
     { id: 'insurance', label: 'Seguros Diarios', icon: ShieldCheck },
     { id: 'supplier-payout', label: 'Carabao', icon: CarabaoIcon },
