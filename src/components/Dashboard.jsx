@@ -9,7 +9,7 @@ import AdminSettings from './views/AdminSettings';
 import Billing from './views/Billing';
 import Expenses from './views/Expenses';
 import SSIView from './views/SSIView';
-import TestSSIView from './views/test_SSIView';
+import TestSSIView from './views/SSI/test_SSIView';
 import StaffSettlement from './views/StaffSettlement';
 import PartnersPayouts from './views/PartnersPayouts';
 import SupplierPayout from './views/SupplierPayout';
