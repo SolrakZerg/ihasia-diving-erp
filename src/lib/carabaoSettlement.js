@@ -126,13 +126,7 @@ export const recalculateCarabaoSettlement = async (month, year) => {
       });
     }
 
-    const dynamicInvoiceData = selectedInvoiceRows.map(row => {
-      if (!row.id) return { id: '', code: '---', desc: '', qty: 0, price: 0, amount: 0 };
-      if (row.type === 'tank_group') return finalPool.find(p => p.type === 'tank_group');
-      return finalPool.find(p => p.id === row.id) || { id: row.id, code: '???', desc: 'No encontrado', qty: 0, price: 0, amount: 0 };
-    }).filter(Boolean);
-
-    const grandTotal = dynamicInvoiceData.reduce((acc, row) => acc + (row.amount || 0), 0);
+    const grandTotal = finalPool.reduce((acc, row) => acc + (row.amount || 0), 0);
 
     // Guardar en DB
     const payload = {
