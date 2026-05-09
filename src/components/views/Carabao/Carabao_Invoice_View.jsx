@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { ChevronRight, Trash2 as TrashIcon, Ship, FileText, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { ChevronRight, Trash2 as TrashIcon, Ship, FileText } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
+import Carabao_Invoice_Sidebar from './Carabao_Invoice_Sidebar';
 
 const noSpinnerStyle = `
   .no-spinner::-webkit-outer-spin-button,
@@ -168,6 +169,20 @@ export default function Carabao_Invoice_View({
     return selectedInvoiceRows.map(row => {
       if (!row.id) return { id: '', code: '---', desc: '', qty: 0, price: 0, amount: 0 };
       
+      if (row.type === 'manual') {
+        const qty = row.qty === '' ? '' : (row.qty || 0);
+        const price = row.price === '' ? '' : (row.price || 0);
+        return {
+          id: row.id,
+          code: row.code || '---',
+          desc: row.desc || '',
+          qty: qty,
+          price: price,
+          amount: (parseFloat(qty) || 0) * (parseFloat(price) || 0),
+          type: 'manual'
+        };
+      }
+      
       let baseData = {};
       if (row.type === 'tank_group') {
         baseData = finalPool.find(p => p.type === 'tank_group');
@@ -225,8 +240,14 @@ export default function Carabao_Invoice_View({
   useEffect(() => {
     if (selectedInvoiceRows.length > 0 && settlementId) {
       const timer = setTimeout(async () => {
+        // Filtrar filas manuales vacías (sin descripción) para no guardarlas en la BD
+        const filteredRows = selectedInvoiceRows.filter(row => {
+          if (row.type === 'manual' && (!row.desc || !row.desc.trim())) return false;
+          return true;
+        });
+
         const payload = {
-          invoice_config: selectedInvoiceRows,
+          invoice_config: filteredRows,
           updated_at: new Date().toISOString()
         };
         await supabase.from('supplier_settlements').update(payload).eq('id', settlementId);
@@ -345,20 +366,22 @@ export default function Carabao_Invoice_View({
                     <tbody className="divide-y divide-gray-100">
                       {dynamicInvoiceData.map((row, idx) => (
                         <tr key={idx} className="text-sm font-bold h-12 hover:bg-gray-50 transition-colors group">
-                          <td className="px-6 py-1 border-r border-gray-100 print:hidden relative">
+                          <td className="border-r border-gray-100 print:hidden relative">
                             <select 
-                              value={row.id}
+                              value={row.type === 'manual' ? '' : row.id}
                               onChange={(e) => {
                                 const newRows = [...selectedInvoiceRows];
                                 const val = e.target.value;
                                 if (val === 'tank_group') {
                                   newRows[idx] = { id: 'tank_group', type: 'tank_group' };
+                                } else if (val === '') {
+                                  newRows[idx] = { id: 'manual_' + Date.now(), type: 'manual', code: '---', desc: '', qty: '', price: '' };
                                 } else {
                                   newRows[idx] = { id: val, type: 'activity' };
                                 }
                                 setSelectedInvoiceRows(newRows);
                               }}
-                              className="w-full bg-transparent border-none focus:ring-0 font-black text-[#8a8e6b] cursor-pointer appearance-none uppercase"
+                              className="w-full h-full px-6 py-3 bg-transparent border-none focus:ring-0 font-black text-[#8a8e6b] cursor-pointer appearance-none uppercase"
                             >
                               <option value="">---</option>
                               <option value="tank_group">Tanks</option>
@@ -375,11 +398,49 @@ export default function Carabao_Invoice_View({
                             {row.code}
                           </td>
 
-                          <td className="px-6 py-3 border-r border-gray-100">{row.desc}</td>
-                          <td className="px-6 py-3 text-center border-r border-gray-100">{row.qty}</td>
-                          <td className="px-6 py-3 text-center border-r border-gray-100">{row.price.toLocaleString()}</td>
+                          <td className="px-6 py-3 border-r border-gray-100">
+                            {row.type === 'manual' ? (
+                              <input 
+                                value={row.desc}
+                                onChange={(e) => {
+                                  const newRows = [...selectedInvoiceRows];
+                                  newRows[idx] = { ...newRows[idx], desc: e.target.value };
+                                  setSelectedInvoiceRows(newRows);
+                                }}
+                                className="w-full bg-transparent border-none focus:ring-0 text-gray-800"
+                              />
+                            ) : row.desc}
+                          </td>
+                          <td className="px-6 py-3 text-center border-r border-gray-100">
+                            {row.type === 'manual' ? (
+                              <input 
+                                type="number"
+                                value={row.qty}
+                                onChange={(e) => {
+                                  const newRows = [...selectedInvoiceRows];
+                                  newRows[idx] = { ...newRows[idx], qty: parseFloat(e.target.value) || 0 };
+                                  setSelectedInvoiceRows(newRows);
+                                }}
+                                className="w-full bg-transparent border-none text-center focus:ring-0 text-gray-800 p-0 no-spinner"
+                              />
+                            ) : row.qty}
+                          </td>
+                          <td className="px-6 py-3 text-center border-r border-gray-100">
+                            {row.type === 'manual' ? (
+                              <input 
+                                type="number"
+                                value={row.price}
+                                onChange={(e) => {
+                                  const newRows = [...selectedInvoiceRows];
+                                  newRows[idx] = { ...newRows[idx], price: parseFloat(e.target.value) || 0 };
+                                  setSelectedInvoiceRows(newRows);
+                                }}
+                                className="w-full bg-transparent border-none text-center focus:ring-0 text-gray-800 p-0 no-spinner"
+                              />
+                            ) : row.price.toLocaleString()}
+                          </td>
                           <td className="px-6 py-3 text-right font-black relative group/amount">
-                            {row.amount.toLocaleString()}
+                            {row.type === 'manual' && !row.desc ? '' : row.amount.toLocaleString()}
                             <button 
                               onClick={() => {
                                 const newRows = selectedInvoiceRows.filter((_, i) => i !== idx);
@@ -396,7 +457,7 @@ export default function Carabao_Invoice_View({
                       <tr className="print:hidden">
                          <td colSpan="5" className="p-2">
                             <button 
-                              onClick={() => setSelectedInvoiceRows([...selectedInvoiceRows, { id: '', type: 'activity' }])}
+                              onClick={() => setSelectedInvoiceRows([...selectedInvoiceRows, { id: 'manual_' + Date.now(), type: 'manual', code: '---', desc: '', qty: '', price: '' }])}
                               className="w-full py-2 border-2 border-dashed border-gray-200 text-gray-400 hover:border-[#8a8e6b] hover:text-[#8a8e6b] rounded-lg transition-all font-bold text-xs flex items-center justify-center gap-2"
                             >
                               + Añadir Fila
@@ -433,52 +494,16 @@ export default function Carabao_Invoice_View({
          </div>
        </div>
 
-        {/* Right Sidebar (Hideable) */}
-        {showRightSidebar && (
-          <div className="w-64 bg-surface-soft border-l border-surface-edge p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300 print:hidden">
-            <div className="flex items-center justify-between">
-              <h3 className="text-white font-black text-sm uppercase tracking-widest">Ajustes Factura</h3>
-              <button 
-                onClick={() => setShowRightSidebar(false)}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
-              >
-                <PanelRightClose className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-surface rounded-2xl p-4 border border-surface-edge shadow-inner">
-              <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1">Tankes a Quitar</p>
-              <div className="relative">
-                <input 
-                  type="number"
-                  value={tanksToRemove || ''}
-                  onChange={(e) => updateTanksToRemove(parseInt(e.target.value) || 0)}
-                  className="w-full bg-transparent text-3xl font-black text-white outline-none focus:ring-0 no-spinner tracking-tighter"
-                  placeholder="0"
-                />
-                <span className="absolute right-0 bottom-1.5 text-rose-500/40 font-black text-sm">unidades</span>
-              </div>
-              <div className="h-0.5 w-full bg-rose-500/20 rounded-full mt-1" />
-            </div>
-
-            <div className="mt-auto">
-              <p className="text-[11px] text-gray-500 font-bold leading-relaxed italic">
-                Estos ajustes solo afectan a la factura visual y no cambian los datos reales.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Toggle Button when Sidebar is closed */}
-        {!showRightSidebar && (
-          <button 
-            onClick={() => setShowRightSidebar(true)}
-            className="absolute top-8 right-0 bg-brand text-white p-3 rounded-l-xl shadow-lg border border-r-0 border-surface-edge/30 transition-all hover:pr-4 print:hidden"
-            title="Abrir Ajustes"
-          >
-            <PanelRightOpen className="w-5 h-5" />
-          </button>
-        )}
+        {/* Right Sidebar (Modularized) */}
+        <Carabao_Invoice_Sidebar 
+          showRightSidebar={showRightSidebar}
+          setShowRightSidebar={setShowRightSidebar}
+          tanksToRemove={tanksToRemove}
+          updateTanksToRemove={updateTanksToRemove}
+          remainingBalance={remainingBalance}
+          paidAmount={paidAmount}
+          grandTotal={grandTotal}
+        />
       </div>
     </>
   );

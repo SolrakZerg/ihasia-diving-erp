@@ -201,13 +201,13 @@ export default function Carabao_Header() {
 
       {/* Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
-        <div className="flex-1 flex flex-col overflow-hidden px-6 py-2">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {loading ? (
             <div className="flex h-full items-center justify-center bg-surface">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand"></div>
             </div>
           ) : activeTab === 'grid' ? (
-            <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar py-2">
+            <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar px-6 py-2">
               <div className="flex gap-6 justify-center items-start min-w-max h-full px-4">
                 <Carabao_Table 
                   invoiceItems={invoiceItems} 
