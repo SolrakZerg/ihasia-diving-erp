@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, FileText, ChevronLeft, ChevronRight, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutGrid, FileText, ChevronLeft, ChevronRight, Settings as SettingsIcon, Printer } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import Carabao_Table from './Carabao_Table';
 import Carabao_Invoice_View from './Carabao_Invoice_View';
@@ -124,6 +124,16 @@ export default function Carabao_Header() {
               title="Configurar Actividades Facturables"
             >
               <SettingsIcon className="w-5 h-5" />
+            </button>
+          )}
+
+          {activeTab === 'invoice' && (
+            <button 
+              onClick={() => window.print()}
+              className="bg-surface hover:bg-surface-edge text-gray-400 p-2.5 rounded-xl transition-all border border-surface-edge shadow-lg"
+              title="Imprimir / PDF"
+            >
+              <Printer className="w-5 h-5" />
             </button>
           )}
           
