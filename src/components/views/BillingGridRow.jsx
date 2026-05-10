@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { recalculateCarabaoSettlement } from '../../lib/carabaoSettlement';
-import { recalculateSSISettlement } from '../../lib/ssiSettlement';
 
 const SmartActivitySelect = ({ value, activities = [], onChange, placeholder = "Elegir Actividad..." }) => {
   const [localValue, setLocalValue] = useState(value);
@@ -512,7 +511,6 @@ export default function BillingGridRow({
                 const mm = dateObj.getMonth() + 1;
                 const yy = dateObj.getFullYear();
                 recalculateCarabaoSettlement(mm, yy);
-                recalculateSSISettlement(mm, yy);
               }
             }
 
@@ -548,7 +546,6 @@ export default function BillingGridRow({
         const mm = dateObj.getMonth() + 1;
         const yy = dateObj.getFullYear();
         recalculateCarabaoSettlement(mm, yy);
-        recalculateSSISettlement(mm, yy);
       }
       
       onUpdate();
@@ -628,7 +625,6 @@ export default function BillingGridRow({
           const mm = dateObj.getMonth() + 1;
           const yy = dateObj.getFullYear();
           recalculateCarabaoSettlement(mm, yy);
-          recalculateSSISettlement(mm, yy);
         }
       }
 

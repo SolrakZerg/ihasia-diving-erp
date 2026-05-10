@@ -1,12 +1,12 @@
 import { Settings, Zap, TrendingDown, CreditCard, AlertCircle, Receipt } from 'lucide-react';
 
 export default function SSISidebar({ 
-  adjNext, 
-  adjPrev, 
+  mesAnterior, 
+  saldoMesAnterior, 
   manualPaid, 
   totalSsi, 
   adjustmentsTotal, 
-  setAdjNext, 
+  setMesAnterior, 
   setManualPaid, 
   saveSettlement 
 }) {
@@ -26,11 +26,11 @@ export default function SSISidebar({
                 <div className="flex items-center gap-4 bg-surface-edge/20 p-3 rounded-[2rem] border border-surface-edge/30 shadow-inner">
                   <input
                     type="number"
-                    value={adjNext || ''}
+                    value={mesAnterior || ''}
                     placeholder="0"
                     onChange={(e) => {
                        const val = parseInt(e.target.value) || 0;
-                       setAdjNext(val);
+                       setMesAnterior(val);
                        saveSettlement(val, manualPaid);
                     }}
                     className="w-full bg-transparent text-3xl font-black text-indigo-400 font-mono text-center tracking-tighter outline-none"
@@ -45,7 +45,7 @@ export default function SSISidebar({
                    <TrendingDown className="w-4 h-4 text-cyan-400" /> AJUSTE (MES ANTERIOR)
                 </span>
                 <div className="flex items-center gap-4 bg-surface-edge/10 p-3 rounded-[2rem] border border-surface-edge/10">
-                   <span className="text-3xl font-black text-cyan-400/50 font-mono flex-1 text-center tracking-tighter">{adjPrev}</span>
+                   <span className="text-3xl font-black text-cyan-400/50 font-mono flex-1 text-center tracking-tighter">{saldoMesAnterior}</span>
                 </div>
             </div>
           </div>
@@ -78,7 +78,7 @@ export default function SSISidebar({
                          onChange={(e) => {
                             const val = parseInt(e.target.value) || 0;
                             setManualPaid(val);
-                            saveSettlement(adjNext, val);
+                            saveSettlement(mesAnterior, val);
                          }}
                          className="bg-transparent border-none p-0 !outline-none !ring-0 text-2xl font-black text-emerald-400 font-mono text-right w-24"
                        />

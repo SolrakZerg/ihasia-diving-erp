@@ -18,10 +18,10 @@ export default function TestSSIView() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   const [manualPaid, setManualPaid] = useState(0);
-  const [adjNext, setAdjNext] = useState(0); 
-  const [adjPrev, setAdjPrev] = useState(0); 
+  const [mesAnterior, setMesAnterior] = useState(0); 
+  const [saldoMesAnterior, setSaldoMesAnterior] = useState(0); 
   const FIXED_ADJ_PRICE = 1067;
-  const adjustmentsTotal = (adjNext * FIXED_ADJ_PRICE) - (adjPrev * FIXED_ADJ_PRICE);
+  const adjustmentsTotal = (mesAnterior * FIXED_ADJ_PRICE) - (saldoMesAnterior * FIXED_ADJ_PRICE);
 
   const [settlementId, setSettlementId] = useState(null);
   const [totalSsi, setTotalSsi] = useState(0);
@@ -72,10 +72,11 @@ export default function TestSSIView() {
     const yy = selectedYear;
 
     try {
-      // 1. Cargar Totales de la tabla de pruebas
+      // 1. Cargar Totales de la fila del MES ACTUAL
       const { data: settlement } = await supabase
-        .from('test_supplier_settlements')
+        .from('supplier_settlements')
         .select('*')
+        .eq('supplier_name', 'SSI')
         .eq('year', yy)
         .eq('month', mm)
         .maybeSingle();
@@ -83,27 +84,28 @@ export default function TestSSIView() {
       if (settlement) {
         setSettlementId(settlement.id);
         setManualPaid(settlement.paid_amount || 0);
-        setAdjNext(settlement.adj_next || 0);
+        setSaldoMesAnterior(settlement.mes_anterior || 0); // El ajuste de este mes
       } else {
         setSettlementId(null);
         setManualPaid(0);
-        setAdjNext(0);
+        setSaldoMesAnterior(0);
       }
 
-      // 2. Cargar adjPrev del mes anterior
-      const prevDate = new Date(yy, selectedMonth - 1, 1);
-      const { data: prevSettlement } = await supabase
-        .from('test_supplier_settlements')
-        .select('adj_next')
-        .eq('year', prevDate.getFullYear())
-        .eq('month', prevDate.getMonth() + 1)
+      // 2. Cargar Adelanto (mes_anterior de la fila del MES SIGUIENTE)
+      const nextDate = new Date(yy, selectedMonth + 1, 1);
+      const { data: nextSettlement } = await supabase
+        .from('supplier_settlements')
+        .select('mes_anterior')
+        .eq('supplier_name', 'SSI')
+        .eq('year', nextDate.getFullYear())
+        .eq('month', nextDate.getMonth() + 1)
         .maybeSingle();
       
-      setAdjPrev(prevSettlement?.adj_next || 0);
+      setMesAnterior(nextSettlement?.mes_anterior || 0); // El adelanto para el mes que viene
 
-      // 3. Cargar Desglose de la tabla de pruebas
+      // 3. Cargar Desglose de la tabla de producción
       const { data: breakdown } = await supabase
-        .from('test_ssi_monthly_breakdown')
+        .from('ssi_monthly_breakdown')
         .select('*')
         .eq('year', yy)
         .eq('month', mm);
@@ -111,6 +113,8 @@ export default function TestSSIView() {
       // 4. Combinar con las actividades
       const ssiActivities = allActivities.filter(a => a.is_ssi_active || MUST_SHOW_NAMES.includes(a.name));
       const result = [];
+
+
 
       ssiActivities.forEach(act => {
         const bdItem = breakdown?.find(b => b.activity_id === act.id);
@@ -200,9 +204,9 @@ export default function TestSSIView() {
       return item;
     }));
 
-    // Guardar en la base de datos (test_ssi_monthly_breakdown)
+    // Guardar en la base de datos (ssi_monthly_breakdown)
     await supabase
-      .from('test_ssi_monthly_breakdown')
+      .from('ssi_monthly_breakdown')
       .upsert({
         year: selectedYear,
         month: selectedMonth + 1,
@@ -210,27 +214,60 @@ export default function TestSSIView() {
         manual_adjustment: val
       }, { onConflict: 'year,month,activity_id' });
     
-    // El trigger en la BD actualizará el total en test_supplier_settlements
+    // El trigger en la BD actualizará el total en supplier_settlements
     // Recargamos los datos para estar seguros
     setTimeout(() => fetchData(true), 500);
   };
 
   const saveSettlement = async (next, manual) => {
-    const payload = {
+    // 1. Guardar Pagado en el MES ACTUAL
+    const currentPayload = {
       supplier_name: 'SSI',
       year: selectedYear,
       month: selectedMonth + 1,
       paid_amount: manual,
-      adj_next: next,
       updated_at: new Date().toISOString()
     };
 
     if (settlementId) {
-      await supabase.from('test_supplier_settlements').update(payload).eq('id', settlementId);
+      await supabase.from('supplier_settlements').update(currentPayload).eq('id', settlementId);
     } else {
-      const { data } = await supabase.from('test_supplier_settlements').insert(payload).select().single();
+      const { data } = await supabase.from('supplier_settlements').insert(currentPayload).select().single();
       if (data) setSettlementId(data.id);
     }
+
+    // 2. Guardar Adelanto (mes_anterior) en el MES SIGUIENTE
+    const nextDate = new Date(selectedYear, selectedMonth + 1, 1);
+    const nextPayload = {
+      supplier_name: 'SSI',
+      year: nextDate.getFullYear(),
+      month: nextDate.getMonth() + 1,
+      mes_anterior: next,
+      updated_at: new Date().toISOString()
+    };
+
+    // Buscamos si ya existe la fila del mes siguiente
+    const { data: nextRow } = await supabase
+      .from('supplier_settlements')
+      .select('id')
+      .eq('supplier_name', 'SSI')
+      .eq('year', nextPayload.year)
+      .eq('month', nextPayload.month)
+      .maybeSingle();
+
+    if (nextRow) {
+      await supabase.from('supplier_settlements').update({ mes_anterior: next }).eq('id', nextRow.id);
+    } else {
+      await supabase.from('supplier_settlements').insert(nextPayload);
+    }
+
+    console.log('DEBUG - Saved settlement (Current and Next month)');
+    
+    // Forzar recuento del mes actual para que aplique el nuevo total_amount
+    setTimeout(() => {
+      supabase.rpc('func_recount_ssi_month', { p_year: selectedYear, p_month: selectedMonth + 1 });
+      fetchData(true);
+    }, 500);
   };
 
   const saveConfig = async (orderedActivities) => {
@@ -287,6 +324,8 @@ export default function TestSSIView() {
         handlePrevMonth={handlePrevMonth}
         handleNextMonth={handleNextMonth}
         setShowConfigModal={setShowConfigModal}
+        setSelectedMonth={setSelectedMonth}
+        setSelectedYear={setSelectedYear}
       />
 
       {/* Main Content Area */}
@@ -300,12 +339,12 @@ export default function TestSSIView() {
           />
 
           <SSISidebar 
-            adjNext={adjNext}
-            adjPrev={adjPrev}
+            mesAnterior={mesAnterior}
+            saldoMesAnterior={saldoMesAnterior}
             manualPaid={manualPaid}
             totalSsi={totalSsi}
             adjustmentsTotal={adjustmentsTotal}
-            setAdjNext={setAdjNext}
+            setMesAnterior={setMesAnterior}
             setManualPaid={setManualPaid}
             saveSettlement={saveSettlement}
           />

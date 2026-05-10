@@ -8,8 +8,7 @@ import InsuranceView from './views/InsuranceView';
 import AdminSettings from './views/AdminSettings';
 import Billing from './views/Billing';
 import Expenses from './views/Expenses';
-import SSIView from './views/SSIView';
-import TestSSIView from './views/SSI/test_SSIView';
+import SSIView from './views/SSI/SSIView';
 import StaffSettlement from './views/StaffSettlement';
 import PartnersPayouts from './views/PartnersPayouts';
 import Carabao_Header from './views/Carabao/Carabao_Header';
@@ -52,7 +51,6 @@ export default function Dashboard({ user }) {
       case 'billing': return <Billing isSidebarCollapsed={isSidebarCollapsed} />;
       case 'expenses': return <Expenses />;
       case 'ssi': return <SSIView />;
-      case 'test-ssi': return <TestSSIView />;
       case 'staff-settlement': return <StaffSettlement />;
       case 'partners-payouts': return <PartnersPayouts />;
       case 'supplier-payout': return <Carabao_Header />;
