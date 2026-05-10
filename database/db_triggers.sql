@@ -92,13 +92,13 @@ DROP TRIGGER IF EXISTS trg_sync_suppliers_to_report ON public.supplier_settlemen
 CREATE TRIGGER trg_sync_suppliers_to_report AFTER INSERT OR UPDATE OR DELETE ON public.supplier_settlements FOR EACH ROW EXECUTE FUNCTION logic.trg_sync_total_gastos_to_report();
 
 -- --------------------------------------------------------------------------------
--- Table: invoice_items (Test SSI)
+-- Table: invoice_items (SSI Breakdown)
 -- --------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS test_trg_sync_invoice_to_ssi ON public.invoice_items;
-CREATE TRIGGER test_trg_sync_invoice_to_ssi AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.test_func_trigger_invoice_to_ssi();
+DROP TRIGGER IF EXISTS trg_sync_invoice_to_ssi ON public.invoice_items;
+CREATE TRIGGER trg_sync_invoice_to_ssi AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.func_trigger_invoice_to_ssi();
 
 -- --------------------------------------------------------------------------------
--- Table: test_ssi_monthly_breakdown
+-- Table: ssi_monthly_breakdown
 -- --------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS test_trg_update_settlement ON public.test_ssi_monthly_breakdown;
-CREATE TRIGGER test_trg_update_settlement AFTER INSERT OR UPDATE OR DELETE ON public.test_ssi_monthly_breakdown FOR EACH ROW EXECUTE FUNCTION logic.test_func_update_settlement();
+DROP TRIGGER IF EXISTS trigger_update_ssi_total ON public.ssi_monthly_breakdown;
+CREATE TRIGGER trigger_update_ssi_total AFTER INSERT OR UPDATE OR DELETE ON public.ssi_monthly_breakdown FOR EACH ROW EXECUTE FUNCTION update_ssi_total_amount();

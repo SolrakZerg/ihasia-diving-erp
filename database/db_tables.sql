@@ -276,3 +276,17 @@
 -- invoice_config (jsonb)
 -- total_amount (numeric)
 -- pending_amount (numeric)
+
+-- Table: ssi_monthly_breakdown
+-- --------------------------------------------------------------------------------
+-- id (uuid, NO NULL)
+-- year (integer, NO NULL)
+-- month (integer, NO NULL)
+-- activity_id (uuid)
+-- system_quantity (integer)
+-- manual_adjustment (integer)
+-- unidades_reales (integer, GENERATED)
+-- unit_cost (numeric)
+-- total_fila (numeric, GENERATED)
+-- created_at (timestamp with time zone)
+-- updated_at (timestamp with time zone)

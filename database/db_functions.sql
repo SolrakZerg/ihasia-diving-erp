@@ -36,10 +36,10 @@ BEGIN
   FROM customers c
   WHERE (
     SELECT bool_and(
-      unaccent(COALESCE(c.first_name, '')) ILIKE unaccent('%' || t || '%') OR 
-      unaccent(COALESCE(c.last_name, '')) ILIKE unaccent('%' || t || '%') OR 
-      unaccent(COALESCE(c.email, '')) ILIKE unaccent('%' || t || '%') OR
-      unaccent(COALESCE(c.passport_number, '')) ILIKE unaccent('%' || t || '%')
+      extensions.unaccent(COALESCE(c.first_name, '')) ILIKE extensions.unaccent('%' || t || '%') OR 
+      extensions.unaccent(COALESCE(c.last_name, '')) ILIKE extensions.unaccent('%' || t || '%') OR 
+      extensions.unaccent(COALESCE(c.email, '')) ILIKE extensions.unaccent('%' || t || '%') OR
+      extensions.unaccent(COALESCE(c.passport_number, '')) ILIKE extensions.unaccent('%' || t || '%')
     )
     FROM unnest(tokens) t
   )
@@ -61,17 +61,13 @@ CREATE OR REPLACE FUNCTION public.get_duplicate_customers()
 AS $function$
 BEGIN
     RETURN QUERY
-    SELECT c.*
-    FROM customers c
+    SELECT c.* FROM customers c
     WHERE EXISTS (
-        SELECT 1
-        FROM customers c2
-        WHERE c2.id <> c.id
+        SELECT 1 FROM customers c2 WHERE c2.id <> c.id
           AND LOWER(TRIM(c2.email)) = LOWER(TRIM(c.email))
           AND LOWER(TRIM(c2.first_name)) = LOWER(TRIM(c.first_name))
           AND LOWER(TRIM(c2.last_name)) = LOWER(TRIM(c.last_name))
-    )
-    ORDER BY c.email, c.created_at;
+    ) ORDER BY c.email, c.created_at;
 END;
 $function$;
 
@@ -619,114 +615,80 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: logic.test_func_recount_ssi_month
--- Description: Recalculates all SSI activities for a specific month.
+-- Function: logic.func_trigger_invoice_to_ssi
+-- Description: Trigger that calculates SSI breakdown when invoice items change (UPSERT).
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION logic.test_func_recount_ssi_month(p_year integer, p_month integer)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
-AS $function$
-BEGIN
-    DELETE FROM public.test_ssi_monthly_breakdown 
-    WHERE year = p_year AND month = p_month;
-
-    INSERT INTO public.test_ssi_monthly_breakdown (year, month, activity_id, system_quantity)
-    SELECT 
-        p_year, 
-        p_month, 
-        ii.activity_id,
-        SUM(ii.quantity)
-    FROM public.invoice_items ii
-    JOIN public.activities a ON ii.activity_id = a.id
-    WHERE a.is_ssi_active = true
-      AND (
-        (EXTRACT(YEAR FROM ii.date) = p_year AND EXTRACT(MONTH FROM ii.date) = p_month)
-        OR 
-        (ii.date IS NULL AND 
-         EXTRACT(YEAR FROM (SELECT created_at FROM public.invoices WHERE id = ii.invoice_id)) = p_year AND 
-         EXTRACT(MONTH FROM (SELECT created_at FROM public.invoices WHERE id = ii.invoice_id)) = p_month)
-      )
-    GROUP BY ii.activity_id;
-END;
-$function$;
-
--- --------------------------------------------------------------------------------
--- Function: logic.test_func_trigger_invoice_to_ssi
--- Description: Trigger that calls recount_ssi_month when invoice items change.
--- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION logic.test_func_trigger_invoice_to_ssi()
+CREATE OR REPLACE FUNCTION logic.func_trigger_invoice_to_ssi()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
 AS $function$
 DECLARE
     v_date DATE;
-    v_old_date DATE;
     v_year INTEGER;
     v_month INTEGER;
-    v_old_year INTEGER;
-    v_old_month INTEGER;
 BEGIN
+    -- 1. Obtener la fecha de la factura afectada
     IF (TG_OP = 'DELETE') THEN
         v_date := OLD.date;
         IF (v_date IS NULL) THEN
             SELECT created_at::DATE INTO v_date FROM public.invoices WHERE id = OLD.invoice_id;
         END IF;
-        v_year := EXTRACT(YEAR FROM v_date)::INTEGER;
-        v_month := EXTRACT(MONTH FROM v_date)::INTEGER;
-        PERFORM logic.test_func_recount_ssi_month(v_year, v_month);
-        RETURN OLD;
+    ELSE
+        v_date := NEW.date;
+        IF (v_date IS NULL) THEN
+            SELECT created_at::DATE INTO v_date FROM public.invoices WHERE id = NEW.invoice_id;
+        END IF;
     END IF;
 
-    v_date := NEW.date;
-    IF (v_date IS NULL) THEN
-        SELECT created_at::DATE INTO v_date FROM public.invoices WHERE id = NEW.invoice_id;
+    IF (v_date IS NULL) THEN 
+        IF (TG_OP = 'DELETE') THEN RETURN OLD; ELSE RETURN NEW; END IF;
     END IF;
+
     v_year := EXTRACT(YEAR FROM v_date)::INTEGER;
     v_month := EXTRACT(MONTH FROM v_date)::INTEGER;
 
-    IF (TG_OP = 'INSERT') THEN
-        PERFORM logic.test_func_recount_ssi_month(v_year, v_month);
-        RETURN NEW;
-    END IF;
+    -- 2. Resetear system_quantity a 0 para todas las actividades de ese mes
+    UPDATE public.ssi_monthly_breakdown 
+    SET system_quantity = 0 
+    WHERE year = v_year AND month = v_month;
 
-    IF (TG_OP = 'UPDATE') THEN
-        IF (OLD.activity_id IS DISTINCT FROM NEW.activity_id OR
-            OLD.quantity IS DISTINCT FROM NEW.quantity OR
-            OLD.date IS DISTINCT FROM NEW.date) THEN
-            
-            v_old_date := OLD.date;
-            IF (v_old_date IS NULL) THEN
-                SELECT created_at::DATE INTO v_old_date FROM public.invoices WHERE id = OLD.invoice_id;
-            END IF;
-            v_old_year := EXTRACT(YEAR FROM v_old_date)::INTEGER;
-            v_old_month := EXTRACT(MONTH FROM v_old_date)::INTEGER;
-            
-            IF (v_old_year != v_year OR v_old_month != v_month) THEN
-                PERFORM logic.test_func_recount_ssi_month(v_old_year, v_old_month);
-            END IF;
-            PERFORM logic.test_func_recount_ssi_month(v_year, v_month);
-        END IF;
-        RETURN NEW;
-    END IF;
-    RETURN NULL;
+    -- 3. Calcular e Insertar/Actualizar los totales reales de las facturas
+    INSERT INTO public.ssi_monthly_breakdown (year, month, activity_id, system_quantity, unit_cost)
+    SELECT 
+        v_year, 
+        v_month, 
+        ii.activity_id,
+        SUM(ii.quantity),
+        COALESCE(a.ssi_cost_thb, 0)
+    FROM public.invoice_items ii
+    JOIN public.activities a ON ii.activity_id = a.id
+    WHERE a.is_ssi_active = true
+      AND EXTRACT(YEAR FROM ii.date) = v_year 
+      AND EXTRACT(MONTH FROM ii.date) = v_month
+    GROUP BY ii.activity_id, a.ssi_cost_thb
+    ON CONFLICT (year, month, activity_id) 
+    DO UPDATE SET 
+        system_quantity = EXCLUDED.system_quantity,
+        unit_cost = EXCLUDED.unit_cost;
+
+    IF (TG_OP = 'DELETE') THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: logic.test_func_update_settlement
--- Description: Trigger that updates supplier settlements when ssi breakdown changes.
+-- Table: ssi_monthly_breakdown (Total Calculation)
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION logic.test_func_update_settlement()
+CREATE OR REPLACE FUNCTION public.update_ssi_total_amount()
  RETURNS trigger
  LANGUAGE plpgsql
+ SECURITY DEFINER
 AS $function$
 DECLARE
-    v_total NUMERIC;
-    v_year INTEGER;
-    v_month INTEGER;
+    v_year integer;
+    v_month integer;
 BEGIN
+    -- Detectar si es un borrado o una inserción/actualización
     IF (TG_OP = 'DELETE') THEN
         v_year := OLD.year;
         v_month := OLD.month;
@@ -735,19 +697,56 @@ BEGIN
         v_month := NEW.month;
     END IF;
 
-    SELECT COALESCE(SUM(total_fila), 0) INTO v_total
-    FROM public.test_ssi_monthly_breakdown
-    WHERE year = v_year AND month = v_month;
-
-    INSERT INTO public.test_supplier_settlements (year, month, supplier_name, total_amount)
-    VALUES (v_year, v_month, 'SSI', v_total)
-    ON CONFLICT (year, month, supplier_name)
-    DO UPDATE SET total_amount = EXCLUDED.total_amount, updated_at = NOW();
-
-    IF (TG_OP = 'DELETE') THEN
-        RETURN OLD;
-    ELSE
-        RETURN NEW;
+    -- Si no hay año o mes, no hacemos nada
+    IF (v_year IS NULL OR v_month IS NULL) THEN
+        IF (TG_OP = 'DELETE') THEN RETURN OLD; ELSE RETURN NEW; END IF;
     END IF;
+
+    -- Llamar a nuestra función de recuento que sí resta el mes anterior
+    PERFORM logic.func_recount_ssi_month(v_year, v_month);
+
+    IF (TG_OP = 'DELETE') THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $function$;
+
+-- --------------------------------------------------------------------------------
+-- Table: ssi_monthly_breakdown (Recount)
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.func_recount_ssi_month(p_year integer, p_month integer)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+  v_calculated_total numeric;
+  v_adj_prev numeric;
+  v_impact numeric;
+  v_total numeric;
+BEGIN
+  -- 1. Sumar los totales de las filas
+  SELECT COALESCE(SUM(total_fila), 0)
+  INTO v_calculated_total
+  FROM public.ssi_monthly_breakdown
+  WHERE year = p_year AND month = p_month;
+  
+  -- 2. Leer el ajuste (mes_anterior) de la fila del MES ACTUAL
+  SELECT COALESCE(mes_anterior, 0)
+  INTO v_adj_prev
+  FROM public.supplier_settlements
+  WHERE supplier_name = 'SSI'
+  AND year = p_year AND month = p_month;
+  
+  -- 3. Calcular impacto
+  v_impact := v_adj_prev * 1067;
+  
+  -- 4. Total = Calculado - Impacto
+  v_total := v_calculated_total - v_impact;
+  
+  -- 5. Actualizar supplier_settlements
+  UPDATE public.supplier_settlements
+  SET total_amount = v_total
+  WHERE supplier_name = 'SSI' AND year = p_year AND month = p_month;
+END;
+$function$;
+
+
