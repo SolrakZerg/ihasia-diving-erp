@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import Overview from './views/Overview';
 import Activities from './views/Activities';
 import CustomerTable from './views/CustomerTable';
-import InsuranceView from './views/InsuranceView';
+import InsuranceView from './views/Insurance/InsuranceView';
 import AdminSettings from './views/AdminSettings';
 import Billing from './views/Billing';
 import Expenses from './views/Expenses';
