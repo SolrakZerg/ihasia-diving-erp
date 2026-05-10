@@ -62,6 +62,8 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
         
         <InsuranceTable 
           customers={customers}
+          paxBalance={paxBalance}
+
           addSearchQuery={addSearchQuery}
           setAddSearchQuery={setAddSearchQuery}
           isSearching={isSearching}

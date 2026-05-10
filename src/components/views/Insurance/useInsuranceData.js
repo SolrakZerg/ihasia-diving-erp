@@ -41,17 +41,7 @@ export const useInsuranceData = (initialSelectedIds) => {
       const q = addSearchQuery.trim();
       
       try {
-        // Fallback to direct query if RPC fails is handled in service if we wanted, 
-        // but here we use the service directly or keep the inline search if preferred.
-        // Let's keep it simple and use a service function if we had it, 
-        // or just use supabase directly as in the original.
-        // To keep it clean, let's assume we can use the service or supabase directly.
-        // The original used RPC then fallback. Let's keep that logic here or move it to service.
-        // Let's move it to service to be consistent!
-        
-        // Wait, I didn't add search to service. Let's add it or use supabase here.
-        // Let's use supabase directly here to avoid recreating the file, or add it.
-        // Let's use supabase directly here as it was in the original lines 48-57.
+        // Buscar clientes usando la función RPC de Supabase
         const { data } = await supabase.rpc('search_customers_v3', { query_text: q });
         setAddResults(data || []);
       } catch (e) {

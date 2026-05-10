@@ -46,8 +46,9 @@ export default function InsuranceSidebar({ historyBatches, onViewPDF }) {
 
                 {/* Tooltip Personalizado */}
                 {batch.customer_list && (
-                  <div className="hidden group-hover:block absolute top-0 right-0 w-[250px] z-50 bg-surface-soft border border-surface-edge p-4 rounded-xl shadow-2xl">
+                  <div className="hidden group-hover:block absolute top-full left-0 mt-2 w-full z-50 bg-surface-soft border border-surface-edge p-4 rounded-xl shadow-2xl">
                     <ul className="space-y-1.5">
+
                       {batch.customer_list.map((c, idx) => (
                         <li key={idx} className="text-base text-white font-medium truncate" title={c.name}>
                           {c.name}
