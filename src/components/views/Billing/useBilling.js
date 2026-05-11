@@ -551,10 +551,24 @@ export function useBilling() {
       const sorted = (data || []).map(inv => ({
         ...inv,
         invoice_items: [...(inv.invoice_items || [])].sort((a, b) => {
+          // 1. Categoría (Course=1, Fun Dive=2, Fee=3, Pro=4...) — extrae extras del medio
+          const catP = { 'Course': 1, 'Fun Dive': 2, 'Fee': 3, 'Pro': 4, 'Snorkeling': 5, 'Retail': 6 };
+          const cA = catP[a.activities?.category] || 99;
+          const cB = catP[b.activities?.category] || 99;
+          if (cA !== cB) return cA - cB;
+          // 2. Nombre de actividad — agrupa actividades iguales
+          const actA = a.activities?.name || '', actB = b.activities?.name || '';
+          if (actA !== actB) return actA.localeCompare(actB);
+          // 3. Instructor — alumnos del mismo profe juntos
+          const iA = a.staff?.initials || '', iB = b.staff?.initials || '';
+          if (iA !== iB) return iA.localeCompare(iB);
+          // 4. Nombre del cliente
           const nA = a.customers?.first_name || a.temporary_name || '', nB = b.customers?.first_name || b.temporary_name || '';
           if (nA !== nB) return nA.localeCompare(nB);
+          // 5. Fecha
           if (!a.date && b.date) return 1; if (a.date && !b.date) return -1;
           if (a.date !== b.date) return a.date.localeCompare(b.date);
+          // 6. Desempate final
           return String(a.id).localeCompare(String(b.id));
         })
       })).sort((a, b) => {
