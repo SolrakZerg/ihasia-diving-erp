@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import Sidebar from './Sidebar';
 import Overview from './views/Overview';
 import Activities from './views/Activities';
-import CustomerTable from './views/CustomerTable';
+import Customers_View from './views/Customers/Customers_View';
 import InsuranceView from './views/Insurance/InsuranceView';
 import AdminSettings from './views/AdminSettings';
 import Billing from './views/Billing/Billing';
@@ -45,7 +45,7 @@ export default function Dashboard({ user }) {
   const renderView = () => {
     switch (activeView) {
       case 'overview': return <Overview />;
-      case 'customers': return <CustomerTable onNavigate={navigateTo} />;
+      case 'customers': return <Customers_View onNavigate={navigateTo} />;
       case 'insurance': return <InsuranceView initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
       case 'settings': return <AdminSettings />;
       case 'billing': return <Billing isSidebarCollapsed={isSidebarCollapsed} />;
