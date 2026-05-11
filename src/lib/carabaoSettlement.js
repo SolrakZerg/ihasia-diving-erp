@@ -145,8 +145,8 @@ export const recalculateCarabaoSettlement = async (month, year) => {
       payload.paid_amount = 0;
       await supabase.from('supplier_settlements').insert(payload);
     }
-    
-    console.log(`[Carabao] Recalculated total for ${month}/${year}: ${grandTotal}`);
+
+
 
   } catch (error) {
     console.error("[Carabao] Error recalculating settlement:", error);

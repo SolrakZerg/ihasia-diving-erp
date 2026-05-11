@@ -174,10 +174,8 @@ export default function Billing_GridRow({
         String(it.id) === String(itemId) ? { ...it, ...optimisticItemUpdates } : it
       ));
 
-      console.log("[DB] Updating item", itemId, "with", updates);
       const { error } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
-      if (error) { console.error("[DB] Error updating item:", error); throw error; }
-      console.log("[DB] Update confirmed for", itemId);
+      if (error) throw error;
 
       const targetDateStr = updates.date || item.date || invoice.created_at;
       if (targetDateStr) {

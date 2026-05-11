@@ -49,7 +49,6 @@ export default function Billing_GridRow_CustomerSearchInput({
       try {
         setError(null);
         const q = query.trim();
-        console.log(`[Search] Querying: "${q}"`);
 
         let data = null;
 
@@ -58,7 +57,6 @@ export default function Billing_GridRow_CustomerSearchInput({
           const { data: rpcData, error: rpcErr } = await supabase.rpc('search_customers_v3', { query_text: q });
           if (!rpcErr && rpcData) {
             data = rpcData;
-            console.log(`[Search] RPC success: ${data.length} results`);
           } else if (rpcErr) {
             console.warn('[Search] RPC failed, falling back:', rpcErr.message);
           }
@@ -76,7 +74,6 @@ export default function Billing_GridRow_CustomerSearchInput({
 
           if (!dirErr && directData) {
             data = directData;
-            console.log(`[Search] Direct fallback success: ${data.length} results`);
           } else if (dirErr) {
             console.error('[Search] Direct query failed:', dirErr.message);
             setError('Error en búsqueda');
@@ -100,7 +97,6 @@ export default function Billing_GridRow_CustomerSearchInput({
   const handleSaveTemporary = async () => {
     if (isSavingLocal.current) return;
     isSavingLocal.current = true;
-    console.log('[Search] Saving temporary name:', query);
     await handleItemUpdate(item, 'temporary_name', query.trim());
     onCancel();
   };
@@ -149,14 +145,12 @@ export default function Billing_GridRow_CustomerSearchInput({
                     if (isSavingLocal.current) return;
                     isSavingLocal.current = true;
 
-                    console.log('[Search] SELECTING CUSTOMER:', c.first_name, c.id);
                     try {
                       await handleItemUpdate(item, {
                         customer_id: c.id,
                         temporary_name: null,
                         _customer: c,
                       });
-                      console.log('[Search] Update successful for:', c.first_name);
                     } catch (err) {
                       console.error('[Search] Update FAILED:', err);
                       alert('Error al vincular: ' + err.message);
