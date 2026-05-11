@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import { useState, useRef, memo } from 'react';
 import { Settings, X, Save, Palette, Type, Layout, Coins } from 'lucide-react';
 
 // Memorizamos los inputs para que no se re-rendericen mientras el usuario arrastra el ratón

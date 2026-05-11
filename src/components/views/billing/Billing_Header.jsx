@@ -8,7 +8,7 @@ import Billing_Header_Caja          from './Billing_Header_Caja';
 import Billing_Header_Finanzas      from './Billing_Header_Finanzas';
 import Billing_Header_Filtros       from './Billing_Header_Filtros';
 import Billing_Header_ConfigModal   from './Billing_Header_ConfigModal';
-import ThemeSettings                from './ThemeSettings';
+import Billing_ThemeSettings              from './Billing_ThemeSettings';
 
 export default function Billing_Header({
   // Llegadas
@@ -274,7 +274,7 @@ export default function Billing_Header({
 
       {/* ── MODAL: TEMAS ── */}
       {showThemeSettings && (
-        <ThemeSettings onClose={() => setShowThemeSettings(false)} />
+        <Billing_ThemeSettings onClose={() => setShowThemeSettings(false)} />
       )}
     </>
   );

@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import { Search, CheckCircle2, X, Loader2, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useBilling } from './useBilling';
 import Billing_Header from './Billing_Header';
-import BillingActionBar from './BillingActionBar';
+import Billing_ActionBar from './Billing_ActionBar';
 import Billing_GridRow from './Billing_GridRow';
-import { useColumnResize, MIN_WIDTHS } from './useColumnResize';
+import { useColumnResize, MIN_WIDTHS } from './useBilling_ColumnResize';
 
 // Resize handle rendered inside each <th>
 const ResizeHandle = ({ onMouseDown }) => (
@@ -292,7 +292,7 @@ export default function Billing({ isSidebarCollapsed }) {
         )}
       </div>
 
-      <BillingActionBar
+      <Billing_ActionBar
         selectedItemIds={selectedItemIds}
         setSelectedItemIds={setSelectedItemIds}
         selectedMonth={billing.selectedMonth}
