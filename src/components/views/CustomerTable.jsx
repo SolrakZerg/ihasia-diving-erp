@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { Search, MapPin, Calendar, Award, Activity, Filter, User, ChevronRight, Phone, ChevronLeft, ChevronsLeft, ChevronsRight, Pencil, Trash2, Copy, LayoutList, LayoutGrid, Globe, Heart, Hash, CreditCard, Send, ShieldCheck, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import CustomerDetailDrawer from './CustomerDetailDrawer';
 import CustomerFormModal from './CustomerFormModal';
+import { addCustomersToBilling } from './billing/billingHelpers';
 
 const PAGE_SIZE = 50;
 
@@ -235,44 +236,7 @@ export default function CustomerTable({ onNavigate }) {
       if (fetchErr) throw fetchErr;
       if (!selectedCustomers) return;
       
-      for (const cust of selectedCustomers) {
-        // 1. Check for existing 'Open' invoice for this customer
-        const { data: existingInvoices, error: checkErr } = await supabase
-          .from('invoices')
-          .select('id')
-          .eq('customer_id', cust.id)
-          .eq('status', 'Open')
-          .limit(1);
-
-        if (checkErr) throw checkErr;
-
-        let invoiceId;
-        if (existingInvoices && existingInvoices.length > 0) {
-          invoiceId = existingInvoices[0].id;
-        } else {
-          const { data: invData, error: invErr } = await supabase.from('invoices').insert({
-            customer_id: cust.id,
-            status: 'Open'
-          }).select().single();
-
-          if (invErr) throw invErr;
-          invoiceId = invData.id;
-        }
-
-        // 2. Create invoice item with NULL date
-        // Forzamos NULL para que aparezca con aviso rojo en Facturación
-        const { error: itemErr } = await supabase.from('invoice_items').insert({
-          invoice_id: invoiceId,
-          customer_id: cust.id,
-          date: null, // <--- Forzamos validación manual
-          quantity: 1,
-          unit_price_thb: 0,
-          total_thb: 0,
-          status: 'Pending'
-        });
-
-        if (itemErr) throw itemErr;
-      }
+      await addCustomersToBilling(selectedCustomers);
 
       setToastMsg(`${selectedIds.size} buceadores enviados a facturación.`);
       setShowToast(true);

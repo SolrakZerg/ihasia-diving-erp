@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import { addCustomersToBilling } from './billingHelpers';
 
 export function useBilling() {
   const [todayArrivals, setTodayArrivals] = useState([]);
@@ -599,20 +600,16 @@ export function useBilling() {
   const handleAddArrivalsToTable = async () => {
     if (selectedArrivalIds.size === 0) return;
     try {
+      const customersToAdd = [];
       for (const arrId of selectedArrivalIds) {
         const cust = todayArrivals.find(a => a.id === arrId);
-        const { data: existing, error: checkErr } = await supabase.from('invoices').select('id').eq('customer_id', cust.id).eq('status', 'Open').limit(1);
-        if (checkErr) throw checkErr;
-        let invoiceId;
-        if (existing && existing.length > 0) { invoiceId = existing[0].id; }
-        else {
-          const { data: inv, error: invErr } = await supabase.from('invoices').insert({ customer_id: cust.id, status: 'Open' }).select().single();
-          if (invErr) throw invErr;
-          invoiceId = inv.id;
-        }
-        const { error: itemErr } = await supabase.from('invoice_items').insert({ invoice_id: invoiceId, customer_id: cust.id, date: null, quantity: 1, unit_price_thb: 0, total_thb: 0, status: 'Pending' });
-        if (itemErr) throw itemErr;
+        if (cust) customersToAdd.push(cust);
       }
+      
+      await addCustomersToBilling(customersToAdd);
+      
+      setToast(`Se han añadido ${selectedArrivalIds.size} clientes a la mesa.`);
+      sessionStorage.setItem('shouldScrollToBottom', 'true');
     } catch (err) { console.error('Error adding arrivals:', err); alert('Error: ' + err.message); }
     setSelectedArrivalIds(new Set());
     fetchInvoices(false);
@@ -825,7 +822,7 @@ export function useBilling() {
     bulkInstructor, setBulkInstructor, bulkGroupAction, setBulkGroupAction,
     isSavingCash, dateInputRef,
     actualCash, stats, displayedInvoices, activityStats, expectedCash, diffCash,
-    handleToggleSelection, changeArrivalsDate, fetchInvoices,
+    handleToggleSelection, changeArrivalsDate, handleAddArrivalsToTable,
     handleDeleteItems, handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
     handleApplyBulkChanges, handleCopyEmails,
     patchInvoiceItem, fetchCatalogs, monthlyDbData,

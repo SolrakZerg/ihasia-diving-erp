@@ -83,11 +83,12 @@ CREATE OR REPLACE FUNCTION public.sync_monthly_activity_logs(p_year integer, p_m
  SET search_path TO 'public'
 AS $function$
 BEGIN
-    -- 1. Borrar registros existentes para ese mes/año (Limpieza total)
-    DELETE FROM public.monthly_activity_logs
+    -- 1. Poner a 0 todas las cantidades de ese mes (para limpiar actividades que se hayan quedado sin reservas)
+    UPDATE public.monthly_activity_logs
+    SET count = 0, updated_at = NOW()
     WHERE year = p_year AND month = p_month;
 
-    -- 2. Insertar solo si hay datos y el contador es mayor que 0
+    -- 2. Insertar o actualizar con los datos reales usando ON CONFLICT
     IF p_data IS NOT NULL AND jsonb_array_length(p_data) > 0 THEN
         INSERT INTO public.monthly_activity_logs (year, month, activity_id, count, updated_at)
         SELECT 
@@ -97,8 +98,16 @@ BEGIN
             (item->>'count')::INT, 
             NOW()
         FROM jsonb_array_elements(p_data) AS item
-        WHERE (item->>'count')::INT > 0;
+        WHERE (item->>'count')::INT > 0
+        ON CONFLICT (year, month, activity_id) 
+        DO UPDATE SET 
+            count = EXCLUDED.count, 
+            updated_at = NOW();
     END IF;
+
+    -- 3. Borrar las filas que hayan quedado a 0 para mantener la tabla limpia
+    DELETE FROM public.monthly_activity_logs 
+    WHERE year = p_year AND month = p_month AND count = 0;
 END;
 $function$;
 
