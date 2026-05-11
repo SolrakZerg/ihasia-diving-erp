@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { addCustomersToBilling } from './billingHelpers';
+import { addCustomersToBilling } from '../../common/billingHelpers';
 
 export function useBilling() {
   const [todayArrivals, setTodayArrivals] = useState([]);

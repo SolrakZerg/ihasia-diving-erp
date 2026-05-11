@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 /**
  * Adds an array of customers to billing.

@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { Search, MapPin, Calendar, Award, Activity, Filter, User, ChevronRight, Phone, ChevronLeft, ChevronsLeft, ChevronsRight, Pencil, Trash2, Copy, LayoutList, LayoutGrid, Globe, Heart, Hash, CreditCard, Send, ShieldCheck, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import CustomerDetailDrawer from './CustomerDetailDrawer';
 import CustomerFormModal from './CustomerFormModal';
-import { addCustomersToBilling } from './billing/billingHelpers';
+import { addCustomersToBilling } from '../common/billingHelpers';
 
 const PAGE_SIZE = 50;
 
