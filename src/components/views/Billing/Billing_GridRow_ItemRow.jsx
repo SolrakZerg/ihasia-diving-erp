@@ -1,7 +1,8 @@
-import { ChevronDown, AlertTriangle, Coins, Trash2, LogOut } from 'lucide-react';
+import { ChevronDown, Coins, Trash2, LogOut } from 'lucide-react';
 import Billing_GridRow_DateCell             from './Billing_GridRow_DateCell';
 import Billing_GridRow_SmartActivitySelect  from './Billing_GridRow_SmartActivitySelect';
 import Billing_GridRow_CustomerSearchInput  from './Billing_GridRow_CustomerSearchInput';
+import Billing_GridRow_InstructorSelect    from './Billing_GridRow_InstructorSelect';
 
 // CSS class for the right-border accent driven by the parent row's CSS variable
 const rb = 'border-r-4 border-r-[var(--group-color)]';
@@ -218,28 +219,13 @@ export default function Billing_GridRow_ItemRow({
       <td className={`px-1 py-0 border-r border-gray-100 ${
         !item.instructor_id && !isStaffDisabled ? 'bg-red-500/10' : 'bg-white'
       } ${bLine}`}>
-        <div className="relative group/instr flex items-center justify-center h-full">
-          {!item.instructor_id && !isStaffDisabled && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Falta Instructor" />
-            </div>
-          )}
-          <select
-            value={item.instructor_id || ''}
-            onChange={(e) => handleItemUpdate(item, 'instructor_id', e.target.value || null)}
-            disabled={isStaffDisabled}
-            title={isStaffDisabled ? `Staff no disponible para ${act?.category}` : "Asignar Instructor"}
-            className={`bg-transparent text-sm font-black w-full h-6 text-center outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm transition-opacity py-0 relative z-10 ${
-              isStaffDisabled ? 'opacity-20 cursor-not-allowed text-gray-400' :
-              (!item.instructor_id && !isStaffDisabled) ? 'text-red-600 animate-pulse appearance-none' : 'text-cyan-700 opacity-100 cursor-pointer'
-            }`}
-          >
-            <option value="" className="text-gray-400"></option>
-            {staff.filter(s => s.active || s.id === item.instructor_id).map(s => (
-              <option key={s.id} value={s.id} className="text-gray-900">{s.initials}</option>
-            ))}
-          </select>
-        </div>
+        <Billing_GridRow_InstructorSelect
+          item={item}
+          staff={staff}
+          isStaffDisabled={isStaffDisabled}
+          act={act}
+          handleItemUpdate={handleItemUpdate}
+        />
       </td>
 
       {/* 14. BIZUM */}
