@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Search, CheckCircle2, X, Loader2, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
-import { useBilling } from './billing/useBilling';
-import BillingHeader from './billing/BillingHeader';
-import BillingActionBar from './billing/BillingActionBar';
+import { supabase } from '../../../lib/supabaseClient';
+import { useBilling } from './useBilling';
+import BillingHeader from './BillingHeader';
+import BillingActionBar from './BillingActionBar';
 import BillingGridRow from './BillingGridRow';
-import { useColumnResize, MIN_WIDTHS } from './billing/useColumnResize';
+import { useColumnResize, MIN_WIDTHS } from './useColumnResize';
 
 // Resize handle rendered inside each <th>
 const ResizeHandle = ({ onMouseDown }) => (

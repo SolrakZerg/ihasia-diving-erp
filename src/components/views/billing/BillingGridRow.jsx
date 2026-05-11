@@ -5,8 +5,8 @@ import {
   CheckCircle2, X, Plus, Unlink, LogOut, Calendar,
   Coins, AlertTriangle
 } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
-import { recalculateCarabaoSettlement } from '../../lib/carabaoSettlement';
+import { supabase } from '../../../lib/supabaseClient';
+import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
 
 const SmartActivitySelect = ({ value, activities = [], onChange, placeholder = "Elegir Actividad..." }) => {
   const [localValue, setLocalValue] = useState(value);
