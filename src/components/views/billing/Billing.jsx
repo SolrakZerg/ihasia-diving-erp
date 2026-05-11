@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { useBilling } from './useBilling';
 import Billing_Header from './Billing_Header';
 import BillingActionBar from './BillingActionBar';
-import BillingGridRow from './BillingGridRow';
+import Billing_GridRow from './Billing_GridRow';
 import { useColumnResize, MIN_WIDTHS } from './useColumnResize';
 
 // Resize handle rendered inside each <th>
