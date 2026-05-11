@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, AlertTriangle, Trash2, Unlink, Plus } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
-import { recalculateCarabaoSettlement } from '../../../scripts/carabaoSettlement';
+import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
 import Billing_GridRow_ItemRow from './Billing_GridRow_ItemRow';
 
 export default function Billing_GridRow({

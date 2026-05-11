@@ -229,7 +229,7 @@ export default function Billing({ isSidebarCollapsed }) {
                 </thead>
                 <tbody className="divide-y divide-white/[0.02]">
                   {billing.displayedInvoices.map((inv, index) => (
-                    <BillingGridRow
+                    <Billing_GridRow
                       key={inv.id}
                       invoice={inv}
                       staff={staff}
