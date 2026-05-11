@@ -7,7 +7,7 @@ import CustomerTable from './views/CustomerTable';
 import InsuranceView from './views/Insurance/InsuranceView';
 import AdminSettings from './views/AdminSettings';
 import Billing from './views/Billing';
-import Expenses from './views/Expenses';
+import Expenses from './views/Expenses/Expenses_View';
 import SSIView from './views/SSI/SSIView';
 import StaffSettlement from './views/StaffSettlement';
 import PartnersPayouts from './views/PartnersPayouts';
