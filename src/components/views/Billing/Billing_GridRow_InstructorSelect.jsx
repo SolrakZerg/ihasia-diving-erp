@@ -130,7 +130,7 @@ export default function Billing_GridRow_InstructorSelect({
           }`}
         >
           <span className="text-sm font-black">{currentStaff?.initials || ''}</span>
-          <ChevronDown className="w-2.5 h-2.5 opacity-0 group-hover/instr:opacity-60 transition-opacity" strokeWidth={3} />
+          <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-0.5" strokeWidth={3} />
         </button>
       )}
     </div>
