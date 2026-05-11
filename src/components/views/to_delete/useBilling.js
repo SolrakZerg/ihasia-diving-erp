@@ -3,10 +3,6 @@ import { supabase } from '../../../lib/supabaseClient';
 import { addCustomersToBilling } from '../../common/billingHelpers';
 
 export function useBilling() {
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 1. ESTADO — todos los useState y useRef del módulo
-  // ══════════════════════════════════════════════════════════════════════════
   const [todayArrivals, setTodayArrivals] = useState([]);
   const [loadingArrivals, setLoadingArrivals] = useState(true);
   const [invoices, setInvoices] = useState([]);
@@ -48,10 +44,6 @@ export function useBilling() {
   const [uiConfig, setUiConfig] = useState(null);
   const dateInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 2. CÁLCULOS DERIVADOS — useMemo y valores calculados sin efectos
-  // ══════════════════════════════════════════════════════════════════════════
 
   const actualCash =
     (Number(bills50000 || 0) * 50000) +
@@ -136,10 +128,6 @@ export function useBilling() {
 
   // ESTADO PARA LOS TOTALES OFICIALES DE LA BD
   const [monthlyDbData, setMonthlyDbData] = useState({ total_courses: 0, total_tanks: 0, total_spec: 0 });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 3. FETCHING DE DATOS — funciones de lectura de la base de datos
-  // ══════════════════════════════════════════════════════════════════════════
 
   // Función para leer los totales de la Vista relacional
   const fetchDbTotals = async (m = selectedMonth, y = selectedYear) => {
@@ -364,10 +352,6 @@ export function useBilling() {
   const expectedCash = dbExpectedCash || stats.balanceCash;
   const diffCash = actualCash - expectedCash;
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // 4. HANDLERS DE SELECCIÓN Y NAVEGACIÓN
-  // ══════════════════════════════════════════════════════════════════════════
-
   const handleToggleSelection = (invoice, index, shiftKey) => {
     const itemIds = invoice.invoice_items?.map(it => it.id) || [];
     if (itemIds.length === 0) return;
@@ -392,10 +376,6 @@ export function useBilling() {
     lastClickedIndex.current = index;
     if (shiftKey) window.getSelection()?.removeAllRanges();
   };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 5. EFECTOS DE CICLO DE VIDA — useEffects de arranque y reacción
-  // ══════════════════════════════════════════════════════════════════════════
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => { fetchCatalogs(); fetchTodayArrivals(); fetchInvoices(true); fetchUIConfig(); }, []);
@@ -440,10 +420,6 @@ export function useBilling() {
     const t = setTimeout(syncReports, 1000);
     return () => clearTimeout(t);
   }, [stats, selectedMonth, selectedYear, loadingInvoices]);
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 6. CASH CONTROL — lectura y guardado de control de caja mensual
-  // ══════════════════════════════════════════════════════════════════════════
 
   const fetchCashControl = async () => {
     try {
@@ -639,10 +615,6 @@ export function useBilling() {
     fetchInvoices(false);
   };
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // 7. HANDLERS DE FACTURAS — operaciones bulk, borrado, extracción, grupos
-  // ══════════════════════════════════════════════════════════════════════════
-
   const handleApplyBulkChanges = async () => {
     if (selectedItemIds.size === 0) return;
     const itemIds = Array.from(selectedItemIds);
@@ -830,10 +802,6 @@ export function useBilling() {
       )
     })));
   };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 8. RETURN — API pública del hook
-  // ══════════════════════════════════════════════════════════════════════════
 
   return {
     todayArrivals, loadingArrivals, invoices, loadingInvoices, sortBy, setSortBy,
