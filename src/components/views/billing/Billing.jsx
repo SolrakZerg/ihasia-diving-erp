@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { Search, CheckCircle2, X, Loader2, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
-import { supabase } from '../../../lib/supabaseClient';
 import { useBilling } from './useBilling';
 import Billing_Header from './Billing_Header';
 import BillingActionBar from './BillingActionBar';
@@ -55,20 +54,6 @@ export default function Billing({ isSidebarCollapsed }) {
     }
   }, [billing.loadingInvoices, billing.invoices.length]);
 
-  // 🐛 DEBUG: log column widths vs minimums every time widths change
-  useEffect(() => {
-    const totalPx = Object.values(widths).reduce((a, b) => a + b, 0);
-    console.groupCollapsed(`%c[BillingGrid] Column widths — total: ${totalPx}px`, 'color:#60a5fa;font-weight:bold');
-    console.table(
-      Object.keys(widths).map(key => ({
-        columna: key,
-        actual: widths[key],
-        minimo: MIN_WIDTHS[key],
-        ok: widths[key] >= MIN_WIDTHS[key] ? '✅' : `❌ BAJO (${widths[key] - MIN_WIDTHS[key]}px)`,
-      }))
-    );
-    console.groupEnd();
-  }, [widths]);
 
   const {
     invoices, loadingInvoices, staff, activities, categories,
