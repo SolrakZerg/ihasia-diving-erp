@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Search, CheckCircle2, X, Loader2, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useBilling } from './useBilling';
-import Billing_Header from './Billing_Header';
+import BillingHeader from './BillingHeader';
 import BillingActionBar from './BillingActionBar';
 import BillingGridRow from './BillingGridRow';
 import { useColumnResize, MIN_WIDTHS } from './useColumnResize';
@@ -86,7 +86,7 @@ export default function Billing({ isSidebarCollapsed }) {
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-500 bg-surface">
 
-      <Billing_Header
+      <BillingHeader
         isSidebarCollapsed={isSidebarCollapsed}
         arrivalsDate={billing.arrivalsDate}
         setArrivalsDate={billing.setArrivalsDate}
@@ -123,6 +123,7 @@ export default function Billing({ isSidebarCollapsed }) {
         fetchInvoices={fetchInvoices}
         fetchCatalogs={billing.fetchCatalogs}
         monthlyDbData={billing.monthlyDbData}
+        supabase={supabase}
         uiConfig={billing.uiConfig}
         setUiConfig={billing.setUiConfig}
         updateUIConfig={billing.updateUIConfig}
