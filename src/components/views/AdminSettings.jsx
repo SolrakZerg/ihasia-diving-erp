@@ -33,7 +33,7 @@ import logoSmall from '../../assets/logo-version-movil-ihasia.webp';
 import Staff_View from './Settings/Staff/Staff_View';
 import Activities from './Activities';
 import Staff_fee_View from './Settings/Staff_fee/Staff_fee_View';
-import BoteManagement from './BoteManagement';
+import Bote_View from './Settings/Bote/Bote_View';
 import BusinessAnalytics from './analytics/BusinessAnalytics';
 
 const GeneralSettings = () => {
@@ -675,7 +675,7 @@ export default function AdminSettings() {
           {activeTab === 'fixed_expenses' && <FixedExpensesSettings />}
           {activeTab === 'staff' && <Staff_View isNested />}
           {activeTab === 'catalog' && <Activities isNested />}
-          {activeTab === 'bote' && <BoteManagement />}
+          {activeTab === 'bote' && <Bote_View />}
           {activeTab === 'payout_rules' && <Staff_fee_View />}
           {activeTab === 'analytics' && <BusinessAnalytics />}
         </div>
