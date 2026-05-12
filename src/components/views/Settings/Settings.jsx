@@ -34,7 +34,7 @@ import Staff_View from './Staff/Staff_View';
 import Staff_fee_View from './Staff_fee/Staff_fee_View';
 import Bote_View from './Bote/Bote_View';
 import Estadisticas_View from './Estadisticas/Estadisticas_View';
-import Activities from './Actividades/Activities';
+import Activities from './Actividades/Activities_View';
 import General_View from './General/General_View';
 import GastosFijos_View from './GastosFijos/GastosFijos_View';
 
