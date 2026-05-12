@@ -94,7 +94,7 @@ const Expenses_Header = ({
                <span className="text-[11px] font-black text-rose-400/60 uppercase tracking-[0.2em] leading-none mb-2">GASTO MES</span>
                <span className="text-3xl font-black text-white tracking-tighter">
                   -{(monthlyTotal + commissionsPaid + commissionsPending + oxygenTotal).toLocaleString()} 
-                  <span className="text-sm font-black text-rose-500/40 ml-1 italic font-mono">฿</span>
+                  <span className="text-sm font-black text-rose-400 ml-1 italic font-mono">฿</span>
                </span>
             </div>
 

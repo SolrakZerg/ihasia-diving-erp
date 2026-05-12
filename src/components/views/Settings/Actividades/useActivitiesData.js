@@ -49,7 +49,7 @@ export function useActivitiesData() {
   const [editingCat, setEditingCat] = useState(null);
   const [catForm, setCatForm] = useState({ 
     name: '', 
-    color: 'bg-gray-500/10 text-gray-400 border border-gray-500/20',
+    color: 'rgba(59, 130, 246, 1)',
     is_commissionable: false,
     requires_staff: true
   });
@@ -271,7 +271,7 @@ export function useActivitiesData() {
       
       if (!error) {
         fetchData(false);
-        setCatForm({ name: '', color: colorPresets[0], is_commissionable: false, requires_staff: true });
+        setCatForm({ name: '', color: 'rgba(59, 130, 246, 1)', is_commissionable: false, requires_staff: true });
         setEditingCat(null);
         setToast({ message: 'Categoría actualizada correctamente', type: 'success' });
       }
@@ -286,7 +286,7 @@ export function useActivitiesData() {
       
       if (!error) {
         fetchData(false);
-        setCatForm({ name: '', color: colorPresets[0], is_commissionable: false, requires_staff: true });
+        setCatForm({ name: '', color: 'rgba(59, 130, 246, 1)', is_commissionable: false, requires_staff: true });
         setToast({ message: 'Nueva categoría creada', type: 'success' });
       }
     }
@@ -304,7 +304,7 @@ export function useActivitiesData() {
 
   const cancelEditingCat = () => {
     setEditingCat(null);
-    setCatForm({ name: '', color: colorPresets[0], is_commissionable: false, requires_staff: true });
+    setCatForm({ name: '', color: 'rgba(59, 130, 246, 1)', is_commissionable: false, requires_staff: true });
   };
 
   const handleDeleteCategory = async (id, catName) => {

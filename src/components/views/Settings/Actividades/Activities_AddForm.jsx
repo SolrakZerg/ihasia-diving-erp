@@ -1,4 +1,5 @@
 import { ArrowLeft, Tag, Coins, WavesArrowDown, Milk, Loader2 } from 'lucide-react';
+import AdvancedColorPicker from '../../../common/AdvancedColorPicker';
 
 export default function Activities_AddForm({
   setView,
@@ -66,34 +67,20 @@ export default function Activities_AddForm({
               </div>
             </div>
 
-            {/* FILA 2: COLOR ACTIVIDAD (PALETA AMPLIADA) */}
+            {/* FILA 2: COLOR ACTIVIDAD */}
             <div className="space-y-3 p-5 bg-surface/30 rounded-[32px] border border-surface-edge/50">
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Color de Actividad (Fondo en Tabla)</label>
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex items-center gap-4">
+                <AdvancedColorPicker 
+                  color={formData.color} 
+                  onChange={(color) => setFormData({...formData, color})}
+                />
                 <button 
                   type="button" onClick={() => setFormData({...formData, color: ''})}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${!formData.color ? 'bg-white text-gray-900 border-white' : 'bg-surface-soft text-gray-500 border-surface-edge hover:text-white'}`}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${!formData.color ? 'bg-white text-gray-900 border-white shadow-lg shadow-white/20' : 'bg-surface border-surface-edge text-gray-500 hover:text-white hover:border-gray-600'}`}
                 >
-                  Sin Color
+                  Sin Color (Transparente)
                 </button>
-                {[
-                  '#bbf7d0', '#bfdbfe', '#fecaca', '#e9d5ff', '#fef3c7', '#ffedd5', '#f3f4f6',
-                  '#86efac', '#93c5fd', '#fca5a5', '#d8b4fe', '#fde047', '#fdba74', '#cbd5e1',
-                  '#4ade80', '#60a5fa', '#f87171', '#c084fc', '#facc15', '#fb923c', '#94a3b8'
-                ].map(hex => (
-                  <button
-                    key={hex} type="button" onClick={() => setFormData({...formData, color: hex})}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${formData.color === hex ? 'border-white scale-125 shadow-xl' : 'border-transparent hover:scale-110'}`}
-                    style={{ backgroundColor: hex }}
-                  />
-                ))}
-                <div className="relative ml-auto">
-                  <input 
-                    type="text" value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})}
-                    placeholder="#HEX"
-                    className="w-24 bg-surface border border-surface-edge rounded-xl px-3 py-2 text-[10px] text-white font-mono focus:border-brand outline-none"
-                  />
-                </div>
               </div>
             </div>
 

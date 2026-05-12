@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlusCircle, Loader2, Trash2, Check, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
+import EditableInput from '../../common/EditableInput';
 
 const Expenses_Daily_Table = ({
   isAddingExpense,
@@ -33,7 +34,7 @@ const Expenses_Daily_Table = ({
             <div className="bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl flex items-center gap-3 shrink-0">
               <span className="text-xs font-black text-rose-400 uppercase tracking-widest">Total:</span>
               <span className="text-xl font-black text-white leading-none tracking-tighter">
-                -{monthlyTotal.toLocaleString()} <span className="text-xs font-black text-rose-500/40 ml-0.5">฿</span>
+                -{monthlyTotal.toLocaleString()} <span className="text-xs font-black text-rose-400 ml-0.5">฿</span>
               </span>
             </div>
           </div>
@@ -59,12 +60,12 @@ const Expenses_Daily_Table = ({
                   {expenses.map(e => (
                     <tr key={e.id} className="hover:bg-brand/5 transition-colors group">
                       <td className="px-3 py-1.5 text-center">
-                        <input
+                        <EditableInput
                           type="number"
                           min="1" max="31"
                           defaultValue={e.date ? parseInt(e.date.split('-')[2], 10) : ''}
-                          onBlur={(ev) => {
-                            const d = parseInt(ev.target.value);
+                          onSave={(value) => {
+                            const d = parseInt(value);
                             if (!isNaN(d)) {
                               const validD = Math.min(31, Math.max(1, d));
                               const mm = String(selectedMonth + 1).padStart(2, '0');
@@ -72,34 +73,37 @@ const Expenses_Daily_Table = ({
                               if (newDate !== e.date) handleExpenseUpdate(e.id, 'date', newDate);
                             }
                           }}
-                          onKeyDown={(ev) => { if (ev.key === 'Enter') ev.target.blur(); }}
                           className="text-sm font-black text-white bg-surface-soft/70 px-1 py-1 rounded-lg border border-transparent hover:border-surface-edge/40 focus:border-brand shadow-sm w-10 text-center outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
                       <td className="px-3 py-1.5">
-                        <input
+                        <EditableInput
                           type="text"
                           defaultValue={e.description}
-                          onBlur={(ev) => { if (ev.target.value !== e.description) handleExpenseUpdate(e.id, 'description', ev.target.value) }}
-                          onKeyDown={(ev) => { if (ev.key === 'Enter') ev.target.blur(); }}
+                          onSave={(value) => { if (value !== e.description) handleExpenseUpdate(e.id, 'description', value) }}
                           className="text-sm font-bold text-white/90 truncate w-full bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded px-2 py-1 outline-none transition-colors"
                         />
                       </td>
                       <td className="px-3 py-1.5 text-center">
-                        <select
-                          value={e.category}
-                          onChange={(ev) => handleExpenseUpdate(e.id, 'category', ev.target.value)}
-                          className={`appearance-none text-xs font-bold uppercase px-2.5 py-1 rounded-lg bg-surface border border-transparent hover:border-surface-edge/50 focus:border-brand shadow-sm outline-none cursor-pointer transition-colors text-center w-full ${categories.find(c => c.name === e.category)?.color || 'text-gray-400'}`}
-                        >
-                          {categories.map(c => <option key={c.id} value={c.name} className="bg-surface text-white">{c.name}</option>)}
-                        </select>
+                        {(() => {
+                          const catColor = categories.find(c => c.name === e.category)?.color;
+                          return (
+                            <select
+                              value={e.category}
+                              onChange={(ev) => handleExpenseUpdate(e.id, 'category', ev.target.value)}
+                              className={`appearance-none text-xs font-bold uppercase px-2.5 py-1 rounded-lg border hover:border-surface-edge/50 focus:border-brand shadow-sm outline-none cursor-pointer transition-colors text-center w-full ${catColor ? 'text-white border-white/20' : 'text-gray-400 bg-surface border-transparent'}`}
+                              style={catColor ? { backgroundColor: catColor } : {}}
+                            >
+                              {categories.map(c => <option key={c.id} value={c.name} className="bg-surface text-white">{c.name}</option>)}
+                            </select>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-1.5 text-right flex items-center justify-end h-full">
-                        <input
+                        <EditableInput
                           type="number"
                           defaultValue={e.amount}
-                          onBlur={(ev) => { if (ev.target.value != e.amount) handleExpenseUpdate(e.id, 'amount', ev.target.value) }}
-                          onKeyDown={(ev) => { if (ev.key === 'Enter') ev.target.blur(); }}
+                          onSave={(value) => { if (value != e.amount) handleExpenseUpdate(e.id, 'amount', value) }}
                           className="bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded text-right font-bold text-rose-400 text-base w-24 outline-none px-1 py-0.5 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <span className="text-rose-400 font-bold ml-1">฿</span>

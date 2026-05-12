@@ -60,6 +60,7 @@ const Expenses_View = () => {
     handleAddCategory,
     handleDeleteCategory,
     startEditingCat,
+    cancelEditingCat,
     recipientOptions,
     pendingByRecipient
   } = useExpensesData();
@@ -181,6 +182,7 @@ const Expenses_View = () => {
         setConfigTab={setConfigTab}
         categories={categories}
         startEditingCat={startEditingCat}
+        cancelEditingCat={cancelEditingCat}
         handleDeleteCategory={handleDeleteCategory}
         editingCat={editingCat}
         catForm={catForm}

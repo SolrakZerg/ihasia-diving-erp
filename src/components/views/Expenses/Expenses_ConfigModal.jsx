@@ -2,6 +2,7 @@ import React from 'react';
 import { Tag, User, X, Pencil, Trash2, Plus } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import EditableInput from '../../common/EditableInput';
+import AdvancedColorPicker from '../../common/AdvancedColorPicker';
 
 const Expenses_ConfigModal = ({
    showConfigModal,
@@ -10,6 +11,7 @@ const Expenses_ConfigModal = ({
    setConfigTab,
    categories,
    startEditingCat,
+   cancelEditingCat,
    handleDeleteCategory,
    editingCat,
    catForm,
@@ -39,7 +41,7 @@ const Expenses_ConfigModal = ({
                         <tab.icon className="w-4 h-4" /> {tab.label}
                      </button>
                   ))}
-                  <button onClick={() => setShowConfigModal(false)} className="mt-auto flex items-center gap-3 px-4 py-3 rounded-2xl text-base font-black text-rose-400 hover:bg-rose-500/10 transition-all">
+                  <button onClick={() => { cancelEditingCat(); setShowConfigModal(false); }} className="mt-auto flex items-center gap-3 px-4 py-3 rounded-2xl text-base font-black text-rose-400 hover:bg-rose-500/10 transition-all">
                      <X className="w-5 h-5" /> Cerrar
                   </button>
                </div>
@@ -59,7 +61,8 @@ const Expenses_ConfigModal = ({
                                        await supabase.from('expense_categories').update({ name: newValue }).eq('id', c.id);
                                        fetchData(false);
                                     }}
-                                    className={`text-xs font-black uppercase px-2.5 py-1 rounded-full bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand outline-none transition-colors ${c.color}`}
+                                    className={`text-xs font-black uppercase px-2.5 py-1 rounded-full outline-none transition-colors focus:ring-2 focus:ring-brand ${c.color ? 'text-white border border-white/20 shadow-sm' : 'bg-surface/50 text-gray-400 border border-surface-edge'}`}
+                                    style={c.color ? { backgroundColor: c.color } : {}}
                                  />
                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button onClick={() => startEditingCat(c)} className="p-2 text-gray-500 hover:text-brand hover:bg-brand/10 rounded-xl transition-all">
@@ -76,20 +79,18 @@ const Expenses_ConfigModal = ({
                         {/* Add/Edit Form */}
                         <div className={`p-6 rounded-[32px] border transition-all ${editingCat ? 'bg-brand/5 border-brand/30 ring-1 ring-brand/20' : 'bg-surface border-surface-edge'}`}>
                            <div className="space-y-5">
-                              <input
-                                 value={catForm.name}
-                                 onChange={e => setCatForm({ ...catForm, name: e.target.value })}
-                                 placeholder="Nombre (Ej: Alquiler, Barcos...)"
-                                 className="w-full bg-surface-soft border border-surface-edge rounded-2xl px-4 py-2.5 text-sm text-white focus:border-brand focus:outline-none transition-all"
-                              />
-
-                              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5">
-                                 {colorPresets.map((colorClass, idx) => (
-                                    <button
-                                       key={idx} onClick={() => setCatForm({ ...catForm, color: colorClass })}
-                                       className={`w-7 h-7 rounded-full ${colorClass.split(' ')[0]} border transition-transform ${catForm.color === colorClass ? 'scale-125 border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-transparent hover:scale-110'}`}
-                                    />
-                                 ))}
+                              <div className="flex gap-3 items-center">
+                                 <input
+                                    value={catForm.name}
+                                    onChange={e => setCatForm({ ...catForm, name: e.target.value })}
+                                    placeholder="Nombre (Ej: Alquiler, Barcos...)"
+                                    className="flex-1 bg-surface-soft border border-surface-edge rounded-2xl px-4 py-2.5 text-sm text-white focus:border-brand focus:outline-none transition-all"
+                                 />
+                                 <AdvancedColorPicker
+                                    color={catForm.color}
+                                    onChange={(color) => setCatForm({ ...catForm, color })}
+                                    align="right"
+                                 />
                               </div>
 
                               <button

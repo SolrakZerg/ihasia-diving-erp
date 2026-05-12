@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check, Pencil, X } from 'lucide-react';
 import SmartSelect from '../../common/SmartSelect';
+import EditableInput from '../../common/EditableInput';
 
 const Expenses_Commissions_Table = ({
   commissions,
@@ -90,39 +91,17 @@ const Expenses_Commissions_Table = ({
                      />
                   </td>
                   <td className="px-3 py-1.5 text-right w-[120px]">
-                     <div className="flex flex-col items-end group/edit">
-                        {editingCommId === c.id ? (
-                           <div className="flex items-center gap-1">
-                              <input 
-                                 type="number"
-                                 value={editCommVal}
-                                 onChange={e => setEditCommVal(e.target.value)}
-                                 className="w-16 bg-surface border border-brand/50 rounded px-1.5 py-0.5 text-white font-black text-right outline-none text-sm"
-                                 autoFocus
-                              />
-                              <button onClick={async () => {
-                                 await updateItem(c.id, 'comm_amount_thb', editCommVal ? parseFloat(editCommVal) : null);
-                                 setEditingCommId(null);
-                              }} className="p-0.5 text-emerald-400 hover:text-emerald-300"><Check className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => setEditingCommId(null)} className="p-0.5 text-gray-400 hover:text-rose-400"><X className="w-3.5 h-3.5" /></button>
-                           </div>
-                        ) : (
-                           <div className="flex items-center gap-2">
-                              <button 
-                                 onClick={() => {
-                                    setEditingCommId(c.id);
-                                    setEditCommVal(c.comm_amount_thb != null ? c.comm_amount_thb : (parseFloat(c.total_thb || 0) * 0.1));
-                                 }}
-                                 className="opacity-0 group-hover/edit:opacity-100 transition-opacity p-0.5 text-gray-500 hover:text-brand"
-                              >
-                                 <Pencil className="w-3 h-3" />
-                              </button>
-                              <span className={`text-base font-bold transition-colors ${c.is_comm_paid ? 'text-emerald-500' : 'text-amber-500'} ${c.comm_amount_thb != null ? 'text-brand' : ''}`}>
-                                {(c.comm_amount_thb != null ? parseFloat(c.comm_amount_thb) : parseFloat(c.activities?.price_thb || 0) * 0.1).toLocaleString()}
-                              </span>
-                           </div>
-                        )}
-                        <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Base: {c.activities?.price_thb?.toLocaleString()}</span>
+                     <div className="flex flex-col items-end">
+                        <EditableInput
+                          type="number"
+                          defaultValue={c.comm_amount_thb != null ? parseFloat(c.comm_amount_thb) : parseFloat(c.activities?.price_thb || 0) * 0.1}
+                          onSave={async (value) => {
+                             const numVal = parseFloat(value);
+                             await updateItem(c.id, 'comm_amount_thb', isNaN(numVal) ? null : numVal);
+                          }}
+                          className={`bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded text-right text-base font-bold outline-none px-1 py-0.5 transition-colors w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${c.comm_amount_thb != null ? 'text-brand' : (c.is_comm_paid ? 'text-emerald-500' : 'text-amber-500')}`}
+                        />
+                        <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">Base: {c.activities?.price_thb?.toLocaleString()}</span>
                      </div>
                   </td>
                   <td className="px-3 py-1.5 text-center">

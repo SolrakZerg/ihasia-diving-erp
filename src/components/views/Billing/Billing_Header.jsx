@@ -274,7 +274,12 @@ export default function Billing_Header({
 
       {/* ── MODAL: TEMAS ── */}
       {showThemeSettings && (
-        <Billing_ThemeSettings onClose={() => setShowThemeSettings(false)} />
+        <Billing_ThemeSettings 
+          onClose={() => setShowThemeSettings(false)} 
+          uiConfig={uiConfig}
+          setUiConfig={setUiConfig}
+          updateUIConfig={updateUIConfig}
+        />
       )}
     </>
   );

@@ -29,7 +29,7 @@ export const useExpensesData = () => {
   const [configTab, setConfigTab] = useState('categories'); // 'categories' | 'promoters' | 'courses'
   const [categories, setCategories] = useState([]);
   const [editingCat, setEditingCat] = useState(null);
-  const [catForm, setCatForm] = useState({ name: '', color: 'text-brand-light' });
+  const [catForm, setCatForm] = useState({ name: '', color: 'rgba(59, 130, 246, 1)' });
   const [promoterForm, setPromoterForm] = useState({ name: '', phone: '' });
 
   const colorPresets = [
@@ -182,7 +182,7 @@ export const useExpensesData = () => {
       
       if (!error) {
         fetchData(false);
-        setCatForm({ name: '', color: colorPresets[0] });
+        setCatForm({ name: '', color: 'rgba(59, 130, 246, 1)' });
         setEditingCat(null);
       }
     } else {
@@ -194,7 +194,7 @@ export const useExpensesData = () => {
       
       if (!error) {
         fetchData(false);
-        setCatForm({ name: '', color: colorPresets[0] });
+        setCatForm({ name: '', color: 'rgba(59, 130, 246, 1)' });
       }
     }
   };
@@ -220,7 +220,7 @@ export const useExpensesData = () => {
 
   const cancelEditingCat = () => {
     setEditingCat(null);
-    setCatForm({ name: '', color: colorPresets[0] });
+    setCatForm({ name: '', color: 'rgba(59, 130, 246, 1)' });
   };
 
   const handleDeleteExpense = async (id) => {

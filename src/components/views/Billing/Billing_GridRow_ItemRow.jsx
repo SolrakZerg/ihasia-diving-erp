@@ -9,6 +9,13 @@ const rb = 'border-r-4 border-r-[var(--group-color)]';
 
 const BIZUM_OPTIONS = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500];
 
+function getTranslucentBg(color) {
+  if (!color) return 'transparent';
+  if (color.startsWith('rgba')) return color.replace(/[\d.]+\)$/, '0.3)');
+  if (color.startsWith('#')) return color + '4D';
+  return color;
+}
+
 export default function Billing_GridRow_ItemRow({
   item,
   isHybridRow = false,
@@ -124,7 +131,7 @@ export default function Billing_GridRow_ItemRow({
       <td
         className={`px-1 py-0 border-r border-gray-100 transition-all duration-200 group relative ${bLine} focus-within:z-50`}
         style={{
-          backgroundColor: act?.color ? act.color + '4D' : 'transparent',
+          backgroundColor: getTranslucentBg(act?.color),
           borderLeft: item.activity_id && act?.color ? `4px solid ${act.color}` : 'none'
         }}
       >

@@ -1,4 +1,11 @@
 import { Tag, X, Pencil, Trash2, Coins, Users } from 'lucide-react';
+import AdvancedColorPicker from '../../../common/AdvancedColorPicker';
+
+function getBadgeStyle(colorStr) {
+  if (!colorStr) return { className: 'bg-surface/50 text-gray-400 border border-surface-edge' };
+  if (colorStr.startsWith('bg-')) return { className: colorStr };
+  return { className: 'text-white border border-white/20 shadow-sm', style: { backgroundColor: colorStr } };
+}
 
 export default function Activities_CategoryModal({
   setShowCatModal,
@@ -19,7 +26,7 @@ export default function Activities_CategoryModal({
               <h3 className="text-xl font-bold text-white flex items-center gap-2"><Tag className="w-5 h-5 text-brand" /> Editor de Categorías</h3>
               <p className="text-xs text-gray-400 mt-1">Configura las etiquetas de color para clasificar tu catálogo.</p>
            </div>
-           <button onClick={() => setShowCatModal(false)} className="p-2 text-gray-400 hover:text-white bg-surface-edge/50 hover:bg-surface-edge rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+           <button onClick={() => { cancelEditingCat(); setShowCatModal(false); }} className="p-2 text-gray-400 hover:text-white bg-surface-edge/50 hover:bg-surface-edge rounded-xl transition-colors"><X className="w-5 h-5" /></button>
         </div>
         
         <div className="p-5 overflow-auto flex-1">
@@ -30,7 +37,10 @@ export default function Activities_CategoryModal({
             {categories.map(cat => (
               <div key={cat.id} className="flex justify-between items-center bg-surface-soft border border-surface-edge p-3 rounded-xl hover:border-surface-edge/80 transition-colors group">
                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${cat.color}`}>
+                    <span 
+                      className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${getBadgeStyle(cat.color).className}`}
+                      style={getBadgeStyle(cat.color).style}
+                    >
                       {cat.name}
                     </span>
                     {cat.is_commissionable && (
@@ -60,17 +70,16 @@ export default function Activities_CategoryModal({
               )}
             </div>
             <div className="space-y-4">
-              <input 
-                value={catForm.name} onChange={e=>setCatForm({...catForm, name: e.target.value})}
-                placeholder="Ej: Alojamiento" className="w-full bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-sm text-white focus:border-brand focus:outline-none"
-              />
-              <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
-                {colorPresets.map((colorClass, idx) => (
-                  <button 
-                    key={idx} onClick={() => setCatForm({...catForm, color: colorClass})}
-                    className={`w-7 h-7 rounded-full ${colorClass.split(' ')[0]} border transition-transform ${catForm.color === colorClass ? 'scale-125 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent hover:scale-110'}`}
-                  />
-                ))}
+              <div className="flex gap-3 items-center">
+                <input 
+                  value={catForm.name} onChange={e=>setCatForm({...catForm, name: e.target.value})}
+                  placeholder="Ej: Alojamiento" className="flex-1 bg-surface-soft border border-surface-edge rounded-lg px-3 py-2 text-sm text-white focus:border-brand focus:outline-none"
+                />
+                <AdvancedColorPicker 
+                  color={catForm.color} 
+                  onChange={(color) => setCatForm({...catForm, color})}
+                  align="right"
+                />
               </div>
 
               {/* Commission Toggle for Category */}

@@ -1,23 +1,17 @@
 import { useState, useRef, memo } from 'react';
 import { Settings, X, Save, Palette, Type, Layout, Coins } from 'lucide-react';
+import AdvancedColorPicker from '../../common/AdvancedColorPicker';
 
 // Memorizamos los inputs para que no se re-rendericen mientras el usuario arrastra el ratón
 const ColorInput = memo(({ label, field, value, onChange }) => (
   <div className="flex flex-col gap-1">
     <label className="text-[9px] font-black text-gray-500 uppercase tracking-wider">{label}</label>
-    <div className="flex items-center gap-1.5">
-      <input 
-        type="color" 
-        value={value || '#000000'} 
-        onInput={(e) => onChange(field, e.target.value)}
-        className="w-10 h-10 rounded-xl border border-white/10 bg-slate-800 cursor-pointer overflow-hidden shrink-0"
-      />
-      <input 
-        type="text" 
-        value={value || ''} 
-        onChange={(e) => onChange(field, e.target.value)}
-        className="w-full h-10 bg-slate-800 border border-white/10 rounded-xl px-2 text-[11px] text-white font-mono uppercase text-center"
-      />
+    <div className="flex items-center gap-1.5 h-10">
+       <AdvancedColorPicker 
+          color={value || 'rgba(0,0,0,1)'} 
+          onChange={(color) => onChange(field, color)} 
+          align="left" 
+       />
     </div>
   </div>
 ));

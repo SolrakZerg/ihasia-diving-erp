@@ -1,4 +1,11 @@
 import { Search, Settings, Plus, ArrowUpDown, Milk, Timer, Coins, WavesArrowDown, Shirt, Pencil, Trash2, Check, X } from 'lucide-react';
+import AdvancedColorPicker from '../../../common/AdvancedColorPicker';
+
+function getBadgeStyle(colorStr) {
+  if (!colorStr) return { className: 'bg-surface/50 text-gray-400 border border-surface-edge' };
+  if (colorStr.startsWith('bg-')) return { className: colorStr };
+  return { className: 'text-white border border-white/20 shadow-sm', style: { backgroundColor: colorStr } };
+}
 
 export default function Activities_Table({
   isNested,
@@ -139,11 +146,10 @@ export default function Activities_Table({
                        </select>
                     </td>
                     <td className="px-2 py-1 text-center">
-                       <input 
-                         type="color" 
-                         value={editData.color?.startsWith('#') ? editData.color : '#ffffff'} 
-                         onChange={e => setEditData({...editData, color: e.target.value})}
-                         className="w-8 h-8 rounded-xl bg-transparent border-none cursor-pointer p-0 overflow-hidden"
+                       <AdvancedColorPicker 
+                         color={editData.color} 
+                         onChange={color => setEditData({...editData, color})}
+                         align="right"
                        />
                     </td>
                     <td className="px-2 py-1 text-right flex justify-end items-center gap-1.5">
@@ -173,7 +179,10 @@ export default function Activities_Table({
                     </div>
                   </td>
                   <td className="px-[15px] py-2 text-center">
-                    <span className={`text-[12px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full inline-block ${getCategoryColor(activity.category)}`}>
+                    <span 
+                      className={`text-[12px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full inline-block ${getBadgeStyle(getCategoryColor(activity.category)).className}`}
+                      style={getBadgeStyle(getCategoryColor(activity.category)).style}
+                    >
                       {activity.category || 'Undef'}
                     </span>
                   </td>
