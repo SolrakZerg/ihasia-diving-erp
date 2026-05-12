@@ -5,7 +5,7 @@ import Overview from './views/Overview';
 import Activities from './views/Activities';
 import Customers_View from './views/Customers/Customers_View';
 import InsuranceView from './views/Insurance/InsuranceView';
-import AdminSettings from './views/AdminSettings';
+import AdminSettings from './views/Settings/Settings';
 import Billing from './views/Billing/Billing';
 import Expenses from './views/Expenses/Expenses_View';
 import SSIView from './views/SSI/SSIView';

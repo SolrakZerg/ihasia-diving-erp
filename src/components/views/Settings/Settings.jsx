@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../../../lib/supabaseClient';
 import { 
   Settings as SettingsIcon, 
   Users, 
@@ -27,14 +27,14 @@ import {
   TrendingUp as TrendingIcon
 } from 'lucide-react';
 
-import logoFull from '../../../assets/Logo_Ihasia.svg';
-import logoSmall from '../../../assets/logo-version-movil-ihasia.webp';
+import logoFull from '../../../../assets/Logo_Ihasia.svg';
+import logoSmall from '../../../../assets/logo-version-movil-ihasia.webp';
 
 import Staff_View from './Staff/Staff_View';
-import Activities from '../Activities';
-import StaffPayouts from './Staff_fee/StaffPayouts';
-import BoteManagement from '../BoteManagement';
-import BusinessAnalytics from '../analytics/BusinessAnalytics';
+import Staff_fee_View from './Staff_fee/Staff_fee_View';
+import Bote_View from './Bote/Bote_View';
+import Estadisticas_View from './Estadisticas/Estadisticas_View';
+import Activities from './Actividades/Activities';
 
 const GeneralSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -675,9 +675,9 @@ export default function AdminSettings() {
           {activeTab === 'fixed_expenses' && <FixedExpensesSettings />}
           {activeTab === 'staff' && <Staff_View isNested />}
           {activeTab === 'catalog' && <Activities isNested />}
-          {activeTab === 'bote' && <BoteManagement />}
-          {activeTab === 'payout_rules' && <StaffPayouts />}
-          {activeTab === 'analytics' && <BusinessAnalytics />}
+          {activeTab === 'bote' && <Bote_View />}
+          {activeTab === 'payout_rules' && <Staff_fee_View />}
+          {activeTab === 'analytics' && <Estadisticas_View />}
         </div>
       </div>
     </div>
