@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
 
-const EditableInput = ({
+const EditableInput = forwardRef(({
    defaultValue = '',
    onSave,
+   onCancel,
    className = '',
    placeholder = '',
    type = 'text',
    ...props
-}) => {
+}, ref) => {
    const [value, setValue] = useState(defaultValue);
    const [originalValue, setOriginalValue] = useState(defaultValue);
    const isCancelling = useRef(false);
@@ -24,12 +25,14 @@ const EditableInput = ({
          isCancelling.current = true;
          setValue(originalValue);
          ev.target.blur();
+         if (onCancel) onCancel();
       }
    };
 
    const handleBlur = (ev) => {
       if (isCancelling.current) {
          isCancelling.current = false;
+         if (props.onBlur) props.onBlur(ev);
          return;
       }
       const newValue = ev.target.value;
@@ -37,10 +40,12 @@ const EditableInput = ({
          onSave(newValue);
          setOriginalValue(newValue); // Actualizamos el original tras guardar
       }
+      if (props.onBlur) props.onBlur(ev);
    };
 
    return (
       <input
+         ref={ref}
          type={type}
          value={value}
          onChange={(e) => setValue(e.target.value)}
@@ -51,6 +56,6 @@ const EditableInput = ({
          {...props}
       />
    );
-};
+});
 
 export default EditableInput;

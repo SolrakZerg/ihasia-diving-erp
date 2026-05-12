@@ -8,7 +8,7 @@ import SettingsView from './views/Settings/Settings';
 import Billing from './views/Billing/Billing';
 import Expenses from './views/Expenses/Expenses_View';
 import SSIView from './views/SSI/SSIView';
-import StaffSettlement from './views/StaffSettlement';
+import StaffSettlement from './views/Nominas/Nominas_View';
 import PartnersPayouts from './views/PartnersPayouts';
 import Carabao_Header from './views/Carabao/Carabao_Header';
 
