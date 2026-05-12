@@ -32,7 +32,7 @@ import logoSmall from '../../assets/logo-version-movil-ihasia.webp';
 
 import Staff_View from './Settings/Staff/Staff_View';
 import Activities from './Activities';
-import StaffPayouts from './StaffPayouts';
+import Staff_fee_View from './Settings/Staff_fee/Staff_fee_View';
 import BoteManagement from './BoteManagement';
 import BusinessAnalytics from './analytics/BusinessAnalytics';
 
@@ -631,9 +631,9 @@ export default function AdminSettings() {
     { id: 'general', label: 'General', icon: SettingsIcon },
     { id: 'fixed_expenses', label: 'Gastos Fijos', icon: Banknote },
     { id: 'staff', label: 'Personal (Staff)', icon: Users },
+    { id: 'payout_rules', label: 'Tarifas (Staff)', icon: Receipt },
     { id: 'catalog', label: 'Catálogo y Precios', icon: Receipt },
     { id: 'bote', label: 'Gestión de Bote', icon: Coins },
-    { id: 'payout_rules', label: 'Tarifas Staff', icon: Receipt },
     { id: 'analytics', label: 'Estadísticas', icon: TrendingIcon },
   ];
 
@@ -676,7 +676,7 @@ export default function AdminSettings() {
           {activeTab === 'staff' && <Staff_View isNested />}
           {activeTab === 'catalog' && <Activities isNested />}
           {activeTab === 'bote' && <BoteManagement />}
-          {activeTab === 'payout_rules' && <StaffPayouts />}
+          {activeTab === 'payout_rules' && <Staff_fee_View />}
           {activeTab === 'analytics' && <BusinessAnalytics />}
         </div>
       </div>
