@@ -24,7 +24,7 @@ import {
   WavesArrowDown,
   Shirt
 } from 'lucide-react';
-import ConfirmModal from '../../common/ConfirmModal';
+import ConfirmModal from '../../../common/ConfirmModal';
 
 
 export default function Activities({ isNested = false }) {
