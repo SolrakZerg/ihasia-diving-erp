@@ -67,7 +67,10 @@ export function useActivitiesData() {
     color: '',
     acronym: '',
     duration_days: '0',
-    payout_group: ''
+    payout_group: '',
+    is_commissionable: false,
+    is_ssi_active: false,
+    tshirt_included: false
   });
 
   useEffect(() => {
@@ -150,6 +153,8 @@ export function useActivitiesData() {
         acronym: formData.acronym,
         duration_days: parseFloat(formData.duration_days) || 0,
         is_commissionable: formData.is_commissionable,
+        is_ssi_active: formData.is_ssi_active,
+        tshirt_included: formData.tshirt_included,
         payout_group: formData.payout_group || null
       }
     ]);
@@ -157,7 +162,7 @@ export function useActivitiesData() {
     if (!error) {
       setView('list');
       fetchData();
-      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false, payout_group: '' });
+      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false, tshirt_included: false, payout_group: '' });
     } else {
       alert('Error guardando: ' + error.message);
     }
