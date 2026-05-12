@@ -34,7 +34,7 @@ import Staff_View from './Settings/Staff/Staff_View';
 import Activities from './Activities';
 import Staff_fee_View from './Settings/Staff_fee/Staff_fee_View';
 import Bote_View from './Settings/Bote/Bote_View';
-import BusinessAnalytics from './analytics/BusinessAnalytics';
+import Estadisticas_View from './Settings/Estadisticas/Estadisticas_View';
 
 const GeneralSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -677,7 +677,7 @@ export default function AdminSettings() {
           {activeTab === 'catalog' && <Activities isNested />}
           {activeTab === 'bote' && <Bote_View />}
           {activeTab === 'payout_rules' && <Staff_fee_View />}
-          {activeTab === 'analytics' && <BusinessAnalytics />}
+          {activeTab === 'analytics' && <Estadisticas_View />}
         </div>
       </div>
     </div>
