@@ -1,10 +1,11 @@
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import useCustomersData from './useCustomersData';
 import Customers_Header from './Customers_Header';
 import Customers_Table from './Customers_Table';
 import Customers_ActionBar from './Customers_ActionBar';
 import Customer_Details from './Customer_Details';
 import Customer_Edit from './Customer_Edit';
+import ConfirmModal from '../../common/ConfirmModal';
 
 export default function Customers_View({ onNavigate }) {
   const {
@@ -148,39 +149,14 @@ export default function Customers_View({ onNavigate }) {
       )}
 
       {/* ── Modal de confirmación de borrado ── */}
-      {confirmConfig.show && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface-soft border border-surface-edge w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 rounded-2xl ${confirmConfig.type === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-brand/10 text-brand'}`}>
-                  <AlertCircle className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-black text-white">{confirmConfig.title}</h3>
-              </div>
-              <p className="text-gray-400 font-bold ml-16">{confirmConfig.message}</p>
-            </div>
-            <div className="bg-surface-edge/20 px-6 py-4 flex justify-end gap-3">
-              <button
-                onClick={dismissConfirm}
-                className="px-4 py-2 rounded-xl text-sm font-black text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => { if (confirmConfig.onConfirm) confirmConfig.onConfirm(); }}
-                className={`px-5 py-2 rounded-xl text-sm font-black text-white shadow-lg transition-all ${
-                  confirmConfig.type === 'danger'
-                    ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20'
-                    : 'bg-brand hover:bg-brand-light shadow-brand/20'
-                }`}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        show={confirmConfig.show}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={dismissConfirm}
+      />
 
       {/* ── Drawer de detalle del cliente ── */}
       <Customer_Details

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Search, CheckCircle2, X, Loader2, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Search, CheckCircle2, X, Loader2, Calendar, RotateCcw } from 'lucide-react';
 import { useBilling } from './useBilling';
 import Billing_Header from './Billing_Header';
 import Billing_ActionBar from './Billing_ActionBar';
 import Billing_GridRow from './Billing_GridRow';
 import { useColumnResize, MIN_WIDTHS } from './useBilling_ColumnResize';
+import ConfirmModal from '../../common/ConfirmModal';
 
 // Resize handle rendered inside each <th>
 const ResizeHandle = ({ onMouseDown }) => (
@@ -272,24 +273,14 @@ export default function Billing({ isSidebarCollapsed }) {
         )}
 
         {/* CONFIRM MODAL */}
-        {confirmConfig.show && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setConfirmConfig(prev => ({ ...prev, show: false }))} />
-            <div className="relative bg-slate-900 border border-white/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="p-8">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${confirmConfig.type === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                  <AlertTriangle className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">{confirmConfig.title}</h3>
-                <p className="text-gray-400 font-medium leading-relaxed">{confirmConfig.message}</p>
-              </div>
-              <div className="flex gap-3 p-6 bg-white/5 border-t border-white/5">
-                <button onClick={() => setConfirmConfig(prev => ({ ...prev, show: false }))} className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all">Cancelar</button>
-                <button onClick={confirmConfig.onConfirm} className={`flex-1 px-6 py-3 font-bold rounded-2xl shadow-lg transition-all active:scale-95 ${confirmConfig.type === 'danger' ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20' : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20'}`}>Confirmar</button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmModal
+          show={confirmConfig.show}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(prev => ({ ...prev, show: false }))}
+        />
       </div>
 
       <Billing_ActionBar

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../../lib/supabaseClient';
 import { 
   Settings as SettingsIcon, 
   Users, 
@@ -27,14 +27,14 @@ import {
   TrendingUp as TrendingIcon
 } from 'lucide-react';
 
-import logoFull from '../../assets/Logo_Ihasia.svg';
-import logoSmall from '../../assets/logo-version-movil-ihasia.webp';
+import logoFull from '../../../assets/Logo_Ihasia.svg';
+import logoSmall from '../../../assets/logo-version-movil-ihasia.webp';
 
-import Staff_View from './Settings/Staff/Staff_View';
-import Activities from './Activities';
-import StaffPayouts from './StaffPayouts';
-import BoteManagement from './BoteManagement';
-import BusinessAnalytics from './analytics/BusinessAnalytics';
+import Staff_View from './Staff/Staff_View';
+import Activities from '../Activities';
+import StaffPayouts from './Staff_fee/StaffPayouts';
+import BoteManagement from '../BoteManagement';
+import BusinessAnalytics from '../analytics/BusinessAnalytics';
 
 const GeneralSettings = () => {
   const [loading, setLoading] = useState(true);

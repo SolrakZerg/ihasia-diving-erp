@@ -3,7 +3,7 @@ import {
   ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight,
   Pencil, Trash2,
 } from 'lucide-react';
-import { getActivityColor, shortenLastDive, normalizeLevel } from './useCustomersData';
+import { getActivityColor, shortenLastDive, normalizeLevel } from './Customers_Utils';
 
 export default function Customers_Table({
   customers,
@@ -45,17 +45,17 @@ export default function Customers_Table({
                 />
               </th>
 
-              <SortableHeader label="Registro"   colKey="created_at"    sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]'  : 'w-[100px]'} />
-              {isExtendedView && <SortableHeader label="Email"     colKey="email"         sortConfig={sortConfig} onSort={handleSort} compact width="w-[220px] max-w-[220px]" />}
-              <SortableHeader label="Buceador"   colKey="first_name"    sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[260px]' : 'w-[320px]'} />
+              <SortableHeader label="Registro" colKey="created_at" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'w-[100px]'} />
+              {isExtendedView && <SortableHeader label="Email" colKey="email" sortConfig={sortConfig} onSort={handleSort} compact width="w-[220px] max-w-[220px]" />}
+              <SortableHeader label="Buceador" colKey="first_name" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[260px]' : 'w-[320px]'} />
               {isExtendedView && (
                 <>
-                  <SortableHeader label="Gen"     colKey="gender"          sortConfig={sortConfig} onSort={handleSort} compact width="w-[50px] max-w-[50px]"  />
+                  <SortableHeader label="Gen" colKey="gender" sortConfig={sortConfig} onSort={handleSort} compact width="w-[50px] max-w-[50px]" />
                   <SortableHeader label="Passport" colKey="passport_number" sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]" />
                 </>
               )}
-              <SortableHeader label="Actividad"  colKey="booked_activity" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[120px]' : 'w-[200px]'} />
-              <SortableHeader label="Reserva"    colKey="booking_date"    sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]'  : 'w-[100px]'} />
+              <SortableHeader label="Actividad" colKey="booked_activity" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[120px]' : 'w-[200px]'} />
+              <SortableHeader label="Reserva" colKey="booking_date" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'w-[100px]'} />
               {isExtendedView && <SortableHeader label="Teléfono" colKey="phone" sortConfig={sortConfig} onSort={handleSort} compact width="w-[90px] max-w-[100px]" />}
 
               <th className={`${isExtendedView ? 'px-2 w-[60px] max-w-[80px]' : 'px-4 w-[100px]'} py-2 text-xs font-bold text-slate-400 uppercase tracking-wider text-center`}>
@@ -64,15 +64,15 @@ export default function Customers_Table({
 
               {isExtendedView && (
                 <>
-                  <SortableHeader label="F. Nac"             colKey="birth_date"         sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]"  />
-                  <SortableHeader label="Contacto Emergencia" colKey="emergency_contact"  sortConfig={sortConfig} onSort={handleSort} compact width="w-[130px] max-w-[130px]" />
-                  <SortableHeader label="Dirección"           colKey="address"            sortConfig={sortConfig} onSort={handleSort} compact width="w-[140px] max-w-[160px]" />
-                  <SortableHeader label="Conocido"            colKey="lead_source"        sortConfig={sortConfig} onSort={handleSort} compact width="w-[120px] max-w-[140px]" />
-                  <SortableHeader label="Nivel"               colKey="certification_level" sortConfig={sortConfig} onSort={handleSort} compact width="w-[110px] max-w-[140px]" />
-                  <SortableHeader label="Tot"                 colKey="total_dives"        sortConfig={sortConfig} onSort={handleSort} center compact width="w-[50px] max-w-[50px]"  />
-                  <SortableHeader label="Last"                colKey="last_dive_date"     sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]"  />
-                  <SortableHeader label="Origen"              colKey="form_origin"        sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]"  />
-                  <SortableHeader label="Seguro"              colKey="insurance_expiry"   sortConfig={sortConfig} onSort={handleSort} compact width="w-[90px] max-w-[90px]"  />
+                  <SortableHeader label="F. Nac" colKey="birth_date" sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]" />
+                  <SortableHeader label="Contacto Emergencia" colKey="emergency_contact" sortConfig={sortConfig} onSort={handleSort} compact width="w-[130px] max-w-[130px]" />
+                  <SortableHeader label="Dirección" colKey="address" sortConfig={sortConfig} onSort={handleSort} compact width="w-[140px] max-w-[160px]" />
+                  <SortableHeader label="Conocido" colKey="lead_source" sortConfig={sortConfig} onSort={handleSort} compact width="w-[120px] max-w-[140px]" />
+                  <SortableHeader label="Nivel" colKey="certification_level" sortConfig={sortConfig} onSort={handleSort} compact width="w-[110px] max-w-[140px]" />
+                  <SortableHeader label="Tot" colKey="total_dives" sortConfig={sortConfig} onSort={handleSort} center compact width="w-[50px] max-w-[50px]" />
+                  <SortableHeader label="Last" colKey="last_dive_date" sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]" />
+                  <SortableHeader label="Origen" colKey="form_origin" sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]" />
+                  <SortableHeader label="Seguro" colKey="insurance_expiry" sortConfig={sortConfig} onSort={handleSort} compact width="w-[90px] max-w-[90px]" />
                 </>
               )}
 
@@ -193,8 +193,8 @@ export default function Customers_Table({
                         <span>
                           {customer.booking_date
                             ? new Date(customer.booking_date).toLocaleDateString('es-ES', {
-                                day: '2-digit', month: 'short', year: '2-digit',
-                              }).replace('.', '')
+                              day: '2-digit', month: 'short', year: '2-digit',
+                            }).replace('.', '')
                             : '---'}
                         </span>
                       </div>
@@ -265,7 +265,7 @@ export default function Customers_Table({
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, customer.id, `${customer.first_name} ${customer.last_name}`)}
-                        className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                        className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-rose-400 hover:bg-red-500/10 transition-all"
                         title="Eliminar registro"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -314,11 +314,10 @@ export default function Customers_Table({
               <button
                 key={page}
                 onClick={() => goToPage(page)}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                  page === currentPage
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${page === currentPage
                     ? 'bg-brand text-white shadow-md shadow-brand/30'
                     : 'text-gray-400 hover:bg-surface-edge hover:text-white'
-                }`}
+                  }`}
               >
                 {page + 1}
               </button>
