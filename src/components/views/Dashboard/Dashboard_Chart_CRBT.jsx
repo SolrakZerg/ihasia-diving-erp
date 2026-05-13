@@ -1,0 +1,30 @@
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+
+export default function Dashboard_Chart_CRBT({ incomeData }) {
+  return (
+    <div style={{ flex: '1 1 200px', maxWidth: '300px' }} className="bg-surface-soft border border-surface-edge rounded-2xl p-4 shadow-xl flex flex-col h-[480px]">
+       <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 text-center">Saldos CR</h3>
+       <div className="flex-1 flex flex-col items-center justify-center">
+          <ResponsiveContainer width="100%" height={180}>
+             <PieChart>
+                <Pie data={incomeData.crData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                   {incomeData.crData?.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                </Pie>
+                <Tooltip />
+             </PieChart>
+          </ResponsiveContainer>
+       </div>
+       <div className="mt-4 pt-4 border-t border-surface-edge/30 flex-1 flex flex-col items-center justify-center">
+          <h3 className="text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 text-center">Saldos BT</h3>
+          <ResponsiveContainer width="100%" height={180}>
+             <PieChart>
+                <Pie data={incomeData.btData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                   {incomeData.btData?.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                </Pie>
+                <Tooltip />
+             </PieChart>
+          </ResponsiveContainer>
+       </div>
+    </div>
+  );
+}

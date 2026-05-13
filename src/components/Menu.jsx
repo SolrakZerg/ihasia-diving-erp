@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Sidebar from './Sidebar';
-import Overview from './views/Overview';
+import Dashboard_View from './views/Dashboard/Dashboard_View';
 import Customers_View from './views/Customers/Customers_View';
 import InsuranceView from './views/Insurance/InsuranceView';
 import SettingsView from './views/Settings/Settings';
@@ -43,7 +43,7 @@ export default function Dashboard({ user }) {
 
   const renderView = () => {
     switch (activeView) {
-      case 'overview': return <Overview />;
+      case 'overview': return <Dashboard_View />;
       case 'customers': return <Customers_View onNavigate={navigateTo} />;
       case 'insurance': return <InsuranceView initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
       case 'settings': return <SettingsView />;
@@ -56,7 +56,7 @@ export default function Dashboard({ user }) {
       case 'staff-payouts': return <Activities />; // This was likely meant for payout rules, using Activities or similar as placeholder or check actual mapping
       case 'activities': return <Activities />;
 
-      default: return <Overview />;
+      default: return <Dashboard_View />;
     }
   };
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import Menu from './components/Menu';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -37,7 +37,7 @@ function App() {
       {!session ? (
         <Login />
       ) : (
-        <Dashboard user={session.user} />
+        <Menu user={session.user} />
       )}
     </div>
   );
