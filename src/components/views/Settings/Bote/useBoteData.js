@@ -47,7 +47,7 @@ export default function useBoteData() {
       const timer = setTimeout(() => { saveFinalBalance(); }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [stats]);
+  }, [stats, loading]);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchBoteData = async () => {
@@ -85,8 +85,8 @@ export default function useBoteData() {
         .from('invoice_items')
         .select('quantity, activities!inner(tshirt_included)')
         .eq('activities.tshirt_included', true)
-        .gte('created_at', startOfMonth)
-        .lte('created_at', endOfMonth);
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
       const tshirtsCount = items?.reduce((acc, item) => acc + Number(item.quantity ?? 1), 0) || 0;
 
       // 3. Ingresos por seguros

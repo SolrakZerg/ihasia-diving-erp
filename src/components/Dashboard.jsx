@@ -9,7 +9,7 @@ import Billing from './views/Billing/Billing';
 import Expenses from './views/Expenses/Expenses_View';
 import SSIView from './views/SSI/SSIView';
 import StaffSettlement from './views/Nominas/Nominas_View';
-import PartnersPayouts from './views/PartnersPayouts';
+import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_Header from './views/Carabao/Carabao_Header';
 
 
@@ -51,7 +51,7 @@ export default function Dashboard({ user }) {
       case 'expenses': return <Expenses />;
       case 'ssi': return <SSIView />;
       case 'staff-settlement': return <StaffSettlement />;
-      case 'partners-payouts': return <PartnersPayouts />;
+      case 'partners-payouts': return <CRBT_View />;
       case 'supplier-payout': return <Carabao_Header />;
       case 'staff-payouts': return <Activities />; // This was likely meant for payout rules, using Activities or similar as placeholder or check actual mapping
       case 'activities': return <Activities />;
