@@ -17,8 +17,6 @@ export default function useStaffFeeData() {
   });
 
   // ── Edición inline (solo el importe) ─────────────────────────────────────
-  const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({});
 
   // ── Ordenación ───────────────────────────────────────────────────────────
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
@@ -40,7 +38,7 @@ export default function useStaffFeeData() {
   const fetchData = async () => {
     setLoading(true);
     const [payoutsRes, activitiesRes] = await Promise.all([
-      supabase.from('instructor_payouts').select('*, activities(name, category)').order('created_at'),
+      supabase.from('instructor_payouts').select('*, activities(name, category, acronym, color)').order('created_at'),
       supabase.from('activities').select('id, name, category').order('name')
     ]);
     if (payoutsRes.data) setPayouts(payoutsRes.data);
@@ -61,6 +59,9 @@ export default function useStaffFeeData() {
     if (sortConfig.key === 'name') {
       aVal = a.activities?.name || a.concept_name || '';
       bVal = b.activities?.name || b.concept_name || '';
+    } else if (sortConfig.key === 'acronym') {
+      aVal = a.activities?.acronym || '';
+      bVal = b.activities?.acronym || '';
     } else if (sortConfig.key === 'type') {
       aVal = a.activity_id ? 'catalog' : 'manual';
       bVal = b.activity_id ? 'catalog' : 'manual';
@@ -108,23 +109,14 @@ export default function useStaffFeeData() {
   };
 
   // ── Edición inline ───────────────────────────────────────────────────────
-  const startEditing = (p) => {
-    setEditingId(p.id);
-    setEditData({ ...p });
-  };
-
-  const cancelEdit = () => setEditingId(null);
-
   const saveEdit = async (id, value) => {
-    const amount = value !== undefined ? value : editData.amount_thb;
     const { error } = await supabase
       .from('instructor_payouts')
-      .update({ amount_thb: parseFloat(amount) || 0 })
+      .update({ amount_thb: parseFloat(value) || 0 })
       .eq('id', id);
 
     if (!error) {
-      setEditingId(null);
-      fetchData();
+      setPayouts(payouts.map(p => p.id === id ? { ...p, amount_thb: parseFloat(value) || 0 } : p));
     } else {
       alert('Error: ' + error.message);
     }
@@ -145,8 +137,7 @@ export default function useStaffFeeData() {
     savePayout, deletePayout,
 
     // Edición inline
-    editingId, editData, setEditData,
-    startEditing, cancelEdit, saveEdit,
+    saveEdit,
 
     // Formulario de alta
     formData, setFormData,

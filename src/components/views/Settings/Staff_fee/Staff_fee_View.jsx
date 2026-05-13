@@ -16,7 +16,7 @@ export default function Staff_fee_View() {
     payouts, activities, loading, saving, sortedPayouts,
     sortConfig, handleSort,
     savePayout, deletePayout,
-    editingId, editData, setEditData, startEditing, cancelEdit, saveEdit,
+    saveEdit,
     formData, setFormData,
     confirmConfig, setConfirmConfig,
   } = useStaffFeeData();
@@ -68,12 +68,7 @@ export default function Staff_fee_View() {
         sortedPayouts={sortedPayouts}
         sortConfig={sortConfig}
         handleSort={handleSort}
-        editingId={editingId}
-        editData={editData}
-        setEditData={setEditData}
         saveEdit={saveEdit}
-        cancelEdit={cancelEdit}
-        startEditing={startEditing}
         deletePayout={deletePayout}
       />
 
