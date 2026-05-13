@@ -1,4 +1,5 @@
 import React from 'react';
+import EditableInput from '../../common/EditableInput';
 
 export default function CRBT_Matrix({ 
   fixedColumns, 
@@ -38,8 +39,24 @@ export default function CRBT_Matrix({
                     const count = matrixData[day].items[`dyn_${act.id}`] || 0;
                     return (<td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]"><span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>{count || ''}</span></td>);
                  })}
-                <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5"><input type="number" value={assists[day] || ''} onChange={(e) => updateAssist(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none no-spinner" placeholder="0" /></td>
-                <td className="p-0 border-l border-surface-edge/10 bg-indigo-500/5"><input type="number" value={manualAdj[day] || ''} onChange={(e) => updateAdjustment(day, e.target.value)} className="w-full bg-transparent text-center text-indigo-400 font-black text-sm outline-none no-spinner" placeholder="0" /></td>
+                <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5">
+                  <EditableInput
+                    type="number"
+                    defaultValue={assists[day] || ''}
+                    onSave={(val) => updateAssist(day, val)}
+                    className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none no-spinner"
+                    placeholder="0"
+                  />
+                </td>
+                <td className="p-0 border-l border-surface-edge/10 bg-indigo-500/5">
+                  <EditableInput
+                    type="number"
+                    defaultValue={manualAdj[day] || ''}
+                    onSave={(val) => updateAdjustment(day, val)}
+                    className="w-full bg-transparent text-center text-indigo-400 font-black text-sm outline-none no-spinner"
+                    placeholder="0"
+                  />
+                </td>
                 <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
               </tr>
             ))}

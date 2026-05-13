@@ -123,20 +123,26 @@ export default function useCRBTData() {
 
   const addAdvance = async (partner) => {
     const form = partner === 'CR' ? crForm : btForm;
-    if (!form.amount || !form.concept) return;
+    if (!form.amount || !form.concept) return false;
     const dateStr = `${year}-${month.toString().padStart(2, '0')}-${form.day.toString().padStart(2, '0')}`;
     const { data: newAdv } = await supabase.from('partner_advances').insert({ year, month, partner_id: partner, amount: parseFloat(form.amount), concept: form.concept, date: dateStr }).select().single();
     if (newAdv) {
       setAdvances([...advances, newAdv]);
       const reset = { day: new Date().getDate(), amount: '', concept: '' };
       if (partner === 'CR') setCrForm(reset); else setBtForm(reset);
+      return true;
     }
+    return false;
   };
 
   const saveInlineEdit = async (id, partner, inlineForm) => {
     const dateStr = `${year}-${month.toString().padStart(2, '0')}-${inlineForm.day.toString().padStart(2, '0')}`;
     const { error } = await supabase.from('partner_advances').update({ amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr }).eq('id', id);
-    if (!error) setAdvances(advances.map(a => a.id === id ? { ...a, amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr } : a));
+    if (!error) {
+      setAdvances(advances.map(a => a.id === id ? { ...a, amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr } : a));
+      return true;
+    }
+    return false;
   };
 
   const deleteAdvance = async (id) => {

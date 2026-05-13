@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import useCRBTData, { LOG_OPTIONS } from './useCRBTData';
 import CRBT_Header from './CRBT_Header';
 import CRBT_Matrix from './CRBT_Matrix';
@@ -127,6 +127,7 @@ export default function CRBT_View() {
           month={month}
         />
       </div>
+
     </div>
   );
 }

@@ -30,7 +30,7 @@ export default function Dashboard_View() {
     fetchDashboardData
   } = useDashboardData();
 
-  if (loading) {
+  if (loading && !staffData.length) {
     return (
       <div className="min-h-screen bg-[#0d0e15] flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>

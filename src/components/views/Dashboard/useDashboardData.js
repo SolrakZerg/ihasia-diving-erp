@@ -263,6 +263,9 @@ export default function useDashboardData() {
         updated_at: new Date().toISOString() 
       }, { onConflict: 'year, month' });
     }
+    
+    // Recargamos los datos DESPUÉS de guardar
+    await fetchDashboardData();
   };
 
   const updateGenericPending = async (col, val) => {
@@ -296,9 +299,8 @@ export default function useDashboardData() {
       }, { onConflict: 'year, month' });
     }
 
-    if (isBlank) {
-      fetchDashboardData();
-    }
+    // Recargamos los datos DESPUÉS de guardar (tanto si es vacío como si no)
+    await fetchDashboardData();
   };
 
   useEffect(() => {

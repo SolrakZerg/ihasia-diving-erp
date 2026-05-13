@@ -1,3 +1,5 @@
+import EditableInput from '../../common/EditableInput';
+
 export default function Dashboard_Cuentas({ 
   incomeData, 
   updateOpeningCash, 
@@ -10,13 +12,11 @@ export default function Dashboard_Cuentas({
        <div className="space-y-1.5 flex-1 overflow-auto custom-scrollbar">
           <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 text-gray-400 mb-1.5">
              <span className="text-[12px] font-black uppercase tracking-normal truncate whitespace-nowrap">Mes Anterior</span>
-             <input 
-               type="number" 
-               value={incomeData.openingCash === 0 ? 0 : (incomeData.openingCash || '')} 
-               onChange={(e) => updateOpeningCash(e.target.value)} 
-               onBlur={() => fetchDashboardData()}
-               onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-               className="bg-transparent border-none text-right font-mono text-sm font-black w-24 outline-none focus:text-white transition-colors no-spinner" 
+             <EditableInput
+               defaultValue={incomeData.openingCash === 0 ? 0 : (incomeData.openingCash || '')}
+               onSave={(val) => updateOpeningCash(val)}
+               type="number"
+               className="bg-transparent border-none text-right font-mono text-sm font-black w-24 outline-none focus:text-white transition-colors no-spinner"
              />
           </div>
           <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-400/25 border border-emerald-500/70 text-white/90 mb-1.5">
