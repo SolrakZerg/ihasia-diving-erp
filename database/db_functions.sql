@@ -181,25 +181,24 @@ $function$;
 -- --------------------------------------------------------------------------------
 -- Function: logic.recalculate_bote_apartar
 -- Description: Calculates total amount to set aside for 'Bote' (t-shirts and insurance).
--- Esta calcula cuánto dinero hay que "apartar" para el bote por cada camiseta y seguro.
 -- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.recalculate_bote_apartar(p_year integer, p_month integer)
  RETURNS void
  LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
 AS $function$
 DECLARE
     v_tshirts INT;
     v_insurances INT;
     v_total NUMERIC;
+    v_prev_balance NUMERIC := 0;
+    v_exists BOOLEAN;
 BEGIN
     -- SUPER ESCUDO PROTECTOR (Ene-Mar 2026)
     IF p_year < 2026 OR (p_year = 2026 AND p_month <= 3) THEN 
         RETURN; 
     END IF;
 
-    -- 1. Contar camisetas usando la FECHA DEL CURSO (date), no la fecha de registro
+    -- 1. Contar camisetas usando la FECHA DEL CURSO (date)
     SELECT COALESCE(SUM(i.quantity), 0) INTO v_tshirts
     FROM public.invoice_items i
     JOIN public.activities a ON i.activity_id = a.id
@@ -217,10 +216,25 @@ BEGIN
     v_total := (v_tshirts * 160) + (v_insurances * 75);
 
     -- 4. Actualizar tabla bote_monthly
-    INSERT INTO public.bote_monthly (year, month, apartar_amount, updated_at)
-    VALUES (p_year, p_month, v_total, now())
-    ON CONFLICT (year, month) DO UPDATE 
-    SET apartar_amount = v_total, updated_at = now();
+    SELECT EXISTS (
+        SELECT 1 FROM public.bote_monthly 
+        WHERE year = p_year AND month = p_month
+    ) INTO v_exists;
+
+    IF NOT v_exists THEN
+        -- Intentar recuperar saldo final del mes anterior
+        SELECT COALESCE(final_balance, 0) INTO v_prev_balance
+        FROM public.bote_monthly
+        WHERE (year = p_year AND month = p_month - 1)
+           OR (year = p_year - 1 AND month = 12 AND p_month = 1);
+           
+        INSERT INTO public.bote_monthly (year, month, apartar_amount, initial_balance, updated_at)
+        VALUES (p_year, p_month, v_total, v_prev_balance, now());
+    ELSE
+        UPDATE public.bote_monthly
+        SET apartar_amount = v_total, updated_at = now()
+        WHERE year = p_year AND month = p_month;
+    END IF;
 END;
 $function$;
 
@@ -757,5 +771,106 @@ BEGIN
   WHERE supplier_name = 'SSI' AND year = p_year AND month = p_month;
 END;
 $function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.func_calculate_bote_final_balance
+-- Description: Calculates the final balance of the bote for the month.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.func_calculate_bote_final_balance()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.final_balance := COALESCE(NEW.initial_balance, 0) + (COALESCE(NEW.apartar_amount, 0) - COALESCE(NEW.pending_amount, 0)) - COALESCE(NEW.expenses_total, 0);
+    RETURN NEW;
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.func_cascade_bote_initial_balance
+-- Description: Cascades the final balance to the next month's initial balance.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.func_cascade_bote_initial_balance()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_next_year INTEGER;
+    v_next_month INTEGER;
+BEGIN
+    -- Solo actuar si el final_balance ha cambiado
+    IF OLD.final_balance IS DISTINCT FROM NEW.final_balance THEN
+        -- Calcular el mes y año siguiente
+        IF NEW.month = 12 THEN
+            v_next_month := 1;
+            v_next_year := NEW.year + 1;
+        ELSE
+            v_next_month := NEW.month + 1;
+            v_next_year := NEW.year;
+        END IF;
+
+        -- Actualizar el saldo inicial del mes siguiente si existe
+        UPDATE public.bote_monthly
+        SET initial_balance = NEW.final_balance, updated_at = NOW()
+        WHERE year = v_next_year AND month = v_next_month;
+    END IF;
+
+    RETURN NULL; -- Es un trigger AFTER
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.func_sync_bote_expenses_to_monthly
+-- Description: Syncs expenses from bote_expenses to bote_monthly.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.func_sync_bote_expenses_to_monthly()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_year INTEGER;
+    v_month INTEGER;
+    v_total NUMERIC;
+    v_start_date DATE;
+    v_end_date DATE;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        v_year := EXTRACT(YEAR FROM OLD.date)::INTEGER;
+        v_month := EXTRACT(MONTH FROM OLD.date)::INTEGER;
+    ELSE
+        v_year := EXTRACT(YEAR FROM NEW.date)::INTEGER;
+        v_month := EXTRACT(MONTH FROM NEW.date)::INTEGER;
+    END IF;
+
+    -- Construir fechas de inicio y fin de mes de forma segura
+    v_start_date := TO_DATE(v_year || '-' || v_month || '-01', 'YYYY-MM-DD');
+    v_end_date := v_start_date + INTERVAL '1 month';
+
+    IF TG_OP = 'DELETE' THEN
+        -- Calcular el total excluyendo el que se está borrando, y forzar a ENTERO
+        SELECT COALESCE(SUM(amount), 0)::INTEGER INTO v_total
+        FROM public.bote_expenses
+        WHERE date >= v_start_date AND date < v_end_date
+          AND id <> OLD.id;
+    ELSE
+        -- Calcular el total normalmente, y forzar a ENTERO
+        SELECT COALESCE(SUM(amount), 0)::INTEGER INTO v_total
+        FROM public.bote_expenses
+        WHERE date >= v_start_date AND date < v_end_date;
+    END IF;
+
+    -- Actualizar la tabla bote_monthly
+    UPDATE public.bote_monthly
+    SET expenses_total = v_total, updated_at = NOW()
+    WHERE year = v_year AND month = v_month;
+
+    RETURN NULL; -- Es un trigger AFTER
+END;
+$function$;
+
 
 

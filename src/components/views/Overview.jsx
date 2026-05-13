@@ -330,12 +330,23 @@ export default function Overview() {
       return e;
     }));
 
+    // Guardamos en monthly_reports (lo que ya hacía)
     await supabase.from('monthly_reports').upsert({ 
       year, 
       month, 
       [col]: num,
       updated_at: new Date().toISOString() 
     }, { onConflict: 'year, month' });
+
+    // SI ES BOTE, TAMBIÉN GUARDAMOS EN BOTE_MONTHLY PARA EL CÁLCULO REAL
+    if (col === 'bote_xpagar') {
+      await supabase.from('bote_monthly').upsert({
+        year,
+        month,
+        pending_amount: num,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'year, month' });
+    }
 
     // Si es un reseteo (vacío), forzamos la recarga para que aparezca el valor original
     if (isBlank) {

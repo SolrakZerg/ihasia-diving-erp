@@ -21,6 +21,7 @@ export default function Bote_View() {
     handleDeleteExpense,
     confirmConfig, setConfirmConfig,
     incomeTshirts, incomeInsurances, totalExpenses, currentBalance,
+    pendingAmount, apartarReal,
   } = useBoteData();
 
   // ── Loading ────────────────────────────────────────────────────────────────
@@ -100,6 +101,8 @@ export default function Bote_View() {
         stats={stats}
         month={month}
         months={MONTHS}
+        pendingAmount={pendingAmount}
+        apartarReal={apartarReal}
       />
 
       <div className="pt-4" />

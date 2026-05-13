@@ -29,6 +29,8 @@ export default function Bote_Stats({
   stats,
   month,
   months,
+  pendingAmount,
+  apartarReal,
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -96,6 +98,18 @@ export default function Bote_Stats({
             </span>
             <span className="text-[11px] font-black text-white/80">{(stats.insurances * 75).toLocaleString()} ฿</span>
           </div>
+          <div className="flex justify-between items-center pt-1 border-t border-emerald-500/5">
+            <span className="text-[11px] font-black text-gray-500 uppercase flex items-center gap-2">
+              Dejado en Caja
+            </span>
+            <span className="text-[11px] font-black text-rose-400">{(pendingAmount || 0).toLocaleString()} ฿</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-black text-emerald-500 uppercase flex items-center gap-2">
+              Neto a Llevarse
+            </span>
+            <span className="text-[11px] font-black text-emerald-500">{(apartarReal || 0).toLocaleString()} ฿</span>
+          </div>
         </div>
       </div>
 
@@ -103,7 +117,7 @@ export default function Bote_Stats({
       <div className="bg-rose-500/5 border border-rose-500/10 p-6 rounded-[2.5rem] shadow-lg shadow-rose-500/5 flex flex-col justify-between group hover:border-rose-500/30 transition-all">
         <div>
           <p className="text-[13px] font-black text-rose-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-            <TrendingDown className="w-4 h-4" /> Gastos Material
+            <TrendingDown className="w-4 h-4" /> Gastos Bote
           </p>
           <div className="mt-4">
             <h4 className="text-3xl font-black text-white">
@@ -125,7 +139,7 @@ export default function Bote_Stats({
         <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-center text-[12px] font-black text-white uppercase relative z-10">
           <span className="opacity-80">Progreso Mes</span>
           <span className="bg-white/20 px-2 py-0.5 rounded-lg">
-            {(incomeTshirts + incomeInsurances - totalExpenses).toLocaleString()} ฿
+            {((apartarReal || 0) - totalExpenses).toLocaleString()} ฿
           </span>
         </div>
       </div>

@@ -10,6 +10,18 @@
 DROP TRIGGER IF EXISTS trg_sync_bote_to_report ON public.bote_monthly;
 CREATE TRIGGER trg_sync_bote_to_report AFTER INSERT OR UPDATE OR DELETE ON public.bote_monthly FOR EACH ROW EXECUTE FUNCTION logic.trg_sync_total_gastos_to_report();
 
+DROP TRIGGER IF EXISTS trg_calculate_bote_final_balance ON public.bote_monthly;
+CREATE TRIGGER trg_calculate_bote_final_balance BEFORE INSERT OR UPDATE ON public.bote_monthly FOR EACH ROW EXECUTE FUNCTION logic.func_calculate_bote_final_balance();
+
+DROP TRIGGER IF EXISTS trg_cascade_bote_initial_balance ON public.bote_monthly;
+CREATE TRIGGER trg_cascade_bote_initial_balance AFTER UPDATE ON public.bote_monthly FOR EACH ROW EXECUTE FUNCTION logic.func_cascade_bote_initial_balance();
+
+-- --------------------------------------------------------------------------------
+-- Table: bote_expenses
+-- --------------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_sync_bote_expenses_to_monthly ON public.bote_expenses;
+CREATE TRIGGER trg_sync_bote_expenses_to_monthly AFTER INSERT OR UPDATE OR DELETE ON public.bote_expenses FOR EACH ROW EXECUTE FUNCTION logic.func_sync_bote_expenses_to_monthly();
+
 -- --------------------------------------------------------------------------------
 -- Table: daily_expenses
 -- --------------------------------------------------------------------------------

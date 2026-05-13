@@ -17,6 +17,10 @@ export default function useBoteData() {
   const [initialBote, setInitialBote] = useState(0);
   const [expenses, setExpenses] = useState([]);
   const [stats, setStats] = useState({ tshirts: 0, insurances: 0 });
+  const [pendingAmount, setPendingAmount] = useState(0);
+  const [apartarReal, setApartarReal] = useState(0);
+  const [finalBalance, setFinalBalance] = useState(0);
+  const [expensesTotal, setExpensesTotal] = useState(0);
 
   // ── Formulario de nuevo gasto ─────────────────────────────────────────────
   const [newExpense, setNewExpense] = useState({
@@ -44,7 +48,7 @@ export default function useBoteData() {
   // AUTO-SAVE: Sincroniza el saldo final con la BD cuando cambian los stats
   useEffect(() => {
     if (!loading && (stats.tshirts > 0 || stats.insurances > 0)) {
-      const timer = setTimeout(() => { saveFinalBalance(); }, 2000);
+      const timer = setTimeout(() => { saveBoteStats(); }, 2000);
       return () => clearTimeout(timer);
     }
   }, [stats, loading]);
@@ -67,6 +71,10 @@ export default function useBoteData() {
 
       if (boteData) {
         setInitialBote(Number(boteData.initial_balance || 0));
+        setPendingAmount(Number(boteData.pending_amount || 0));
+        setApartarReal(Number(boteData.apartar_real || 0));
+        setFinalBalance(Number(boteData.final_balance || 0));
+        setExpensesTotal(Number(boteData.expenses_total || 0));
       } else {
         // Intentar recuperar saldo final del mes anterior
         const prevMonth = month === 1 ? 12 : month - 1;
@@ -116,19 +124,31 @@ export default function useBoteData() {
   };
 
   // ── Sincronización BD ─────────────────────────────────────────────────────
-  const saveFinalBalance = async () => {
-    const incomeValue = (stats.tshirts * 160) + (stats.insurances * 75);
-    const totalExp    = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
-    const final       = initialBote + incomeValue - totalExp;
+  const refetchBoteMonthly = async () => {
+    const { data, error } = await supabase
+      .from('bote_monthly')
+      .select('*')
+      .eq('year', year)
+      .eq('month', month)
+      .single();
 
+    if (!error && data) {
+      setPendingAmount(Number(data.pending_amount || 0));
+      setApartarReal(Number(data.apartar_real || 0));
+      setFinalBalance(Number(data.final_balance || 0));
+      setExpensesTotal(Number(data.expenses_total || 0));
+    }
+  };
+
+  const saveBoteStats = async () => {
+    const incomeValue = (stats.tshirts * 160) + (stats.insurances * 75);
     await supabase.from('bote_monthly').upsert({
       year, month,
       initial_balance: initialBote,
       apartar_amount: incomeValue,
-      expenses_total: totalExp,
-      final_balance: final,
       updated_at: new Date().toISOString()
     }, { onConflict: 'year, month' });
+    refetchBoteMonthly();
   };
 
   // ── Actualizar fondo inicial ──────────────────────────────────────────────
@@ -140,7 +160,7 @@ export default function useBoteData() {
       initial_balance: num,
       updated_at: new Date().toISOString()
     }, { onConflict: 'year, month' });
-    saveFinalBalance();
+    refetchBoteMonthly();
   };
 
   // ── CRUD Gastos ───────────────────────────────────────────────────────────
@@ -154,7 +174,7 @@ export default function useBoteData() {
       if (error) throw error;
       setExpenses([data, ...expenses]);
       setNewExpense({ day: new Date().getDate(), amount: '', concept: '', category: 'Material' });
-      saveFinalBalance();
+      refetchBoteMonthly();
     } catch (error) {
       alert('Error al añadir gasto: ' + error.message);
     } finally {
@@ -173,7 +193,7 @@ export default function useBoteData() {
         const { error } = await supabase.from('bote_expenses').delete().eq('id', id);
         if (error) { alert('Error al borrar: ' + error.message); return; }
         setExpenses(expenses.filter(e => e.id !== id));
-        saveFinalBalance();
+        refetchBoteMonthly();
       }
     });
   };
@@ -195,7 +215,7 @@ export default function useBoteData() {
       if (error) throw error;
       setExpenses(expenses.map(e => e.id === id ? { ...e, ...payload } : e));
       setInlineEditId(null);
-      saveFinalBalance();
+      refetchBoteMonthly();
     } catch (error) {
       alert('Error al actualizar: ' + error.message);
     } finally {
@@ -217,8 +237,10 @@ export default function useBoteData() {
   // ── Valores calculados ────────────────────────────────────────────────────
   const incomeTshirts    = stats.tshirts * 160;
   const incomeInsurances = stats.insurances * 75;
-  const totalExpenses    = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
-  const currentBalance   = initialBote + incomeTshirts + incomeInsurances - totalExpenses;
+  // totalExpenses ahora se lee de la base de datos (expensesTotal)
+  const totalExpenses    = expensesTotal;
+  // currentBalance ahora se lee de la base de datos (finalBalance)
+  const currentBalance   = finalBalance;
 
   // ── Return ────────────────────────────────────────────────────────────────
   return {
@@ -244,5 +266,6 @@ export default function useBoteData() {
 
     // Valores calculados
     incomeTshirts, incomeInsurances, totalExpenses, currentBalance,
+    pendingAmount, apartarReal, finalBalance,
   };
 }
