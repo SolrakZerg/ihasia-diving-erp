@@ -181,6 +181,7 @@ $function$;
 -- --------------------------------------------------------------------------------
 -- Function: logic.recalculate_bote_apartar
 -- Description: Calculates total amount to set aside for 'Bote' (t-shirts and insurance).
+-- Esta calcula cuánto dinero hay que "apartar" para el bote por cada camiseta y seguro.
 -- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.recalculate_bote_apartar(p_year integer, p_month integer)
  RETURNS void
@@ -198,7 +199,7 @@ BEGIN
         RETURN; 
     END IF;
 
-    -- 1. Contar camisetas usando la FECHA DEL CURSO (date)
+    -- 1. Contar camisetas usando la FECHA DEL CURSO (date), no la fecha de registro
     SELECT COALESCE(SUM(i.quantity), 0) INTO v_tshirts
     FROM public.invoice_items i
     JOIN public.activities a ON i.activity_id = a.id

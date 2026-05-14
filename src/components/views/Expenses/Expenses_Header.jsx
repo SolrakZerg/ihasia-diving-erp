@@ -17,8 +17,8 @@ const Expenses_Header = ({
   pendingByRecipient
 }) => {
   return (
-    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] sticky top-0 h-[200px]">
-      <div className="max-w-[1700px] mx-auto px-8 h-full flex flex-col md:flex-row items-center justify-between gap-8">
+    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-6">
+      <div className="max-w-[1700px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
         
         <div className="flex flex-col gap-4 shrink-0">
           <div className="flex items-center gap-4">
@@ -35,7 +35,7 @@ const Expenses_Header = ({
             <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
               <button 
                 onClick={handlePrevMonth}
-                className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
+                className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -66,7 +66,7 @@ const Expenses_Header = ({
 
               <button 
                 onClick={handleNextMonth}
-                className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
+                className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -74,7 +74,7 @@ const Expenses_Header = ({
             
             <button 
               onClick={() => setShowConfigModal(true)} 
-              className="p-2.5 rounded-2xl bg-surface-edge/10 border border-surface-edge/30 text-gray-500 hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
+              className="p-2.5 rounded-2xl bg-surface-edge/10 border border-surface-edge/30 text-text-header hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
               title="Configuración"
             >
               <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
@@ -83,37 +83,37 @@ const Expenses_Header = ({
         </div>
 
         {/* DIVIDER & WIDGETS 2x2 SECTION */}
-        <div className="hidden md:flex flex-1 items-center gap-8 self-stretch py-0">
-          <div className="w-px h-full bg-surface-edge/40" />
+        <div className="flex flex-col md:flex-row flex-1 items-center gap-8 self-stretch py-0">
+          <div className="w-full h-px md:w-px md:h-full bg-surface-edge/40 shrink-0" />
           
-          <div className="grid grid-cols-2 gap-x-4">
-            <div className="bg-rose-500/5 border border-rose-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-rose-500/10 transition-all">
-               <div className="p-2 rounded-2xl bg-rose-500/10 mb-2 text-rose-400 group-hover:scale-110 transition-transform">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
+            <div className="stats-widget min-w-[200px]" style={{ '--widget-color': 'var(--color-danger)' }}>
+               <div className="stats-widget-icon mb-2">
                   <TrendingDown className="w-4 h-4" />
                </div>
-               <span className="text-[11px] font-black text-rose-400/60 uppercase tracking-[0.2em] leading-none mb-2">GASTO MES</span>
-               <span className="text-3xl font-black text-white tracking-tighter">
+               <span className="stats-widget-title mb-2">GASTO MES</span>
+               <span className="stats-widget-value">
                   -{(monthlyTotal + commissionsPaid + commissionsPending + oxygenTotal).toLocaleString()} 
-                  <span className="text-sm font-black text-rose-400 ml-1 italic font-mono">฿</span>
+                  <span className="stats-widget-currency">฿</span>
                </span>
             </div>
 
-            <div className="bg-amber-500/5 border border-amber-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px] shadow-sm group hover:bg-amber-500/10 transition-all">
-               <div className="p-2 rounded-2xl bg-amber-500/10 mb-2 text-amber-400 group-hover:scale-110 transition-transform">
+            <div className="stats-widget min-w-[200px]" style={{ '--widget-color': 'var(--color-warning)' }}>
+               <div className="stats-widget-icon mb-2">
                   <TrendingDown className="w-4 h-4" />
                </div>
-               <span className="text-[11px] font-black text-amber-400/60 uppercase tracking-[0.2em] leading-none mb-2">PENDIENTE</span>
-               <span className="text-3xl font-black text-white tracking-tighter">
+               <span className="stats-widget-title mb-2">PENDIENTE</span>
+               <span className="stats-widget-value">
                   {(commissionsPending + oxygenPending).toLocaleString()} 
-                  <span className="text-sm font-black text-amber-500/40 ml-1 italic font-mono">฿</span>
+                  <span className="stats-widget-currency">฿</span>
                </span>
             </div>
           </div>
 
-          <div className="w-px h-full bg-surface-edge/40" />
+          <div className="w-full h-px md:w-px md:h-full bg-surface-edge/40 shrink-0" />
 
           {/* PENDING COMMISSIONS BY INDIVIDUAL - RESTORED */}
-          <div className="flex flex-col gap-3 min-w-[420px] max-w-[600px]">
+          <div className="flex flex-col gap-3 w-full max-w-[500px] shrink-0">
             <div className="flex items-center justify-center gap-3">
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-indigo-500/40" />
               <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2 px-4 py-1 rounded-full bg-indigo-500/5 border border-indigo-500/20 shadow-sm shadow-indigo-500/5">
@@ -122,23 +122,23 @@ const Expenses_Header = ({
               <div className="h-px flex-1 bg-gradient-to-l from-transparent via-indigo-500/20 to-indigo-500/40" />
             </div>
             
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar">
               {pendingByRecipient.length === 0 ? (
-                <div className="col-span-2 py-3 px-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl text-[11px] text-emerald-500/70 font-bold italic text-center">
+                <div className="col-span-2 py-3 px-4 bg-success/5 border border-success/10 rounded-2xl text-[11px] text-success/70 font-bold italic text-center">
                   Todos los pagos están al día
                 </div>
               ) : (
                 pendingByRecipient.map(p => (
                   <div key={p.id} className="flex items-center justify-between gap-4 py-0.5 px-3 bg-surface-edge/5 hover:bg-indigo-500/10 rounded-xl border border-surface-edge/10 hover:border-indigo-500/20 transition-all group/row">
                     <span className="text-[12px] font-bold text-white/70 group-hover/row:text-white truncate max-w-[100px]">{p.name}</span>
-                    <span className="text-[12px] font-black text-amber-500 font-mono tracking-tighter whitespace-nowrap">{p.amount.toLocaleString()} ฿</span>
+                    <span className="text-[12px] font-black text-warning font-mono tracking-tighter whitespace-nowrap">{p.amount.toLocaleString()} ฿</span>
                   </div>
                 ))
               )}
             </div>
           </div>
 
-          <div className="w-px h-full bg-surface-edge/40" />
+          <div className="w-full h-px md:w-px md:h-full bg-surface-edge/40 shrink-0" />
         </div>
 
         <div className="flex flex-wrap items-center gap-4 shrink-0">

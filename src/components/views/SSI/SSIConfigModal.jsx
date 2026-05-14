@@ -46,7 +46,7 @@ export default function SSIConfigModal({
                 <Settings className="w-5 h-5 text-indigo-400" />
                 <div>
                    <h3 className="text-lg font-black text-white tracking-tight uppercase">Configurar Filtro SSI</h3>
-                   <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Arrastra para ordenar y selecciona los cursos</p>
+                   <p className="text-[10px] text-text-header font-black uppercase tracking-widest">Arrastra para ordenar y selecciona los cursos</p>
                 </div>
              </div>
              <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
@@ -92,7 +92,7 @@ export default function SSIConfigModal({
                               onClick={() => toggleSelect(index)}
                               onPointerDown={(e) => e.stopPropagation()}
                               className={`shrink-0 w-7 h-7 rounded-xl flex items-center justify-center border-2 transition-all ${
-                                isSelected ? 'bg-emerald-500 border-emerald-500 text-[#1a1c2d] shadow-lg shadow-emerald-500/20' : 'border-white/10 bg-black/20 text-transparent hover:border-white/30'
+                                isSelected ? 'bg-success border-success text-[#1a1c2d] shadow-lg shadow-success/20' : 'border-white/10 bg-black/20 text-transparent hover:border-white/30'
                               }`}
                             >
                               <Check className={`w-4 h-4 stroke-[4] ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
@@ -107,7 +107,7 @@ export default function SSIConfigModal({
           <div className="p-6 bg-brand/5 flex justify-center border-t border-white/5">
              <button 
                 onClick={handleSave}
-                className="w-full py-5 bg-brand hover:bg-brand-light text-[#1a1c2d] font-black rounded-2xl transition-all shadow-xl shadow-brand/20 uppercase tracking-[0.2em] text-sm"
+                className="btn-accept w-full justify-center"
              >
                 Guardar y Aplicar
              </button>

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #3b82f6;           /* Blue 500 */
-  --color-brand-light: #60a5fa;     /* Blue 400 (Accessible for text on dark) */
+  --color-brand: #376fcd;           /* Blue 500 (Modified for contrast) */
+  --color-brand-light: #5a8fdf;     /* Blue 400 (Estimated for contrast) */
   --color-brand-dark: #1d4ed8;
   --color-accent: #f59e0b;
   --color-surface: #111827;
@@ -13,8 +13,19 @@
   /* Accessible Text Tokens */
   --color-text-muted: #9ca3af;      /* Gray 400 - AA Pass on dark surface */
   --color-text-dim: #6b7280;        /* Gray 500 - For icons/decoration only */
+  --color-text-header: #9ca3af;     /* Gray 400 - Para cabeceras de tablas */
   --color-amber-500: oklch(0.77 0.15 88.25); /* Premium High-Contrast Amber */
   --color-rose-400: oklch(0.76 0.19 12.58);  /* Premium High-Contrast Rose */
+  
+  /* Colores de Estado Semánticos */
+  --color-success: #34d399;         /* emerald-400 */
+  --color-warning: #fbbf24;         /* amber-400 */
+  --color-danger: var(--color-rose-400);
+  --color-info: #60a5fa;           /* blue-400 */
+  
+  /* Colores de Entidad */
+  --color-cr: #2563eb;             /* blue-600 */
+  --color-bt: #db2777;             /* pink-600 */
   
   /* Custom Breakpoints */
   --breakpoint-3xl: 1700px;
@@ -105,4 +116,120 @@ input[type="date"] {
 
 .animate-fold-up {
   animation: fold-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Patrón de Widget de Estadísticas */
+.stats-widget {
+  --widget-color: var(--color-brand); /* Color por defecto */
+  
+  background-color: color-mix(in srgb, var(--widget-color) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--widget-color) 20%, transparent);
+  border-radius: 1.5rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+}
+
+.stats-widget-title {
+  color: color-mix(in srgb, var(--widget-color) 85%, transparent);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.stats-widget-icon {
+  background-color: color-mix(in srgb, var(--widget-color) 20%, transparent);
+  color: var(--widget-color);
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-widget-value {
+  color: #f8fafc;
+  font-size: 1.875rem; /* text-3xl */
+  font-weight: 900;
+  letter-spacing: -0.05em; /* tracking-tighter */
+}
+
+.stats-widget-currency {
+  color: color-mix(in srgb, var(--widget-color) 40%, transparent);
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 900;
+  font-family: monospace;
+  font-style: italic;
+  margin-left: 0.25rem;
+}
+
+/* Pills de resumen en tablas */
+.stats-pill {
+  background-color: color-mix(in srgb, var(--widget-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--widget-color) 20%, transparent);
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.stats-pill:hover {
+  background-color: color-mix(in srgb, var(--widget-color) 15%, transparent);
+}
+
+.stats-pill-title {
+  color: color-mix(in srgb, var(--widget-color) 80%, transparent);
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stats-pill-value {
+  color: #ffffff;
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 900;
+  font-family: monospace;
+  letter-spacing: -0.05em;
+}
+
+.stats-pill-currency {
+  color: color-mix(in srgb, var(--widget-color) 80%, transparent);
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 900;
+  font-family: monospace;
+  font-style: italic;
+  margin-left: 0.25rem;
+}
+
+/* Botón de Acción Principal (Aceptar, Guardar, Aplicar) */
+.btn-accept {
+  background-color: var(--color-brand);
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 15px -3px rgba(55, 111, 205, 0.2), 0 4px 6px -2px rgba(55, 111, 205, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-accept:hover:not(:disabled) {
+  background-color: var(--color-brand-light);
+  box-shadow: 0 10px 15px -3px rgba(55, 111, 205, 0.3), 0 4px 6px -2px rgba(55, 111, 205, 0.1);
+}
+
+.btn-accept:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }

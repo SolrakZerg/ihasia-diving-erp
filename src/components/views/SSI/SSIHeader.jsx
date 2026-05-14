@@ -29,7 +29,7 @@ export default function SSIHeader({
           {/* DATE SELECTOR */}
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
-              <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all">
+              <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
@@ -55,14 +55,14 @@ export default function SSIHeader({
                   ))}
                 </select>
               </div>
-              <button onClick={handleNextMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all">
+              <button onClick={handleNextMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
             <button 
               onClick={() => setShowConfigModal(true)} 
-              className="p-2.5 rounded-2xl bg-surface-edge/10 border border-surface-edge/30 text-gray-500 hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
+              className="p-2.5 rounded-2xl bg-surface-edge/10 border border-surface-edge/30 text-text-header hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
               title="Configuración"
             >
               <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
@@ -72,39 +72,39 @@ export default function SSIHeader({
 
         {/* STATS WIDGETS */}
         <div className="flex gap-4">
-             <div className="bg-amber-500/5 border border-amber-400/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px]">
+             <div className="stats-widget" style={{ '--widget-color': 'var(--color-warning)' }}>
                 <div className="flex items-center gap-2 mb-2">
-                   <div className="p-1 rounded-md bg-amber-500/10 text-amber-400">
+                   <div className="stats-widget-icon">
                       <TrendingUp className="w-3.5 h-3.5" />
                    </div>
-                   <span className="text-[11px] font-black text-amber-400/60 uppercase tracking-[0.2em]">TOTAL SSI</span>
+                   <span className="stats-widget-title">TOTAL SSI</span>
                 </div>
-                <span className="text-3xl font-black text-white tracking-tighter">
-                   {totalSsi.toLocaleString()} <span className="text-sm font-black text-amber-400/40 ml-1 italic font-mono">฿</span>
+                <span className="stats-widget-value">
+                   {totalSsi.toLocaleString()} <span className="stats-widget-currency">฿</span>
                 </span>
              </div>
 
-             <div className="bg-emerald-500/5 border border-emerald-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px]">
+             <div className="stats-widget" style={{ '--widget-color': 'var(--color-success)' }}>
                 <div className="flex items-center gap-2 mb-2">
-                   <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400">
+                   <div className="stats-widget-icon">
                       <TrendingUp className="w-3.5 h-3.5" />
                    </div>
-                   <span className="text-[11px] font-black text-emerald-400/60 uppercase tracking-[0.2em]">PAGADO</span>
+                   <span className="stats-widget-title">PAGADO</span>
                 </div>
-                <span className="text-3xl font-black text-white tracking-tighter">
-                   {manualPaid.toLocaleString()} <span className="text-sm font-black text-emerald-500/40 ml-1 italic font-mono">฿</span>
+                <span className="stats-widget-value">
+                   {manualPaid.toLocaleString()} <span className="stats-widget-currency">฿</span>
                 </span>
              </div>
              
-             <div className="bg-rose-500/5 border border-rose-500/20 px-6 py-4 rounded-3xl flex flex-col items-center min-w-[200px]">
+             <div className="stats-widget" style={{ '--widget-color': 'var(--color-danger)' }}>
                 <div className="flex items-center gap-2 mb-2">
-                   <div className="p-1 rounded-md bg-rose-500/10 text-rose-400">
+                   <div className="stats-widget-icon">
                       <TrendingDown className="w-3.5 h-3.5" />
                    </div>
-                   <span className="text-[11px] font-black text-rose-400/60 uppercase tracking-[0.2em]">POR PAGAR</span>
+                   <span className="stats-widget-title">POR PAGAR</span>
                 </div>
-                <span className="text-3xl font-black text-white tracking-tighter">
-                   {(totalSsi - manualPaid).toLocaleString()} <span className="text-sm font-black text-rose-400/40 ml-1 italic font-mono">฿</span>
+                <span className="stats-widget-value">
+                   {(totalSsi - manualPaid).toLocaleString()} <span className="stats-widget-currency">฿</span>
                 </span>
              </div>
         </div>

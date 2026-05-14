@@ -70,7 +70,7 @@ const Expenses_View = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-surface overflow-hidden relative">
+    <div className="h-full flex flex-col bg-surface md:overflow-hidden overflow-auto relative">
 
       {/* CONFIRMATION MODAL */}
       {confirmConfig.show && (
@@ -78,17 +78,17 @@ const Expenses_View = () => {
           <div className="bg-surface-soft border border-surface-edge w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 rounded-2xl ${confirmConfig.type === 'danger' ? 'bg-rose-400/10 text-rose-400' : 'bg-brand/10 text-brand'}`}>
+                <div className={`p-3 rounded-2xl ${confirmConfig.type === 'danger' ? 'bg-danger/10 text-danger' : 'bg-brand/10 text-brand'}`}>
                   <AlertCircle className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-black text-white">{confirmConfig.title}</h3>
               </div>
-              <p className="text-gray-400 font-bold ml-16">{confirmConfig.message}</p>
+              <p className="text-text-header/60 font-bold ml-16">{confirmConfig.message}</p>
             </div>
             <div className="bg-surface-edge/20 px-6 py-4 flex justify-end gap-3">
               <button 
                 onClick={() => setConfirmConfig({ ...confirmConfig, show: false })}
-                className="px-4 py-2 rounded-xl text-sm font-black text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-black text-text-header hover:text-white hover:bg-surface-edge/30 transition-colors"
               >
                 Cancelar
               </button>
@@ -97,7 +97,7 @@ const Expenses_View = () => {
                   if (confirmConfig.onConfirm) confirmConfig.onConfirm();
                 }}
                 className={`px-5 py-2 rounded-xl text-sm font-black text-white shadow-lg transition-all ${
-                  confirmConfig.type === 'danger' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20' : 'bg-brand hover:bg-brand-light shadow-brand/20'
+                  confirmConfig.type === 'danger' ? 'bg-danger hover:bg-danger/80 shadow-danger/20' : 'bg-brand hover:bg-brand-light shadow-brand/20'
                 }`}
               >
                 Confirmar
@@ -123,11 +123,11 @@ const Expenses_View = () => {
       />
 
       {/* MAIN CONTENT GRID */}
-      <div className="flex-1 overflow-auto custom-scrollbar p-5">
+      <div className="flex-1 md:overflow-auto overflow-visible custom-scrollbar p-5">
         <div className="max-w-[1700px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           {/* TABLA DE GASTOS (COL-4) */}
-          <div className="lg:col-span-4 flex flex-col h-[calc(100vh-260px)]">
+          <div className="lg:col-span-4 flex flex-col lg:h-[calc(100vh-260px)]">
             <Expenses_Daily_Table 
               expenses={expenses}
               categories={categories}
@@ -150,7 +150,7 @@ const Expenses_View = () => {
           </div>
 
           {/* COLUMNA DERECHA (COL-8) */}
-          <div className="lg:col-span-8 flex flex-col h-[calc(100vh-260px)] gap-6 max-w-[900px]">
+          <div className="lg:col-span-8 flex flex-col lg:h-[calc(100vh-260px)] gap-6 max-w-[900px]">
             <Expenses_Commissions_Table 
               commissions={commissions}
               commissionsPaid={commissionsPaid}
