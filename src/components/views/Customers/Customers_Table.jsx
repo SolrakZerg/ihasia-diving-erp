@@ -31,12 +31,12 @@ export default function Customers_Table({
     >
       {/* Scrollable table area */}
       <div className="overflow-auto flex-1 relative">
-        <table className={`w-full text-left table-fixed ${isExtendedView ? 'min-w-[2200px]' : 'min-w-[1000px]'}`}>
+        <table className={`w-full text-left table-fixed ${isExtendedView ? 'min-w-[2200px]' : 'min-w-[520px] md:min-w-[1000px]'}`}>
           {/* ── Sticky Header ── */}
           <thead className="sticky top-0 z-20">
             <tr className="border-b border-surface-edge bg-table-header/98 backdrop-blur-xl shadow-sm">
               {/* Checkbox select-all */}
-              <th className="px-4 py-2 text-center w-10">
+              <th className="px-2 sm:px-4 py-2 text-center w-[30px] sm:w-10">
                 <input
                   type="checkbox"
                   className="w-4 h-4 rounded border-gray-600 bg-surface-edge text-brand focus:ring-brand"
@@ -45,20 +45,20 @@ export default function Customers_Table({
                 />
               </th>
 
-              <SortableHeader label="Registro" colKey="created_at" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'w-[100px]'} />
+              <SortableHeader label="Reg." colKey="created_at" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'w-[70px] sm:w-[100px]'} />
               {isExtendedView && <SortableHeader label="Email" colKey="email" sortConfig={sortConfig} onSort={handleSort} compact width="w-[220px] max-w-[220px]" />}
-              <SortableHeader label="Buceador" colKey="first_name" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[260px]' : 'w-[320px]'} />
+              <SortableHeader label="Buceador" colKey="first_name" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[260px]' : 'w-[170px] sm:w-[200px] md:w-[320px]'} />
               {isExtendedView && (
                 <>
                   <SortableHeader label="Gen" colKey="gender" sortConfig={sortConfig} onSort={handleSort} compact width="w-[50px] max-w-[50px]" />
                   <SortableHeader label="Passport" colKey="passport_number" sortConfig={sortConfig} onSort={handleSort} compact width="w-[80px] max-w-[90px]" />
                 </>
               )}
-              <SortableHeader label="Actividad" colKey="booked_activity" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[120px]' : 'w-[200px]'} />
-              <SortableHeader label="Reserva" colKey="booking_date" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'w-[100px]'} />
+              <SortableHeader label="Act." colKey="booked_activity" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[120px]' : 'w-[90px] md:w-[120px]'} />
+              <SortableHeader label="Reserva" colKey="booking_date" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'hidden md:table-cell w-[100px]'} />
               {isExtendedView && <SortableHeader label="Teléfono" colKey="phone" sortConfig={sortConfig} onSort={handleSort} compact width="w-[90px] max-w-[100px]" />}
 
-              <th className={`${isExtendedView ? 'px-2 w-[60px] max-w-[80px]' : 'px-4 w-[100px]'} py-2 text-xs font-bold text-slate-400 uppercase tracking-wider text-center`}>
+              <th className={`${isExtendedView ? 'px-2 w-[60px] max-w-[80px]' : 'px-2 w-[60px] md:w-[80px]'} py-2 text-xs font-bold text-text-header uppercase tracking-wider text-center`}>
                 WhatsApp
               </th>
 
@@ -76,8 +76,8 @@ export default function Customers_Table({
                 </>
               )}
 
-              <th className={`py-2 text-xs font-bold text-gray-400 uppercase tracking-wider text-center ${isExtendedView ? 'px-2 w-[80px] max-w-[80px]' : 'px-6 w-[100px]'}`}>
-                Acciones
+              <th className={`py-2 text-xs font-bold text-text-header uppercase tracking-wider text-center ${isExtendedView ? 'px-2 w-[80px] max-w-[80px]' : 'px-2 md:px-4 w-[100px] md:w-[160px]'}`}>
+                Acc.
               </th>
             </tr>
           </thead>
@@ -89,7 +89,7 @@ export default function Customers_Table({
               Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i} className="animate-pulse">
                   {Array.from({ length: 6 }).map((_, j) => (
-                    <td key={j} className="px-6 py-2">
+                    <td key={j} className="px-2 md:px-6 py-2">
                       <div className="h-4 bg-surface-edge/40 rounded-lg w-3/4 mx-auto" />
                     </td>
                   ))}
@@ -103,7 +103,7 @@ export default function Customers_Table({
                   onClick={() => handleRowClick(customer)}
                 >
                   {/* Checkbox */}
-                  <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-2 sm:px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       className="w-4 h-4 rounded border-gray-600 bg-surface-edge text-brand focus:ring-brand"
@@ -114,7 +114,7 @@ export default function Customers_Table({
 
                   {/* Fecha de registro */}
                   <td
-                    className={`${isExtendedView ? 'px-2' : 'px-6'} py-2 whitespace-nowrap text-center border-r border-surface-edge/10`}
+                    className={`${isExtendedView ? 'px-2' : 'px-2 md:px-6'} py-2 whitespace-nowrap text-center border-r border-surface-edge/10`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex flex-col items-center">
@@ -145,19 +145,19 @@ export default function Customers_Table({
                   )}
 
                   {/* Buceador */}
-                  <td className={`${isExtendedView ? 'px-2' : 'px-6'} py-2 whitespace-nowrap truncate`} title={`${customer.first_name} ${customer.last_name}`}>
+                  <td className={`${isExtendedView ? 'px-2' : 'px-2 md:px-6'} py-2 whitespace-nowrap truncate`} title={`${customer.first_name} ${customer.last_name}`}>
                     <div className="flex items-center gap-3">
                       {!isExtendedView && (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand/20 to-brand/5 flex items-center justify-center text-brand font-bold border border-brand/10">
+                        <div className="hidden md:flex w-10 h-10 rounded-full bg-gradient-to-br from-brand/20 to-brand/5 items-center justify-center text-brand font-bold border border-brand/10">
                           {customer.first_name?.[0]}{customer.last_name?.[0]}
                         </div>
                       )}
-                      <div>
-                        <p className="text-white font-semibold text-base capitalize">
+                      <div className="min-w-0">
+                        <p className="text-white font-semibold text-base capitalize truncate">
                           {customer.first_name} {customer.last_name}
                         </p>
                         {!isExtendedView && (
-                          <p className="text-cyan-500/80 text-sm truncate max-w-[250px]">{customer.email}</p>
+                          <p className="text-cyan-500/80 text-sm truncate">{customer.email}</p>
                         )}
                       </div>
                     </div>
@@ -166,7 +166,7 @@ export default function Customers_Table({
                   {/* Género y Pasaporte (extended) */}
                   {isExtendedView && (
                     <>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-center text-gray-400 capitalize">
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-center text-text-muted capitalize">
                         {customer.gender?.[0] || '---'}
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-200 font-mono font-semibold tracking-wider">
@@ -176,18 +176,33 @@ export default function Customers_Table({
                   )}
 
                   {/* Actividad */}
-                  <td className={`${isExtendedView ? 'px-2' : 'px-6'} py-2`}>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Activity className={`w-3.5 h-3.5 ${getActivityColor(customer.booked_activity)}`} />
-                      <span className={`truncate ${isExtendedView ? 'max-w-[120px] text-xs' : 'max-w-[150px] text-sm'}`}>
-                        {customer.booked_activity || '---'}
-                      </span>
+                  <td className={`${isExtendedView ? 'px-2' : 'px-2 md:px-6'} py-2`}>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 text-text-muted">
+                        <Activity className={`w-3.5 h-3.5 ${getActivityColor(customer.booked_activity)}`} />
+                        <span className={`truncate ${isExtendedView ? 'max-w-[120px] text-xs' : 'max-w-[150px] text-sm'}`}>
+                          {customer.booked_activity || '---'}
+                        </span>
+                      </div>
+                      {/* Fecha de reserva en móvil */}
+                      {!isExtendedView && (
+                        <div className="flex md:hidden items-center gap-1 text-[11px] font-bold text-text-dim mt-0.5">
+                          <Calendar className="w-3 h-3 text-brand" />
+                          <span>
+                            {customer.booking_date
+                              ? new Date(customer.booking_date).toLocaleDateString('es-ES', {
+                                day: '2-digit', month: 'short', year: '2-digit',
+                              }).replace('.', '')
+                              : '---'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
 
                   {/* Fecha de reserva */}
-                  <td className={`${isExtendedView ? 'px-1' : 'px-6'} py-2 whitespace-nowrap text-center`}>
-                    <div className="flex flex-col items-center text-gray-400">
+                  <td className={`${isExtendedView ? 'px-1' : 'px-2 md:px-6 hidden md:table-cell'} py-2 whitespace-nowrap text-center`}>
+                    <div className="flex flex-col items-center text-text-muted">
                       <div className={`flex items-center gap-1 font-bold text-white ${isExtendedView ? 'text-xs' : 'text-sm'}`}>
                         <Calendar className={`${isExtendedView ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-brand`} />
                         <span>
@@ -209,7 +224,7 @@ export default function Customers_Table({
                   )}
 
                   {/* WhatsApp */}
-                  <td className={`${isExtendedView ? 'px-2' : 'px-6'} py-2 text-center`}>
+                  <td className={`${isExtendedView ? 'px-2' : 'px-2 md:px-4'} py-2 text-center`}>
                     <a
                       href={`https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}`}
                       target="_blank"
@@ -225,26 +240,26 @@ export default function Customers_Table({
                   {/* Columnas extendidas */}
                   {isExtendedView && (
                     <>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-400 truncate max-w-[90px]" title={customer.birth_date}>{customer.birth_date || '---'}</td>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-300 max-w-[130px] truncate" title={customer.emergency_contact}>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-text-muted truncate max-w-[90px]" title={customer.birth_date}>{customer.birth_date || '---'}</td>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-text-muted max-w-[130px] truncate" title={customer.emergency_contact}>
                         {customer.emergency_contact || '---'}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-400 max-w-[160px] truncate" title={customer.address}>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-text-muted max-w-[160px] truncate" title={customer.address}>
                         {customer.address || '---'}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-400 max-w-[140px] truncate" title={customer.lead_source}>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-text-muted max-w-[140px] truncate" title={customer.lead_source}>
                         {customer.lead_source || '---'}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-300 truncate max-w-[140px]" title={normalizeLevel(customer.certification_level)}>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-text-muted truncate max-w-[140px]" title={normalizeLevel(customer.certification_level)}>
                         {normalizeLevel(customer.certification_level)}
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-xs text-center font-bold text-amber-500 truncate max-w-[50px]">
                         {customer.total_dives || '0'}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-400 max-w-[90px] truncate" title={customer.last_dive_date}>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-text-muted max-w-[90px] truncate" title={customer.last_dive_date}>
                         {shortenLastDive(customer.last_dive_date)}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-[10px] text-gray-500 italic uppercase truncate max-w-[90px]" title={customer.form_origin}>
+                      <td className="px-2 py-2 whitespace-nowrap text-[10px] text-text-dim italic uppercase truncate max-w-[90px]" title={customer.form_origin}>
                         {customer.form_origin || 'Web'}
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-xs text-rose-400 truncate max-w-[90px]" title={customer.insurance_expiry}>
@@ -254,24 +269,24 @@ export default function Customers_Table({
                   )}
 
                   {/* Acciones */}
-                  <td className={`${isExtendedView ? 'px-2 pr-4' : 'px-6 pr-6'} py-2 text-right`}>
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className={`${isExtendedView ? 'px-2 pr-4' : 'px-2 md:px-4'} py-2 text-center`}>
+                    <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={(e) => handleEdit(e, customer)}
-                        className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-brand hover:bg-brand/10 transition-all"
+                        className="p-1.5 rounded-lg bg-surface-edge/30 text-text-muted hover:text-brand hover:bg-brand/10 transition-all"
                         title="Editar registros"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, customer.id, `${customer.first_name} ${customer.last_name}`)}
-                        className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-rose-400 hover:bg-red-500/10 transition-all"
+                        className="p-1.5 rounded-lg bg-surface-edge/30 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-all"
                         title="Eliminar registro"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                       {!isExtendedView && (
-                        <button className="p-2 text-gray-500 hover:text-white transition-colors ml-2">
+                        <button className="p-1 text-gray-500 hover:text-white transition-colors">
                           <ChevronRight className="w-5 h-5" />
                         </button>
                       )}
@@ -282,7 +297,7 @@ export default function Customers_Table({
             ) : (
               // Empty state
               <tr>
-                <td colSpan="6" className="px-6 py-20 text-center text-gray-400">
+                <td colSpan="6" className="px-6 py-20 text-center text-text-muted">
                   <div className="flex flex-col items-center">
                     <Search className="w-12 h-12 mb-4 text-surface-edge" />
                     <p className="text-lg font-medium">No se encontraron buceadores</p>
@@ -297,7 +312,7 @@ export default function Customers_Table({
 
       {/* ── Footer: count + pagination ── */}
       <div className="px-6 py-2 bg-surface/30 border-t border-surface-edge flex flex-col sm:flex-row items-center justify-between gap-4">
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-text-dim">
           Mostrando {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, totalCount)} de {totalCount.toLocaleString('es-ES')} registros
         </span>
 
@@ -315,8 +330,8 @@ export default function Customers_Table({
                 key={page}
                 onClick={() => goToPage(page)}
                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${page === currentPage
-                    ? 'bg-brand text-white shadow-md shadow-brand/30'
-                    : 'text-gray-400 hover:bg-surface-edge hover:text-white'
+                  ? 'bg-brand text-white shadow-md shadow-brand/30'
+                  : 'text-text-muted hover:bg-surface-edge hover:text-white'
                   }`}
               >
                 {page + 1}
@@ -342,7 +357,7 @@ function SortableHeader({ label, colKey, sortConfig, onSort, center, compact, wi
   const isActive = sortConfig.key === colKey;
   return (
     <th
-      className={`py-2 text-xs font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-surface-edge/30 transition-colors text-center ${compact ? 'px-2' : 'px-6'} ${width || ''}`}
+      className={`py-2 text-xs font-bold text-text-header uppercase tracking-wider cursor-pointer hover:bg-surface-edge/30 transition-colors text-center ${compact ? 'px-2' : 'px-2 md:px-6'} ${width || ''}`}
       onClick={() => onSort(colKey)}
     >
       <div className="flex items-center gap-1 justify-center">
@@ -361,7 +376,7 @@ function PageBtn({ children, onClick, disabled, title }) {
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-surface-edge hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+      className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:bg-surface-edge hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
     >
       {children}
     </button>

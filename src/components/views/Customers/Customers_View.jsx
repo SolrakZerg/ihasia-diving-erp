@@ -88,7 +88,7 @@ export default function Customers_View({ onNavigate }) {
   }
 
   return (
-    <div className={`p-6 lg:p-10 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full transition-all duration-500`}>
+    <div className={`p-2 sm:p-6 lg:p-8 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full transition-all duration-500`}>
 
       {/* ── Cabecera ── */}
       <Customers_Header

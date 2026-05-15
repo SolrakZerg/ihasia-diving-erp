@@ -19,9 +19,9 @@ export default function Customers_Header({
   return (
     <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
       {/* Title + Subtitle */}
-      <div>
+      <div className="text-center md:text-left">
         <h1 className="text-3xl font-bold text-white mb-2">Clientes</h1>
-        <p className="text-gray-400">
+        <p className="text-text-muted">
           {totalCount.toLocaleString('es-ES')} registros en total · Página {currentPage + 1} de {totalPages || 1}
         </p>
       </div>
@@ -31,7 +31,7 @@ export default function Customers_Header({
 
         {/* Search */}
         <div className="relative group flex-1 md:flex-initial">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-brand transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim group-focus-within:text-brand transition-colors" />
           <input
             type="text"
             placeholder="Buscar cliente..."
@@ -50,7 +50,7 @@ export default function Customers_Header({
           className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${
             isExtendedView
               ? 'bg-amber-500/10 border-amber-500/50 text-amber-500'
-              : 'bg-surface-soft border-surface-edge text-gray-400 hover:text-white hover:border-brand/30'
+              : 'bg-surface-soft border-surface-edge text-text-muted hover:text-white hover:border-brand/30'
           }`}
           title={isExtendedView ? 'Vista Compacta' : 'Vista Extendida'}
         >
@@ -67,7 +67,7 @@ export default function Customers_Header({
             className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${
               activeDateFilter !== 'all' || isFilterOpen
                 ? 'bg-brand/10 border-brand/50 text-brand'
-                : 'bg-surface-soft border-surface-edge text-gray-400 hover:text-white hover:border-brand/30'
+                : 'bg-surface-soft border-surface-edge text-text-muted hover:text-white hover:border-brand/30'
             }`}
           >
             <Filter className="w-5 h-5" />
@@ -81,7 +81,7 @@ export default function Customers_Header({
           {isFilterOpen && (
             <div className="absolute right-0 mt-3 w-72 bg-surface/95 backdrop-blur-xl border border-surface-edge rounded-2xl shadow-2xl z-50 overflow-hidden ring-1 ring-white/5 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="p-4 border-b border-surface-edge bg-surface-soft/50">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Filtros Avanzados</h3>
+                <h3 className="text-xs font-bold text-text-header uppercase tracking-widest">Filtros Avanzados</h3>
               </div>
               <div className="p-2 space-y-1">
                 <FilterButton
@@ -142,7 +142,7 @@ function FilterButton({ label, active, onClick }) {
       className={`w-full text-left px-4 py-2.5 text-xs font-semibold rounded-xl transition-all ${
         active
           ? 'bg-brand text-white shadow-md shadow-brand/20'
-          : 'text-gray-400 hover:bg-surface-edge hover:text-white'
+          : 'text-text-muted hover:bg-surface-edge hover:text-white'
       }`}
     >
       {label}
