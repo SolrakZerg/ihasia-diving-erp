@@ -18,10 +18,9 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
     searchTerm,
     setSearchTerm,
     toast,
+    updateCustomerField,
     editingId,
     setEditingId,
-    editData,
-    setEditData,
     showSettingsModal,
     setShowSettingsModal,
     settingsForm,
@@ -32,7 +31,6 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
     addResults,
     isSearching,
     loadTodayCustomers,
-    saveEdit,
     handleSaveSettings,
     handleRemoveCustomer,
     handleGenerateAndSend,
@@ -46,7 +44,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto w-full flex flex-col h-[calc(100vh-40px)] overflow-hidden">
+    <div className="p-2 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col">
       
       <InsuranceHeader 
         onNavigate={onNavigate}
@@ -58,7 +56,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
         setShowSettingsModal={setShowSettingsModal}
       />
 
-      <div className="flex-1 flex flex-row gap-6 min-h-0 relative">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 relative items-start">
         
         <InsuranceTable 
           customers={customers}
@@ -78,9 +76,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
           onNavigate={onNavigate}
           editingId={editingId}
           setEditingId={setEditingId}
-          editData={editData}
-          setEditData={setEditData}
-          saveEdit={saveEdit}
+          updateCustomerField={updateCustomerField}
           handleRemoveCustomer={handleRemoveCustomer}
           handleGenerateAndSend={handleGenerateAndSend}
         />
@@ -102,7 +98,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 flex items-center gap-1">
+                <label className="block text-xs uppercase tracking-wider text-text-muted font-bold mb-2 flex items-center gap-1">
                   <Mail className="w-3 h-3" /> Correos de destino
                 </label>
                 <input 
@@ -112,7 +108,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
                   placeholder="admin@ejemplo.com, otro@ejec.com"
                   className="w-full bg-surface-soft border border-surface-edge rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand transition-colors"
                 />
-                <p className="text-xs text-gray-500 mt-2">Pudes separar varios correos con comas.</p>
+                <p className="text-xs text-text-muted mt-2">Pudes separar varios correos con comas.</p>
               </div>
 
               <div className="p-4 rounded-xl bg-brand/5 border border-brand/20">
@@ -135,7 +131,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 flex items-center gap-1">
+                  <label className="block text-xs uppercase tracking-wider text-text-muted font-bold mb-2 flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Plazas restantes (PAX)
                   </label>
                   <input 
@@ -147,7 +143,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 flex items-center gap-1">
+                  <label className="block text-xs uppercase tracking-wider text-text-muted font-bold mb-2 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> Días de duración
                   </label>
                   <input 
@@ -161,7 +157,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">
+                <label className="block text-xs uppercase tracking-wider text-text-muted font-bold mb-2">
                   Cabecera (Contrato de Seguro Activo)
                 </label>
                 <input 
@@ -177,7 +173,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
             <div className="flex justify-end gap-3 mt-8">
               <button 
                 onClick={() => setShowSettingsModal(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-surface-edge transition-colors"
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-text-muted hover:text-white hover:bg-surface-edge transition-colors"
               >
                 Cancelar
               </button>

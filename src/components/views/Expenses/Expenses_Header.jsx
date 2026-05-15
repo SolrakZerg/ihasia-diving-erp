@@ -86,8 +86,8 @@ const Expenses_Header = ({
         <div className="flex flex-col md:flex-row flex-1 items-center gap-8 self-stretch py-0">
           <div className="w-full h-px md:w-px md:h-full bg-surface-edge/40 shrink-0" />
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
-            <div className="stats-widget min-w-[200px]" style={{ '--widget-color': 'var(--color-danger)' }}>
+          <div className="flex flex-wrap gap-4 shrink-0 justify-center">
+            <div className="stats-widget min-w-[140px]" style={{ '--widget-color': 'var(--color-danger)' }}>
                <div className="stats-widget-icon mb-2">
                   <TrendingDown className="w-4 h-4" />
                </div>
@@ -98,7 +98,7 @@ const Expenses_Header = ({
                </span>
             </div>
 
-            <div className="stats-widget min-w-[200px]" style={{ '--widget-color': 'var(--color-warning)' }}>
+            <div className="stats-widget min-w-[140px]" style={{ '--widget-color': 'var(--color-warning)' }}>
                <div className="stats-widget-icon mb-2">
                   <TrendingDown className="w-4 h-4" />
                </div>

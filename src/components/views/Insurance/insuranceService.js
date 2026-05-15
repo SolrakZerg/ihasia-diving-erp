@@ -15,7 +15,7 @@ export const fetchHistoryBatches = async () => {
     .from('insurance_batches')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(12);
   if (error) throw error;
   return data;
 };

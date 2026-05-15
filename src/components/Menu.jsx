@@ -11,7 +11,7 @@ import SSIView from './views/SSI/SSIView';
 import StaffSettlement from './views/Nominas/Nominas_View';
 import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_Header from './views/Carabao/Carabao_Header';
-
+import { ChevronRight } from 'lucide-react';
 
 
 export default function Dashboard({ user }) {
@@ -22,6 +22,7 @@ export default function Dashboard({ user }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(prev => {
@@ -35,6 +36,7 @@ export default function Dashboard({ user }) {
     setViewPayload(payload);
     setActiveView(view);
     localStorage.setItem('active-view', view);
+    setIsMobileOpen(false);
   };
 
   const handleLogout = async () => {
@@ -62,6 +64,16 @@ export default function Dashboard({ user }) {
 
   return (
     <div className="flex bg-surface min-h-screen">
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div 
+          className="sm:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+
+
       {/* Dynamic Sidebar */}
       <Sidebar 
         activeView={activeView} 
@@ -70,12 +82,24 @@ export default function Dashboard({ user }) {
         onLogout={handleLogout} 
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
+        isMobileOpen={isMobileOpen}
+        onMobileToggle={() => setIsMobileOpen(!isMobileOpen)}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-x-hidden overflow-y-auto h-screen">
         {renderView()}
       </main>
+
+      {/* Mobile Toggle Button */}
+      {!isMobileOpen && (
+        <button 
+          onClick={() => setIsMobileOpen(true)}
+          className="sm:hidden fixed top-4 left-0 z-[100] p-2 bg-brand rounded-r-lg text-white shadow-lg border border-l-0 border-surface-edge"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }

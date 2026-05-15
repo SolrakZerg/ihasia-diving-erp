@@ -315,7 +315,7 @@ export default function TestSSIView() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-surface overflow-hidden relative">
+    <div className="h-full flex flex-col bg-surface lg:overflow-hidden overflow-auto relative">
       <SSIHeader 
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
@@ -329,8 +329,8 @@ export default function TestSSIView() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden p-6 lg:p-8 flex justify-center">
-        <div className="flex gap-6 max-w-[1200px] w-full h-full max-h-[calc(100vh-250px)]">
+      <div className="flex-1 lg:overflow-hidden p-2 sm:p-6 lg:p-8 flex justify-center">
+        <div className="flex flex-col lg:flex-row gap-6 max-w-[1200px] w-full h-fit lg:h-full lg:max-h-[calc(100vh-250px)]">
           
           <SSITable 
             loading={loading}

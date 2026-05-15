@@ -3,16 +3,16 @@ import { Activity, Download } from 'lucide-react';
 
 export default function InsuranceSidebar({ historyBatches, onViewPDF }) {
   return (
-    <div className="w-64 bg-surface-soft border border-surface-edge shadow-xl rounded-2xl flex flex-col">
+    <div className="w-full lg:w-64 bg-surface-soft border border-surface-edge shadow-xl rounded-2xl flex flex-col lg:h-[calc(100vh-200px)] lg:min-h-[500px]">
       <div className="p-4 border-b border-surface-edge bg-surface-soft/50">
         <h3 className="font-bold text-white text-sm">Historial Reciente</h3>
-        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Últimos envíos</p>
+        <p className="text-[10px] text-text-dim uppercase tracking-widest mt-1">Últimos envíos</p>
       </div>
-      <div className="flex-1 p-4 flex flex-col items-center">
+      <div className="flex-1 p-4 flex flex-col items-center overflow-y-auto custom-scrollbar">
         {historyBatches.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center mt-12">
             <Activity className="w-8 h-8 text-surface-edge mb-3" />
-            <p className="text-xs text-gray-500">Aún no hay envíos recientes.</p>
+            <p className="text-xs text-text-muted">Aún no hay envíos recientes.</p>
           </div>
         ) : (
           <div className="w-full space-y-3">
@@ -23,7 +23,7 @@ export default function InsuranceSidebar({ historyBatches, onViewPDF }) {
                   <p className="text-sm text-brand font-bold">
                     {new Date(batch.created_at).toLocaleDateString('es-ES')}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-text-muted mt-0.5">
                     {new Date(batch.created_at).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}
                   </p>
                 </div>
@@ -35,7 +35,7 @@ export default function InsuranceSidebar({ historyBatches, onViewPDF }) {
                 {batch.pdf_url ? (
                   <button 
                     onClick={() => onViewPDF(batch.pdf_url)}
-                    className="p-1.5 bg-surface-soft border border-surface-edge text-gray-400 rounded-lg flex items-center justify-center hover:text-white hover:bg-surface-edge transition-colors"
+                    className="p-1.5 bg-surface-soft border border-surface-edge text-text-muted rounded-lg flex items-center justify-center hover:text-white hover:bg-surface-edge transition-colors"
                     title="Ver PDF Generado"
                   >
                     <Download className="w-3.5 h-3.5" />

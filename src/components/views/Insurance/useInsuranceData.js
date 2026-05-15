@@ -16,7 +16,6 @@ export const useInsuranceData = (initialSelectedIds) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({ first_name: '', last_name: '', passport_number: '' });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ emails: '', addPax: 0, durationDays: 30, contractTitle: '', paxBalance: 0 });
   const [historyBatches, setHistoryBatches] = useState([]);
@@ -72,7 +71,7 @@ export const useInsuranceData = (initialSelectedIds) => {
       if (histData) setHistoryBatches(histData);
 
       let savedIds = [];
-      try { savedIds = JSON.parse(localStorage.getItem('antigravity_insurance_queue') || '[]'); } catch(e){}
+      try { savedIds = JSON.parse(localStorage.getItem('antigravity_insurance_queue') || '[]'); } catch(err){ console.error(err); }
       
       const toFetch = new Set([...savedIds, ...(initialSelectedIds || [])]);
       const fetchArr = Array.from(toFetch);
@@ -130,19 +129,20 @@ export const useInsuranceData = (initialSelectedIds) => {
     localStorage.setItem('antigravity_insurance_queue', JSON.stringify(newCustomers.map(c => c.id)));
   };
 
-  const saveEdit = async (id) => {
+  const updateCustomerField = async (id, field, value) => {
     try {
-      await insuranceService.updateCustomer(id, editData);
+      const customer = customers.find(c => c.id === id);
+      const updatedData = { ...customer, [field]: value.trim() };
+      await insuranceService.updateCustomer(id, updatedData);
       
       const updatedCustomers = customers.map(c => 
-        c.id === id ? { ...c, first_name: editData.first_name.trim(), last_name: editData.last_name.trim(), passport_number: editData.passport_number.trim() } : c
+        c.id === id ? { ...c, [field]: value.trim() } : c
       );
       
       syncToLocalStorage(updatedCustomers);
-      setEditingId(null);
-      showToast('Datos corregidos y guardados.', 'success');
+      showToast('Dato actualizado.', 'success');
     } catch (error) {
-      showToast('Error al actualizar datos: ' + error.message, 'error');
+      showToast('Error al actualizar: ' + error.message, 'error');
     }
   };
 
@@ -214,7 +214,7 @@ export const useInsuranceData = (initialSelectedIds) => {
       const insertedBatch = await insuranceService.createInsuranceBatch(filePath, customers.length, targetEmails, customerList);
       
       if (insertedBatch) {
-        setHistoryBatches(prev => [insertedBatch, ...prev].slice(0, 10));
+        setHistoryBatches(prev => [insertedBatch, ...prev].slice(0, 12));
       }
 
       // 7. Limpiar UI
@@ -261,8 +261,6 @@ export const useInsuranceData = (initialSelectedIds) => {
     showToast,
     editingId,
     setEditingId,
-    editData,
-    setEditData,
     showSettingsModal,
     setShowSettingsModal,
     settingsForm,
@@ -273,7 +271,7 @@ export const useInsuranceData = (initialSelectedIds) => {
     addResults,
     isSearching,
     loadTodayCustomers,
-    saveEdit,
+    updateCustomerField,
     handleSaveSettings,
     handleRemoveCustomer,
     handleGenerateAndSend,

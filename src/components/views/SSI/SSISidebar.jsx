@@ -11,9 +11,9 @@ export default function SSISidebar({
   saveSettlement 
 }) {
   return (
-    <div className="w-64 flex flex-col gap-4">
+    <div className="w-full lg:w-64 flex flex-col sm:flex-row lg:flex-col gap-4">
        {/* AJUSTES MANUALES */}
-       <div className="bg-surface-soft border border-surface-edge rounded-3xl p-5 shadow-xl flex flex-col gap-6">
+       <div className="flex-1 bg-surface-soft border border-surface-edge rounded-3xl p-5 shadow-xl flex flex-col gap-6">
           <h4 className="text-[13px] font-black text-text-header uppercase tracking-[0.2em] flex items-center gap-2">
              <Settings className="w-4 h-4 text-text-header" /> AJUSTES SSI
           </h4>
@@ -61,7 +61,7 @@ export default function SSISidebar({
        </div>
 
         {/* LIQUIDACIÓN MENSUAL */}
-        <div className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col gap-6">
+        <div className="flex-1 bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl flex flex-col gap-6">
            <div className="w-fit mx-auto flex flex-col gap-6 w-full max-w-[240px]">
               
               {/* PAGADO */}

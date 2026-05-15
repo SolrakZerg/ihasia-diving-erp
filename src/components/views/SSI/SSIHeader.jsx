@@ -12,11 +12,11 @@ export default function SSIHeader({
   setSelectedYear
 }) {
   return (
-    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] h-[200px]">
-      <div className="max-w-[1700px] mx-auto px-8 h-full flex items-center justify-center gap-24">
+    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-6">
+      <div className="max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
         
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-10">
+        <div className="flex flex-col gap-4 shrink-0 items-center">
+          <div className="flex items-center justify-center gap-10">
             <div className="flex flex-col">
               <img 
                 src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png" 
@@ -27,7 +27,7 @@ export default function SSIHeader({
           </div>
 
           {/* DATE SELECTOR */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-3">
             <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
               <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all">
                 <ChevronLeft className="w-4 h-4" />
@@ -71,8 +71,8 @@ export default function SSIHeader({
         </div>
 
         {/* STATS WIDGETS */}
-        <div className="flex gap-4">
-             <div className="stats-widget" style={{ '--widget-color': 'var(--color-warning)' }}>
+        <div className="flex flex-wrap gap-4 shrink-0">
+             <div className="stats-widget flex-1 min-w-[160px]" style={{ '--widget-color': 'var(--color-warning)' }}>
                 <div className="flex items-center gap-2 mb-2">
                    <div className="stats-widget-icon">
                       <TrendingUp className="w-3.5 h-3.5" />
@@ -84,7 +84,7 @@ export default function SSIHeader({
                 </span>
              </div>
 
-             <div className="stats-widget" style={{ '--widget-color': 'var(--color-success)' }}>
+             <div className="stats-widget flex-1 min-w-[160px]" style={{ '--widget-color': 'var(--color-success)' }}>
                 <div className="flex items-center gap-2 mb-2">
                    <div className="stats-widget-icon">
                       <TrendingUp className="w-3.5 h-3.5" />
@@ -96,7 +96,7 @@ export default function SSIHeader({
                 </span>
              </div>
              
-             <div className="stats-widget" style={{ '--widget-color': 'var(--color-danger)' }}>
+             <div className="stats-widget flex-1 min-w-[160px]" style={{ '--widget-color': 'var(--color-danger)' }}>
                 <div className="flex items-center gap-2 mb-2">
                    <div className="stats-widget-icon">
                       <TrendingDown className="w-3.5 h-3.5" />
