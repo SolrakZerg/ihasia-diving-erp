@@ -240,11 +240,10 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
--- Function: logic.trigger_recalculate_bote
--- Description: Bridge trigger for insurance and invoices to call recalculate_bote_apartar.
--- Esta es el "puente" que llama a la función anterior cuando hay cambios en seguros o ítems de facturas.
+-- Function: logic.trigger_recalculate_bote_insurances
+-- Description: Bridge trigger for insurance batches to call recalculate_bote_apartar using created_at.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote()
+CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote_insurances()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -258,6 +257,26 @@ BEGIN
     RETURN NULL;
 END;
 $function$;
+
+-- --------------------------------------------------------------------------------
+-- Function: logic.trigger_recalculate_bote_invoices
+-- Description: Bridge trigger for invoice items to call recalculate_bote_apartar using date.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote_invoices()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+    PERFORM logic.recalculate_bote_apartar(
+        EXTRACT(YEAR FROM COALESCE(NEW.date, OLD.date))::INT,
+        EXTRACT(MONTH FROM COALESCE(NEW.date, OLD.date))::INT
+    );
+    RETURN NULL;
+END;
+$function$;
+
 
 -- --------------------------------------------------------------------------------
 -- Function: logic.sync_total_gastos_to_report

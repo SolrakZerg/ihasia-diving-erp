@@ -38,19 +38,20 @@ CREATE TRIGGER trg_sync_fixed_to_report AFTER INSERT OR UPDATE OR DELETE ON publ
 -- Table: insurance_batches
 -- --------------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS tr_refresh_bote_insurances ON public.insurance_batches;
-CREATE TRIGGER tr_refresh_bote_insurances AFTER INSERT OR UPDATE OR DELETE ON public.insurance_batches FOR EACH ROW EXECUTE FUNCTION logic.trigger_recalculate_bote();
+CREATE TRIGGER tr_refresh_bote_insurances AFTER INSERT OR UPDATE OR DELETE ON public.insurance_batches FOR EACH ROW EXECUTE FUNCTION logic.trigger_recalculate_bote_insurances();
 
 -- --------------------------------------------------------------------------------
 -- Table: invoice_items
 -- --------------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS tr_refresh_bote_items ON public.invoice_items;
-CREATE TRIGGER tr_refresh_bote_items AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.trigger_recalculate_bote();
+CREATE TRIGGER tr_refresh_bote_items AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.trigger_recalculate_bote_invoices();
 
 DROP TRIGGER IF EXISTS tr_sync_commissions_to_monthly ON public.invoice_items;
 CREATE TRIGGER tr_sync_commissions_to_monthly AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.sync_monthly_finances();
 
 DROP TRIGGER IF EXISTS tr_sync_invoice_report ON public.invoice_items;
 CREATE TRIGGER tr_sync_invoice_report AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.sync_invoice_report();
+
 
 DROP TRIGGER IF EXISTS trg_sync_staff_invoices ON public.invoice_items;
 CREATE TRIGGER trg_sync_staff_invoices AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items FOR EACH ROW EXECUTE FUNCTION logic.sync_staff_settlement();
