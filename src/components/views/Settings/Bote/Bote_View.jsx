@@ -1,4 +1,4 @@
-import { Loader2, Coins, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react';
 import useBoteData, { MONTHS } from './useBoteData';
 import Bote_Stats from './Bote_Stats';
 import Bote_ExpenseTable from './Bote_ExpenseTable';
@@ -37,13 +37,10 @@ export default function Bote_View() {
       {/* ── Header & Date Selector ───────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-surface-soft/30 p-6 rounded-[2.5rem] border border-surface-edge">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-brand/10 rounded-2xl text-brand">
-            <Coins className="w-8 h-8" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">Gestión de Bote</h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Fondo de Material y Seguros</p>
-          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <PiggyBank className="w-8 h-8 text-brand" />
+            Gestión de Bote
+          </h1>
         </div>
 
         {/* Selector de mes/año */}

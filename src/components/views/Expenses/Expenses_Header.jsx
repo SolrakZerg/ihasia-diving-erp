@@ -1,5 +1,5 @@
 import React from 'react';
-import { Receipt, ChevronLeft, ChevronRight, Settings, TrendingDown, Users } from 'lucide-react';
+import { DollarSign, ChevronLeft, ChevronRight, Settings, TrendingDown, Users } from 'lucide-react';
 
 const Expenses_Header = ({
   handlePrevMonth,
@@ -22,12 +22,10 @@ const Expenses_Header = ({
         
         <div className="flex flex-col gap-4 shrink-0">
           <div className="flex items-center gap-4">
-            <div className="bg-brand/20 p-3 rounded-2xl ring-1 ring-brand/30">
-              <Receipt className="w-8 h-8 text-brand" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">Gastos</h1>
-            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+              <DollarSign className="w-8 h-8 text-brand" />
+              Gastos
+            </h1>
           </div>
 
           {/* HYBRID DATE SELECTOR */}

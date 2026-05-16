@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Users, Search, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Handshake, Search, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Nominas_Header({ 
-  month, setMonth, 
-  year, setYear, 
-  selectedMember, 
-  staff, activeStaffIds, 
-  selectedStaffId, setSelectedStaffId 
+export default function Nominas_Header({
+  month, setMonth,
+  year, setYear,
+  selectedMember,
+  staff, activeStaffIds,
+  selectedStaffId, setSelectedStaffId
 }) {
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
 
@@ -18,11 +18,10 @@ export default function Nominas_Header({
   return (
     <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-brand/10 rounded-2xl text-brand"><Users className="w-6 h-6" /></div>
-        <div>
-          <h1 className="text-2xl font-black text-white leading-tight">Liquidación de Staff</h1>
-          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Panel de Control de Sueldos</p>
-        </div>
+        <h1 className="text-3xl font-black text-white leading-tight flex items-center gap-3">
+          <Handshake className="w-8 h-8 text-brand" />
+          Sueldos de Staff
+        </h1>
       </div>
 
       <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner relative">
@@ -60,7 +59,7 @@ export default function Nominas_Header({
 
         {/* HYBRID DATE SELECTOR */}
         <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
-          <button 
+          <button
             onClick={() => {
               if (month === 1) {
                 setMonth(12);
@@ -75,8 +74,8 @@ export default function Nominas_Header({
           </button>
 
           <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-            <select 
-              value={month} 
+            <select
+              value={month}
               onChange={e => setMonth(parseInt(e.target.value))}
               className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
             >
@@ -84,11 +83,11 @@ export default function Nominas_Header({
                 <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
               ))}
             </select>
-            
+
             <div className="w-px h-4 bg-surface-edge/30 mx-1" />
 
-            <select 
-              value={year} 
+            <select
+              value={year}
               onChange={e => setYear(parseInt(e.target.value))}
               className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
             >
@@ -98,7 +97,7 @@ export default function Nominas_Header({
             </select>
           </div>
 
-          <button 
+          <button
             onClick={() => {
               if (month === 12) {
                 setMonth(1);

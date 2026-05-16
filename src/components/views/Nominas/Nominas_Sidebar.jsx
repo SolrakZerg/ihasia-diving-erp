@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { TrendingUp, Receipt, Banknote, Plus, X, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { TrendingUp, Receipt, Handshake, Plus, X, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import EditableInput from '../../common/EditableInput';
 
 export default function Nominas_Sidebar({
@@ -53,7 +53,7 @@ export default function Nominas_Sidebar({
       </div>
 
       <section className="space-y-4">
-        <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4" /> Desglose Económico</h4>
+        <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4" /> Desglose</h4>
         <div className="bg-surface p-6 rounded-2xl border border-surface-edge space-y-4">
           <div className="flex justify-between items-center group/item"><span className="text-base font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Cursos</span><span className="text-base font-black text-white">{totalComm.toLocaleString()} ฿</span></div>
           <div className="flex justify-between items-center group/item"><span className="text-base font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Extras y Ajustes</span><span className={`text-base font-black ${totalAdj + totalAssists >= 0 ? 'text-brand' : 'text-rose-400'}`}>{totalAdj + totalAssists >= 0 ? '+' : ''}{(totalAdj + totalAssists).toLocaleString()}</span></div>
@@ -63,7 +63,7 @@ export default function Nominas_Sidebar({
       </section>
 
       <section className="space-y-4 flex-1">
-        <div className="flex items-center justify-between"><h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Banknote className="w-4 h-4" /> Pagos</h4><button onClick={() => setShowAdvForm(!showAdvForm)} className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}>{showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button></div>
+        <div className="flex items-center justify-between"><h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Handshake className="w-4 h-4" /> Pagos</h4><button onClick={() => setShowAdvForm(!showAdvForm)} className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}>{showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button></div>
         {showAdvForm && (
           <div className="adv-form-container bg-surface p-4 rounded-xl border border-brand/30 animate-in slide-in-from-top-2 duration-300 space-y-3 relative">
             <div className="space-y-2 pt-2">

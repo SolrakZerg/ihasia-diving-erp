@@ -1,4 +1,4 @@
-import { Search, Filter, LayoutList, LayoutGrid } from 'lucide-react';
+import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch } from 'lucide-react';
 
 export default function Customers_Header({
   totalCount,
@@ -20,7 +20,10 @@ export default function Customers_Header({
     <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
       {/* Title + Subtitle */}
       <div className="text-center md:text-left">
-        <h1 className="text-3xl font-bold text-white mb-2">Clientes</h1>
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
+          <UserRoundSearch className="w-8 h-8 text-brand" />
+          Clientes
+        </h1>
         <p className="text-text-muted">
           {totalCount.toLocaleString('es-ES')} registros en total · Página {currentPage + 1} de {totalPages || 1}
         </p>

@@ -51,9 +51,6 @@ export default function Staff_fee_View() {
           <h2 className="text-2xl font-black text-white flex items-center gap-2">
             <PlusCircle className="w-6 h-6 text-brand" /> Sueldos por Actividad
           </h2>
-          <p className="text-gray-400 text-xs mt-1">
-            Configura cuánto gana el staff por cada curso o tarea realizada.
-          </p>
         </div>
         <button
           onClick={() => setView('add')}

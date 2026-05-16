@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { 
+  Handshake,
+  DollarSign,
+  PiggyBank,
   Settings as SettingsIcon, 
   Users, 
   Receipt, 
@@ -44,11 +47,11 @@ export default function SettingsView() {
 
   const tabs = [
     { id: 'general', label: 'General', icon: SettingsIcon },
-    { id: 'fixed_expenses', label: 'Gastos Fijos', icon: Banknote },
+    { id: 'fixed_expenses', label: 'Gastos Fijos', icon: DollarSign },
     { id: 'staff', label: 'Personal (Staff)', icon: Users },
-    { id: 'payout_rules', label: 'Tarifas (Staff)', icon: Receipt },
-    { id: 'catalog', label: 'Catálogo y Precios', icon: Receipt },
-    { id: 'bote', label: 'Gestión de Bote', icon: Coins },
+    { id: 'payout_rules', label: 'Tarifas (Staff)', icon: Handshake },
+    { id: 'catalog', label: 'Catálogo y Precios', icon: DollarSign },
+    { id: 'bote', label: 'Gestión de Bote', icon: PiggyBank },
     { id: 'analytics', label: 'Estadísticas', icon: TrendingIcon },
   ];
 
@@ -57,7 +60,10 @@ export default function SettingsView() {
       {/* Header Container */}
       <div className="bg-surface-soft/30 pt-6 px-10 border-b border-surface-edge">
         <div className="max-w-7xl mx-auto mb-4">
-          <h1 className="text-2xl font-black tracking-tight text-white">Configuración</h1>
+          <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+            <SettingsIcon className="w-8 h-8 text-brand" />
+            Configuración
+          </h1>
         </div>
 
         {/* Tab Navigation */}

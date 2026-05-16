@@ -1,6 +1,5 @@
 import { 
   BarChart3, 
-  Users, 
   Calendar, 
   Settings as SettingsIcon, 
   LogOut,
@@ -9,12 +8,13 @@ import {
   Waves,
   User,
   ShieldCheck,
-  Wallet,
-  Receipt,
+  Rows3,
+  DollarSign,
   Zap,
-  Banknote,
+  Handshake,
   UsersRound,
-  Ship
+  Ship,
+  UserRoundSearch
 } from 'lucide-react';
 
 const SSIIcon = ({ className }) => (
@@ -87,11 +87,11 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
 
   const menuItems = [
     { id: 'overview', label: 'Panel Principal', icon: BarChart3 },
-    { id: 'billing', label: 'Facturas', icon: Wallet },
-    { id: 'staff-settlement', label: 'Liquidación Staff', icon: Banknote },
-    { id: 'expenses', label: 'Gastos', icon: Receipt },
+    { id: 'billing', label: 'Facturas', icon: Rows3 },
+    { id: 'staff-settlement', label: 'Liquidación Staff', icon: Handshake },
+    { id: 'expenses', label: 'Gastos', icon: DollarSign },
     { id: 'ssi', label: 'Pagos SSI', icon: SSIIcon },
-    { id: 'customers', label: 'Buceadores', icon: Users },
+    { id: 'customers', label: 'Buceadores', icon: UserRoundSearch },
     { id: 'insurance', label: 'Seguros Diarios', icon: ShieldCheck },
     { id: 'supplier-payout', label: 'Carabao', icon: CarabaoIcon },
     { id: 'partners-payouts', label: 'CRBT', icon: UsersRound },
