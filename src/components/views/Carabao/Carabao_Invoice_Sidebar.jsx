@@ -1,10 +1,10 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Carabao_Invoice_Sidebar({ 
-  showRightSidebar, 
-  setShowRightSidebar, 
-  tanksToRemove, 
+export default function Carabao_Invoice_Sidebar({
+  showRightSidebar,
+  setShowRightSidebar,
+  tanksToRemove,
   updateTanksToRemove,
   remainingBalance = 0,
   paidAmount = 0,
@@ -13,8 +13,8 @@ export default function Carabao_Invoice_Sidebar({
   return (
     <>
       {/* Toggle Button */}
-      <button 
-        onClick={() => setShowRightSidebar(!showRightSidebar)} 
+      <button
+        onClick={() => setShowRightSidebar(!showRightSidebar)}
         className={`absolute top-4 right-0 z-50 p-2 bg-surface-edge border border-surface-edge text-white rounded-l-xl shadow-2xl hover:bg-brand transition-all duration-300 print:hidden`}
         title={showRightSidebar ? "Cerrar Ajustes" : "Abrir Ajustes"}
       >
@@ -29,9 +29,9 @@ export default function Carabao_Invoice_Sidebar({
           </div>
 
           <div className="bg-surface rounded-2xl p-4 border border-surface-edge shadow-inner">
-            <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1">Tankes a Quitar</p>
+            <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-1">Tankes a Quitar</p>
             <div className="relative">
-              <input 
+              <input
                 type="number"
                 value={tanksToRemove || ''}
                 onChange={(e) => updateTanksToRemove(parseInt(e.target.value) || 0)}
@@ -41,15 +41,15 @@ export default function Carabao_Invoice_Sidebar({
               <span className="absolute right-0 bottom-1.5 text-rose-400/40 font-black text-sm">unidades</span>
             </div>
             <div className="h-0.5 w-full bg-rose-400/20 rounded-full mt-1" />
-            
+
             {/* Impacto en el total */}
             <div className="mt-7 pt-2 border-t border-surface-edge/50">
-              <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Impacto en Total</p>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-0.5">Impacto en Total</p>
               <div className="relative flex items-baseline justify-between">
                 <span className="text-2xl font-black text-rose-400">
-                  -{ (tanksToRemove * 500).toLocaleString() }
+                  -{(tanksToRemove * 500).toLocaleString()}
                 </span>
-                <span className="text-sm font-black text-zinc-400">baht</span>
+                <span className="text-sm font-black text-text-muted">baht</span>
               </div>
             </div>
           </div>
@@ -57,29 +57,29 @@ export default function Carabao_Invoice_Sidebar({
           {/* Nuevo contenedor de Saldos */}
           <div className="bg-surface rounded-2xl p-4 border border-surface-edge shadow-inner flex flex-col gap-3">
             <div>
-              <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Total Factura</p>
-              <p className="text-2xl font-black text-white">{grandTotal.toLocaleString()} <span className="text-xs text-zinc-400">฿</span></p>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-0.5">Total Factura</p>
+              <p className="text-2xl font-black text-white">{grandTotal.toLocaleString()} <span className="text-xs text-text-muted">฿</span></p>
             </div>
-            
+
             <div>
-              <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Ya Pagado</p>
-              <p className="text-2xl font-black text-emerald-400">{paidAmount.toLocaleString()} <span className="text-xs text-zinc-400">฿</span></p>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-0.5">Ya Pagado</p>
+              <p className="text-2xl font-black text-emerald-400">{paidAmount.toLocaleString()} <span className="text-xs text-text-muted">฿</span></p>
             </div>
-            
+
             <div className="pt-2 border-t border-surface-edge/50">
-              <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Por Pagar</p>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-0.5">Por Pagar</p>
               <div className="relative flex items-baseline justify-between">
                 <span className={`text-4xl font-black tracking-tighter ${remainingBalance >= 0 ? 'text-rose-400' : 'text-rose-400'}`}>
                   {remainingBalance.toLocaleString()}
                 </span>
-                <span className="text-sm font-black text-zinc-400">baht</span>
+                <span className="text-sm font-black text-text-muted">baht</span>
               </div>
               <div className={`h-0.5 w-full rounded-full mt-1 ${remainingBalance >= 0 ? 'bg-rose-400/20' : 'bg-rose-400/20'}`} />
             </div>
           </div>
 
           <div className="mt-auto pb-10">
-            <p className="text-[11px] text-gray-500 font-bold leading-relaxed italic">
+            <p className="text-[11px] text-text-muted font-bold leading-relaxed italic">
               Estos ajustes solo afectan a la factura visual y no cambian los datos reales.
             </p>
           </div>

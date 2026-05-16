@@ -48,14 +48,14 @@ export default function Carabao_Table({ invoiceItems, month, year, allActivities
   }, [invoiceItems, month, year, fixedColumns]);
 
   return (
-    <div className="flex-none w-fit max-w-[850px] bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar h-fit max-h-full relative">
+    <div className="flex-none w-fit max-w-full lg:max-w-[850px] bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-x-auto custom-scrollbar h-fit max-h-full relative">
       <table className="w-fit text-left border-collapse table-fixed">
-        <thead className="sticky top-0 z-30 bg-surface-soft/98 backdrop-blur-xl h-[70px]">
+        <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl h-[70px]">
           <tr className="border-b border-surface-edge">
-            <th className="p-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-12 bg-surface-soft">Día</th>
+            <th className="p-2 text-[10px] font-black text-text-header uppercase tracking-widest text-center w-12 bg-table-header sticky left-0 z-40 border-r border-surface-edge/30">Día</th>
             {fixedColumns.map((col) => (
               <React.Fragment key={col.key}>
-                <th className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 w-[40px] min-w-[40px]">
+                <th className="p-0 text-[16px] font-black text-text-header uppercase tracking-tighter text-center border-l border-surface-edge/30 w-[40px] min-w-[40px]">
                   <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">
                     {col.label.split('').map((char, i) => <span key={i}>{char}</span>)}
                   </div>
@@ -71,11 +71,11 @@ export default function Carabao_Table({ invoiceItems, month, year, allActivities
         </thead>
         <tbody className="divide-y divide-surface-edge/40">
           {/* TOTALS ROW AT TOP */}
-          <tr className="bg-surface-edge/20 font-black h-9 border-b-2 border-surface-edge">
-            <td className="p-0 text-center text-gray-500 text-[10px] uppercase">TOT</td>
+          <tr className="bg-table-header font-black h-9 border-b-2 border-surface-edge">
+            <td className="p-0 text-center text-text-header text-[10px] uppercase bg-table-header sticky left-0 z-20 border-r border-surface-edge/30">TOT</td>
             {fixedColumns.map(col => (
               <React.Fragment key={col.key}>
-                <td className="p-0 text-center border-l border-surface-edge/10 text-sm text-brand w-[40px] min-w-[40px]">
+                <td className="p-0 text-center border-l border-surface-edge/10 text-sm text-brand-light w-[40px] min-w-[40px]">
                   {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
                 </td>
                 {col.key === 'SR2' && (
@@ -89,14 +89,14 @@ export default function Carabao_Table({ invoiceItems, month, year, allActivities
 
           {Object.keys(matrixData).map(day => (
             <tr key={day} className="group hover:bg-white/5 transition-colors h-9">
-              <td className="p-0 text-center font-black text-gray-600 text-sm">{day}</td>
+              <td className="p-0 text-center font-black text-text-header text-sm bg-table-header sticky left-0 z-20 border-r border-surface-edge/30">{day}</td>
               {fixedColumns.map((col, idx) => {
                 const count = matrixData[day].items[col.key] || 0;
                 const isSR2 = col.key === 'SR2';
                 return (
                   <React.Fragment key={col.key}>
                     <td className="p-0 border-l border-surface-edge/10 text-center w-[40px] min-w-[40px]">
-                      <span className={`text-base font-black ${count > 0 ? 'text-white' : 'text-gray-800'}`}>
+                      <span className={`text-base font-black ${count > 0 ? 'text-white' : 'text-text-dim/10'}`}>
                         {count || ''}
                       </span>
                     </td>
@@ -116,7 +116,7 @@ export default function Carabao_Table({ invoiceItems, month, year, allActivities
         <tfoot className="sticky bottom-0 z-30 bg-surface-soft border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)] font-black">
           {/* ONLY AMOUNTS ROW AT BOTTOM */}
           <tr className="h-6 bg-black/20">
-            <td className="p-0 text-center text-emerald-500 text-[10px] uppercase tracking-widest">Tot</td>
+            <td className="p-0 text-center text-emerald-500 text-[10px] uppercase tracking-widest bg-table-header sticky left-0 z-20 border-r border-surface-edge/30">Tot</td>
             {fixedColumns.map(col => {
               const columnItems = invoiceItems.filter(item => {
                 const actId = String(item.activity_id || '');

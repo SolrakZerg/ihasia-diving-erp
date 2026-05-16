@@ -17,7 +17,7 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
   const fixedKeys = ['FD', 'DSD1', 'DSD2', 'SR1', 'SR2', 'OW', 'AOW', 'SD', 'S&R', 'DMT'];
   const multipliers = {
     FD: 500, SR1: 500, SR2: 1000, DSD1: 500, DSD2: 1000, SD: 1500, OW: 2500, AOW: 2500, 'S&R': 2000, CAN: 500, DMT: 18000
-  };  const realTotal = totalAmount;
+  }; const realTotal = totalAmount;
   const remainingBalance = realTotal - paidAmount;
 
   const saveSettlement = async (value) => {
@@ -49,11 +49,11 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
       .from('activities')
       .update({ is_supplier_billable: !currentState })
       .eq('id', activityId);
-    
+
     if (!error) {
       setToast({ type: 'success', message: 'Estado de facturación actualizado.' });
       setAllActivities(prev => prev.map(a => a.id === activityId ? { ...a, is_supplier_billable: !currentState } : a));
-      
+
       // Recalcular y recargar settlement
       await recalculateCarabaoSettlement(month, year);
       fetchSettlement();
@@ -75,17 +75,17 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
     <div className="flex-none w-72 flex flex-col gap-4">
       <div className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <img 
-            src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png" 
-            alt="Carabao Watermark" 
-            className="w-24 h-24 object-contain grayscale brightness-200" 
+          <img
+            src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png"
+            alt="Carabao Watermark"
+            className="w-24 h-24 object-contain grayscale brightness-200"
           />
         </div>
-        
+
         <div className="space-y-6 relative z-10">
           {/* TOTAL SECTION */}
           <div>
-            <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1">Total THB (Real)</p>
+            <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-1">Total THB (Real)</p>
             <h2 className="text-4xl font-black text-white tracking-tighter">
               {realTotal.toLocaleString()} <span className="text-sm font-black text-amber-500/40 ml-1">฿</span>
             </h2>
@@ -94,11 +94,11 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
           {/* PAID SECTION */}
           <div className="bg-black/20 rounded-2xl p-4 border border-white/5 group/paid">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest">Pagado:</p>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-widest">Pagado:</p>
               {isSaving && <span className="text-[8px] text-emerald-500 animate-pulse font-black uppercase">Guardando...</span>}
             </div>
             <div className="relative">
-              <input 
+              <input
                 type="number"
                 value={paidAmount || ''}
                 onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
@@ -113,7 +113,7 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
 
           {/* REMAINING SECTION */}
           <div className="pt-2">
-            <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1">Por Pagar:</p>
+            <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-1">Por Pagar:</p>
             <h2 className={`text-5xl font-black tracking-tighter transition-colors ${remainingBalance <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
               {remainingBalance.toLocaleString()} <span className="text-base font-black opacity-30 ml-1">฿</span>
             </h2>
@@ -121,8 +121,8 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
         </div>
 
         <div className="mt-6 pt-6 border-t border-surface-edge">
-          <p className="text-[11px] text-gray-500 font-bold leading-relaxed italic">
-            Cálculo basado en la actividad real de <span className="text-gray-300">{months[month-1]}</span>.
+          <p className="text-[11px] text-text-muted font-bold leading-relaxed italic">
+            Cálculo basado en la actividad real de <span className="text-white">{months[month - 1]}</span>.
           </p>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
           {remainingBalance <= 0 ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <FileText className="w-5 h-5 text-rose-400" />}
         </div>
         <div>
-          <p className="text-[10px] font-black text-zinc-400 uppercase">Estado Mensual</p>
+          <p className="text-[10px] font-black text-text-muted uppercase">Estado Mensual</p>
           <p className={`text-xs font-bold ${remainingBalance <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             {remainingBalance <= 0 ? 'Liquidación Completa' : 'Pendiente de Pago'}
           </p>
@@ -152,53 +152,50 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
                 <h3 className="text-xl font-black text-white">Configuración de Facturación</h3>
               </div>
               <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                <CloseIcon className="w-6 h-6 text-gray-400" />
+                <CloseIcon className="w-6 h-6 text-text-dim" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto custom-scrollbar">
-              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+              <p className="text-text-muted text-sm mb-6 leading-relaxed">
                 Selecciona qué actividades son facturables por Carabao. Esto afectará al total real calculado.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {billableActivities.map(activity => (
-                  <div 
+                  <div
                     key={activity.id}
                     onClick={() => toggleActivityBilling(activity.id, activity.is_supplier_billable)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
-                      activity.is_supplier_billable 
-                        ? 'bg-brand/10 border-brand/30 ring-1 ring-brand/20' 
-                        : 'bg-surface-soft border-surface-edge hover:border-gray-600'
-                    }`}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${activity.is_supplier_billable
+                      ? 'bg-brand/10 border-brand/30 ring-1 ring-brand/20'
+                      : 'bg-surface-soft border-surface-edge hover:border-surface-edge/80'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${
-                        activity.is_supplier_billable ? 'bg-brand text-white' : 'bg-surface-edge text-gray-500'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${activity.is_supplier_billable ? 'bg-brand text-white' : 'bg-surface-edge text-text-header'
+                        }`}>
                         {activity.acronym || '??'}
                       </div>
                       <div>
-                        <p className={`text-sm font-bold ${activity.is_supplier_billable ? 'text-white' : 'text-gray-400'}`}>
+                        <p className={`text-sm font-bold ${activity.is_supplier_billable ? 'text-white' : 'text-text-muted'}`}>
                           {activity.name}
                         </p>
-                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                        <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">
                           {activity.tanks_weight} Tanks • {activity.tanks_weight * 500} THB
                         </p>
                       </div>
                     </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      activity.is_supplier_billable ? 'border-brand bg-brand' : 'border-gray-600'
-                    }`}>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${activity.is_supplier_billable ? 'border-brand bg-brand' : 'border-surface-edge'
+                      }`}>
                       {activity.is_supplier_billable && <CheckCircle2 className="w-4 h-4 text-white" />}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            
+
             <div className="p-6 bg-surface-soft/30 border-t border-surface-edge flex justify-end">
-              <button 
+              <button
                 onClick={() => setShowSettings(false)}
                 className="bg-brand hover:bg-brand-dark text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg transition-all"
               >

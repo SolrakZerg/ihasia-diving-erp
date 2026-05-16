@@ -44,7 +44,7 @@ const Expenses_Daily_Table = ({
     <div className="lg:col-span-4 flex flex-col h-[calc(100vh-260px)]">
       <div className="bg-surface-soft border border-surface-edge rounded-2xl shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="py-2 px-4 border-b border-surface-edge flex items-center justify-between bg-surface-soft/50 flex-none h-[58px] gap-4">
-          <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">Libro de Gastos</h3>
+          <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">Gastos</h3>
           <div className="flex items-center gap-3">
             <div className="bg-danger/10 border border-danger/20 px-4 py-2 rounded-xl flex items-center gap-3 shrink-0">
               <span className="text-xs font-black text-danger uppercase tracking-widest">Total:</span>
@@ -158,12 +158,12 @@ const Expenses_Daily_Table = ({
                       </td>
                     </tr>
                   ))}
-                  
+
                   {!isAddingExpense && (
                     <tr className="hover:bg-brand/5 transition-colors">
                       <td colSpan="5" className="px-3 py-3 text-center">
-                        <button 
-                          onClick={() => setIsAddingExpense(true)} 
+                        <button
+                          onClick={() => setIsAddingExpense(true)}
                           className="btn-accept mx-auto"
                         >
                           <PlusCircle className="w-4 h-4" />

@@ -64,12 +64,12 @@ export default function Carabao_Header() {
     const mm = String(month).padStart(2, '0');
     const firstDay = `${year}-${mm}-01`;
     const lastDay = `${year}-${mm}-${new Date(year, month, 0).getDate()}`;
-    
+
     const { data } = await supabase.from('invoice_items')
       .select('*, activities(id, name, category, acronym, tanks_weight, is_supplier_billable, payout_group)')
       .gte('date', firstDay)
       .lte('date', lastDay);
-      
+
     setInvoiceItems(data || []);
     setLoading(false);
   };
@@ -82,7 +82,7 @@ export default function Carabao_Header() {
       .eq('month', month)
       .eq('year', year)
       .maybeSingle();
-    
+
     if (data) {
       setSettlementId(data.id);
       setPaidAmount(data.paid_amount);
@@ -99,133 +99,142 @@ export default function Carabao_Header() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface animate-in fade-in duration-700 overflow-hidden text-slate-300">
+    <div className="flex flex-col h-auto md:h-full bg-surface animate-in fade-in duration-700 md:overflow-hidden text-text-muted">
       <style>{noSpinnerStyle}</style>
-      
+
       {/* Top Header */}
-      <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0 no-print print:hidden">
-        <div className="flex items-center gap-4">
-          <img 
-            src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png" 
-            alt="Carabao Logo" 
-            className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(56,189,248,0.2)]" 
-          />
-          <div>
-            <h1 className="text-2xl font-black text-white leading-tight tracking-tight">Carabao Diving</h1>
-          </div>
-        </div>
+      <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-4 sm:py-6 no-print print:hidden">
+        <div className="max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shrink-0">
 
-        {/* Tabs & Settings */}
-        <div className="flex items-center gap-3">
-          {activeTab === 'grid' && (
-            <button 
-              onClick={() => setShowSettings(true)}
-              className="bg-surface hover:bg-surface-edge text-gray-400 p-2.5 rounded-xl transition-all border border-surface-edge shadow-lg"
-              title="Configurar Actividades Facturables"
-            >
-              <SettingsIcon className="w-5 h-5" />
-            </button>
-          )}
+          {/* Left: Logo and Name/Date Column */}
+          <div className="flex flex-col md:flex-row items-center gap-5 shrink-0">
+            <div className="flex items-center gap-5">
+            <img
+              src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png"
+              alt="Carabao Logo"
+              className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+            />
 
-          {activeTab === 'invoice' && (
-            <button 
-              onClick={() => window.print()}
-              className="bg-surface hover:bg-surface-edge text-gray-400 p-2.5 rounded-xl transition-all border border-surface-edge shadow-lg"
-              title="Imprimir / PDF"
-            >
-              <Printer className="w-5 h-5" />
-            </button>
-          )}
-          
-          <div className="flex bg-surface p-1.5 rounded-2xl border border-surface-edge shadow-inner">
-          <button 
-            onClick={() => setActiveTab('grid')}
-            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'grid' ? 'bg-brand text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-          >
-            <LayoutGrid className="w-4 h-4" /> Resumen Actividad
-          </button>
-          <button 
-            onClick={() => setActiveTab('invoice')}
-            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'invoice' ? 'bg-brand text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-          >
-            <FileText className="w-4 h-4" /> Factura Carabao
-          </button>
-        </div>
-      </div>
+            <div className="flex flex-col gap-1 items-center">
+              <h1 className="text-2xl font-black text-white tracking-tight uppercase leading-none">Carabao</h1>
 
-        {/* Date Selector */}
-        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
-            <button 
-              onClick={() => {
-                if (month === 1) {
-                  setMonth(12);
-                  setYear(prev => prev - 1);
-                } else {
-                  setMonth(prev => prev - 1);
-                }
-              }}
-              className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+              <div className="flex items-center gap-3">
+                {/* Date Selector */}
+                <div className="flex items-center bg-surface-soft/50 p-1 rounded-xl border border-surface-edge/30 w-fit shadow-inner">
+                  <button
+                    onClick={() => {
+                      if (month === 1) {
+                        setMonth(12);
+                        setYear(prev => prev - 1);
+                      } else {
+                        setMonth(prev => prev - 1);
+                      }
+                    }}
+                    className="p-2 hover:bg-surface-edge/30 rounded-lg text-text-header hover:text-white transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
 
-            <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-              <select 
-                value={month} 
-                onChange={e => setMonth(parseInt(e.target.value))}
-                className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
-              >
-                {months.map((m, i) => (
-                  <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
-                ))}
-              </select>
-              
-              <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+                  <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
+                    <select
+                      value={month}
+                      onChange={e => setMonth(parseInt(e.target.value))}
+                      className="bg-transparent text-xs font-black text-white outline-none px-1.5 py-0.5 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
+                    >
+                      {months.map((m, i) => (
+                        <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
+                      ))}
+                    </select>
 
-              <select 
-                value={year} 
-                onChange={e => setYear(parseInt(e.target.value))}
-                className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
-              >
-                {[2024, 2025, 2026, 2027].map(y => (
-                  <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-                ))}
-              </select>
+                    <div className="w-px h-4 bg-surface-edge/30 mx-1" />
+
+                    <select
+                      value={year}
+                      onChange={e => setYear(parseInt(e.target.value))}
+                      className="bg-transparent text-xs font-black text-white outline-none px-1.5 py-0.5 cursor-pointer appearance-none transition-colors text-center"
+                    >
+                      {[2024, 2025, 2026, 2027].map(y => (
+                        <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (month === 12) {
+                        setMonth(1);
+                        setYear(prev => prev + 1);
+                      } else {
+                        setMonth(prev => prev + 1);
+                      }
+                    }}
+                    className="p-2 hover:bg-surface-edge/30 rounded-lg text-text-header hover:text-white transition-all"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quick Actions (Settings/Print) next to Date */}
+                <div className="flex items-center gap-2">
+                  {activeTab === 'grid' && (
+                    <button
+                      onClick={() => setShowSettings(true)}
+                      className="p-2.5 rounded-xl bg-surface-edge/10 border border-surface-edge/30 text-text-header hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
+                      title="Configuración"
+                    >
+                      <SettingsIcon className="w-5 h-5 group-hover:rotate-45 transition-transform" />
+                    </button>
+                  )}
+                  {activeTab === 'invoice' && (
+                    <button
+                      onClick={() => window.print()}
+                      className="p-2.5 rounded-xl bg-surface-edge/10 border border-surface-edge/30 text-text-header hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
+                      title="Imprimir"
+                    >
+                      <Printer className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <button 
-              onClick={() => {
-                if (month === 12) {
-                  setMonth(1);
-                  setYear(prev => prev + 1);
-                } else {
-                  setMonth(prev => prev + 1);
-                }
-              }}
-              className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
+          {/* Right: Tabs */}
+          <div className="flex bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 shadow-inner shrink-0">
+            <button
+              onClick={() => setActiveTab('grid')}
+              className={`px-3 sm:px-5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'grid' ? 'bg-brand text-white shadow-lg' : 'text-text-header hover:text-white'}`}
             >
-              <ChevronRight className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4" /> <span className="hidden sm:inline">Resumen Actividad</span><span className="sm:hidden">Resumen</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('invoice')}
+              className={`px-3 sm:px-5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'invoice' ? 'bg-brand text-white shadow-lg' : 'text-text-header hover:text-white'}`}
+            >
+              <FileText className="w-4 h-4" /> <span className="hidden sm:inline">Factura Carabao</span><span className="sm:hidden">Factura</span>
             </button>
           </div>
+        </div>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:overflow-hidden relative min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden">
           {loading ? (
             <div className="flex h-full items-center justify-center bg-surface">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand"></div>
             </div>
           ) : activeTab === 'grid' ? (
-            <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar px-6 py-2">
-              <div className="flex gap-6 justify-center items-start min-w-max h-full px-4">
-                <Carabao_Table 
-                  invoiceItems={invoiceItems} 
-                  month={month} 
+            <div className="flex-1 overflow-x-auto md:overflow-y-hidden custom-scrollbar px-3 sm:px-6 py-4 md:py-2">
+              <div className="flex flex-col lg:flex-row gap-6 justify-center items-center lg:items-start h-full px-2 sm:px-4">
+                <Carabao_Table
+                  invoiceItems={invoiceItems}
+                  month={month}
                   year={year}
                   allActivities={allActivities}
                 />
-                <Carabao_Sidebar 
+                <Carabao_Sidebar
                   invoiceItems={invoiceItems}
                   allActivities={allActivities}
                   month={month}
@@ -243,7 +252,7 @@ export default function Carabao_Header() {
               </div>
             </div>
           ) : (
-            <Carabao_Invoice_View 
+            <Carabao_Invoice_View
               invoiceItems={invoiceItems}
               allActivities={allActivities}
               month={month}
