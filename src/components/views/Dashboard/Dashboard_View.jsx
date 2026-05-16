@@ -32,14 +32,14 @@ export default function Dashboard_View() {
 
   if (loading && !staffData.length) {
     return (
-      <div className="min-h-screen bg-[#0d0e15] flex items-center justify-center">
+      <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0e15] text-white font-sans p-2 sm:p-4 md:p-6 lg:p-8 flex flex-col gap-6 max-w-[1920px] mx-auto">
+    <div className="min-h-screen bg-surface text-white font-sans p-2 sm:p-4 md:p-6 lg:p-8 flex flex-col gap-6 max-w-[1920px] mx-auto">
       
       {/* 1. Header */}
       <Dashboard_Header 
