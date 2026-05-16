@@ -21,8 +21,9 @@ export default function CRBT_Sidebar({
   month
 }) {
   return (
-    <div className={`bg-surface border-l border-surface-edge flex flex-col overflow-hidden transition-all duration-500 ease-in-out shadow-2xl z-10 ${sidebarOpen ? 'w-[400px] p-6 opacity-100' : 'w-0 p-0 opacity-0'}`}>
-      <div className="flex-1 flex flex-col space-y-6 overflow-y-auto custom-scrollbar pr-2 min-w-[352px] mt-10 pb-10">
+    <div className={`bg-surface border-t lg:border-t-0 lg:border-l border-surface-edge flex flex-col overflow-hidden transition-all duration-500 ease-in-out shadow-2xl z-10 mx-auto lg:mx-0 w-full max-w-[550px] lg:max-w-none
+      ${sidebarOpen ? 'lg:w-[400px] p-4 sm:p-6 opacity-100' : 'h-auto opacity-100 p-4 sm:p-6 lg:w-0 lg:h-full lg:p-0 lg:opacity-0'}`}>
+      <div className="flex-1 flex flex-col space-y-6 overflow-y-auto custom-scrollbar pr-2 mt-4 lg:mt-10 pb-10">
 
         <section className="space-y-4">
           <div className="bg-surface-soft border border-surface-edge rounded-3xl overflow-hidden shadow-xl">

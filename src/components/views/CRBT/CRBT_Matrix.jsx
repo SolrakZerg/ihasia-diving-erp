@@ -14,10 +14,10 @@ export default function CRBT_Matrix({
   totalAssists
 }) {
   return (
-    <div className="flex-none w-fit max-w-full lg:max-w-[850px] bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden flex flex-col h-fit max-h-full">
-      <div className="flex-1 overflow-auto custom-scrollbar relative">
+    <div className="flex-none w-full lg:w-fit lg:max-w-[850px] bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden flex flex-col h-fit xl:max-h-full">
+      <div className="flex-1 overflow-x-auto overflow-y-visible xl:overflow-y-auto custom-scrollbar relative">
         <table className="w-full text-left border-collapse table-fixed">
-          <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl h-[70px]">
+          <thead className="md:sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl h-[70px]">
             <tr className="border-b border-surface-edge">
               <th className="p-2 text-[10px] font-black text-text-header uppercase tracking-widest text-center w-12 bg-table-header/98 sticky left-0 z-40">Día</th>
               {fixedColumns.map(col => (<th key={col.key} className="p-0 text-[16px] font-black text-text-muted uppercase tracking-tighter text-center border-l border-surface-edge/30 w-[35px]"><div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div></th>))}
@@ -57,18 +57,18 @@ export default function CRBT_Matrix({
                     placeholder="0"
                   />
                 </td>
-                <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black transition-all ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-text-muted/30'}`}>{(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
+                <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black transition-all ${matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-text-muted/30'}`}>{(matrixData[day].total + (manualAdj[day] || 0) + ((assists[day] || 0) * 2000)).toLocaleString()}</span></td>
               </tr>
             ))}
           </tbody>
-          <tfoot className="sticky bottom-0 z-30 bg-table-header/98 border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)] h-9 font-black">
+          <tfoot className="md:sticky bottom-0 z-30 bg-table-header/98 border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)] h-9 font-black">
             <tr>
               <td className="p-0 text-center text-text-muted text-[10px] uppercase bg-table-header/98 sticky left-0 z-40 border-r border-surface-edge/10">TOT</td>
               {fixedColumns.map(col => (<td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-sm text-text-muted">{Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}</td>))}
               {dynamicActivities.map(act => (<td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[13px] text-amber-500/40 bg-amber-500/5">{Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}</td>))}
               <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-sm bg-cyan-500/5">{Object.values(assists).reduce((acc, val) => acc + val, 0)}</td>
-              <td className="p-0 text-center border-l border-surface-edge/10 text-indigo-400 text-sm bg-indigo-500/5">{totalAdj.toLocaleString()} ฿</td>
-              <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">{(totalComm + totalAssists + totalAdj).toLocaleString()} ฿</td>
+              <td className="p-0 text-center border-l border-surface-edge/10 text-indigo-400 text-sm bg-indigo-500/5">{totalAdj.toLocaleString()}</td>
+              <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-surface-edge/30 pr-4">{(totalComm + totalAssists + totalAdj).toLocaleString()}</td>
             </tr>
           </tfoot>
         </table>
