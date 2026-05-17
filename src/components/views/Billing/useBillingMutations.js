@@ -18,6 +18,7 @@ export function useBillingMutations({
   setBulkGroupAction,
   todayArrivals,
   setTodayArrivals,
+  setLoadingArrivals,
   selectedArrivalIds,
   setSelectedArrivalIds,
   arrivalsDate,
@@ -134,10 +135,12 @@ export function useBillingMutations({
 
   const fetchTodayArrivals = async () => {
     try {
+      setLoadingArrivals(true);
       const { data, error } = await supabase.from('customers').select('id, first_name, last_name, booked_activity').eq('booking_date', arrivalsDate).order('first_name');
       if (error) throw error;
       setTodayArrivals(data || []);
     } catch (error) { console.error('Error fetching arrivals:', error); }
+    finally { setLoadingArrivals(false); }
   };
 
   const fetchUIConfig = async () => {
