@@ -1,6 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useUndo } from '../../../context/UndoContext';
+import {
+  buildAssChangeAction,
+  buildAttendanceToggleAction,
+  buildAddAdvanceAction,
+  buildUpdateAdvanceAction,
+  buildRemoveAdvanceAction,
+  buildAdjUpdateAction
+} from './nominasUndoActions';
 
 export function useNominasData() {
   const { pushAction } = useUndo();
@@ -161,21 +169,7 @@ export function useNominasData() {
     }
 
     if (!skipHistory) {
-      pushAction({
-        view: 'nominas',
-        description: {
-          undo: `Deshecho: Ajuste del día ${day} restaurado a '${oldAdj?.concept || ''}' (${oldAdj?.amount || 0} ฿)`,
-          redo: `Rehecho: Ajuste del día ${day} cambiado a '${newConcept}' (${newAmount} ฿)`
-        },
-        undo: async () => {
-          await handleAdjUpdate(day, oldAdj?.amount || 0, oldAdj?.concept || '', true);
-          fetchData();
-        },
-        redo: async () => {
-          await handleAdjUpdate(day, newAmount, newConcept, true);
-          fetchData();
-        }
-      });
+      pushAction(buildAdjUpdateAction(day, newAmount, newConcept, oldAdj, handleAdjUpdate, fetchData));
     }
   };
   
@@ -195,21 +189,7 @@ export function useNominasData() {
     }
 
     if (!skipHistory) {
-      pushAction({
-        view: 'nominas',
-        description: {
-          undo: `Deshecho: Asistencias del día ${day} restauradas a ${oldAss || 0}`,
-          redo: `Rehecho: Asistencias del día ${day} cambiadas a ${value || 0}`
-        },
-        undo: async () => {
-          await handleAssChange(day, oldAss, true);
-          fetchData();
-        },
-        redo: async () => {
-          await handleAssChange(day, value, true);
-          fetchData();
-        }
-      });
+      pushAction(buildAssChangeAction(day, value, oldAss, handleAssChange, fetchData));
     }
   };
 
@@ -222,21 +202,7 @@ export function useNominasData() {
     await updateDailyActivity(day, { attendance_status: next });
 
     if (!skipHistory) {
-      pushAction({
-        view: 'nominas',
-        description: {
-          undo: `Deshecho: Asistencia del día ${day} restaurada a ${current}`,
-          redo: `Rehecho: Asistencia del día ${day} cambiada a ${next}`
-        },
-        undo: async () => {
-          await handleAttendanceToggle(day, current, true);
-          fetchData();
-        },
-        redo: async () => {
-          await handleAttendanceToggle(day, next, true);
-          fetchData();
-        }
-      });
+      pushAction(buildAttendanceToggleAction(day, next, current, handleAttendanceToggle, fetchData));
     }
   };
 
@@ -249,21 +215,7 @@ export function useNominasData() {
       setAdvances(prev => [...prev, newAdv]);
 
       if (!skipHistory) {
-        pushAction({
-          view: 'nominas',
-          description: {
-            undo: `Deshecho: Anticipo de ${parseFloat(amount)} ฿ a ${selectedMember?.first_name} eliminado`,
-            redo: `Rehecho: Anticipo de ${parseFloat(amount)} ฿ a ${selectedMember?.first_name} vuelto a crear`
-          },
-          undo: async () => {
-            await supabase.from('staff_advances').delete().eq('id', newAdv.id);
-            fetchData();
-          },
-          redo: async () => {
-            await supabase.from('staff_advances').insert(newAdv);
-            fetchData();
-          }
-        });
+        pushAction(buildAddAdvanceAction(newAdv, selectedMember?.first_name, fetchData));
       }
 
       return newAdv;
@@ -284,37 +236,7 @@ export function useNominasData() {
       setAdvances(prev => prev.map(a => a.id === id ? data : a));
 
       if (!skipHistory) {
-        let undoDesc = `Deshecho: Anticipo de ${selectedMember?.first_name} restaurado`;
-        let redoDesc = `Rehecho: Anticipo de ${selectedMember?.first_name} actualizado`;
-
-        const isAmountChange = updates.amount !== undefined && updates.amount !== oldAdvanceState.amount;
-        const isConceptChange = updates.concept !== undefined && updates.concept !== oldAdvanceState.concept;
-
-        if (isAmountChange) {
-          undoDesc = `Deshecho: Cantidad de anticipo de ${selectedMember?.first_name} restaurada a ${oldAdvanceState.amount} ฿ (era ${updates.amount} ฿)`;
-          redoDesc = `Rehecho: Cantidad de anticipo de ${selectedMember?.first_name} actualizada a ${updates.amount} ฿`;
-        } else if (isConceptChange) {
-          const oldVal = oldAdvanceState.concept ? `"${oldAdvanceState.concept}"` : 'Sin concepto';
-          const newVal = updates.concept ? `"${updates.concept}"` : 'Sin concepto';
-          undoDesc = `Deshecho: Concepto de anticipo de ${selectedMember?.first_name} restaurado a ${oldVal} (era ${newVal})`;
-          redoDesc = `Rehecho: Concepto de anticipo de ${selectedMember?.first_name} actualizado a ${newVal}`;
-        }
-
-        pushAction({
-          view: 'nominas',
-          description: {
-            undo: undoDesc,
-            redo: redoDesc
-          },
-          undo: async () => {
-            await supabase.from('staff_advances').update(oldAdvanceState).eq('id', id);
-            fetchData();
-          },
-          redo: async () => {
-            await supabase.from('staff_advances').update(updates).eq('id', id);
-            fetchData();
-          }
-        });
+        pushAction(buildUpdateAdvanceAction(id, updates, oldAdvanceState, selectedMember?.first_name, fetchData));
       }
 
       return data;
@@ -331,21 +253,7 @@ export function useNominasData() {
         setAdvances(prev => prev.filter(a => a.id !== actualId));
 
         if (!skipHistory) {
-          pushAction({
-            view: 'nominas',
-            description: {
-              undo: `Deshecho: Anticipo de ${advanceItem.amount} ฿ restaurado para ${selectedMember?.first_name}`,
-              redo: `Rehecho: Anticipo de ${advanceItem.amount} ฿ eliminado para ${selectedMember?.first_name}`
-            },
-            undo: async () => {
-              await supabase.from('staff_advances').insert(advanceItem);
-              fetchData();
-            },
-            redo: async () => {
-              await supabase.from('staff_advances').delete().eq('id', actualId);
-              fetchData();
-            }
-          });
+          pushAction(buildRemoveAdvanceAction(actualId, advanceItem, selectedMember?.first_name, fetchData));
         }
       }
     }

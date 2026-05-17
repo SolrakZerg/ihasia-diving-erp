@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { addCustomersToBilling } from '../../common/billingHelpers';
 import { useUndo } from '../../../context/UndoContext';
+import { buildDeleteItemsAction, buildDeleteInvoiceAction } from './billingUndoActions';
 
 export function useBilling() {
   const { pushAction, refreshTrigger } = useUndo();
@@ -846,33 +847,7 @@ export function useBilling() {
             await supabase.from('invoices').delete().eq('id', invId);
           }
 
-          const actionDesc = {
-            undo: `Deshecho: Eliminación de ${ids.length} registros restaurados`,
-            redo: `Rehecho: ${ids.length} registros eliminados`
-          };
-
-          pushAction({
-            view: 'billing',
-            description: actionDesc,
-            undo: async () => {
-              if (invoicesToBackup.length > 0) {
-                const { error: invErr } = await supabase.from('invoices').insert(invoicesToBackup);
-                if (invErr) throw invErr;
-              }
-              if (itemsToDelete.length > 0) {
-                const { error: itemErr } = await supabase.from('invoice_items').insert(itemsToDelete);
-                if (itemErr) throw itemErr;
-              }
-            },
-            redo: async () => {
-              const { error: delErr } = await supabase.from('invoice_items').delete().in('id', ids);
-              if (delErr) throw delErr;
-
-              for (const invId of emptyInvoiceIds) {
-                await supabase.from('invoices').delete().eq('id', invId);
-              }
-            }
-          });
+          pushAction(buildDeleteItemsAction(ids, itemsToDelete, emptyInvoiceIds, invoicesToBackup, fetchInvoices));
 
           setToast(`${ids.length} eliminados`); 
           setSelectedItemIds(new Set()); 
@@ -912,28 +887,8 @@ export function useBilling() {
           if (error) throw error;
 
           const customerName = inv.customers?.first_name || inv.temporary_name || 'Sin nombre';
-          const actionDesc = {
-            undo: `Deshecho: Factura de ${customerName} restaurada`,
-            redo: `Rehecho: Factura de ${customerName} eliminada`
-          };
 
-          pushAction({
-            view: 'billing',
-            description: actionDesc,
-            undo: async () => {
-              const { error: invErr } = await supabase.from('invoices').insert(invoiceBackup);
-              if (invErr) throw invErr;
-
-              if (itemsBackup.length > 0) {
-                const { error: itemErr } = await supabase.from('invoice_items').insert(itemsBackup);
-                if (itemErr) throw itemErr;
-              }
-            },
-            redo: async () => {
-              const { error: delErr } = await supabase.from('invoices').delete().eq('id', invoiceId);
-              if (delErr) throw delErr;
-            }
-          });
+          pushAction(buildDeleteInvoiceAction(invoiceId, customerName, invoiceBackup, itemsBackup, fetchInvoices));
 
           setToast("Factura eliminada"); fetchInvoices(false);
         } catch (err) { console.error('Error deleting invoice:', err); }

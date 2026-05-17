@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
 import Billing_GridRow_ItemRow from './Billing_GridRow_ItemRow';
 import { useUndo } from '../../../context/UndoContext';
+import { buildDeleteItemRowAction, buildAddChildItemAction, buildItemUpdateAction } from './billingUndoActions';
 
 export default function Billing_GridRow({
   invoice,
@@ -120,46 +121,8 @@ export default function Billing_GridRow({
             }
 
             const customerName = itemToDelete.customers?.first_name || itemToDelete.temporary_name || 'Sin nombre';
-            const actionDesc = {
-              undo: `Deshecho: Eliminación de registro de ${customerName} restaurado`,
-              redo: `Rehecho: Registro de ${customerName} eliminado`
-            };
 
-            pushAction({
-              view: 'billing',
-              description: actionDesc,
-              undo: async () => {
-                if (isLastItem && invoiceData) {
-                  const { error: invErr } = await supabase.from('invoices').insert(invoiceData);
-                  if (invErr) throw invErr;
-                }
-                const { error: itemErr } = await supabase.from('invoice_items').insert(cleanItem);
-                if (itemErr) throw itemErr;
-
-                if (targetDateStr) {
-                  const dObj = new Date(targetDateStr);
-                  if (!isNaN(dObj.getTime())) {
-                    recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
-                  }
-                }
-              },
-              redo: async () => {
-                if (isLastItem) {
-                  const { error: delErr } = await supabase.from('invoices').delete().eq('id', invoice.id);
-                  if (delErr) throw delErr;
-                } else {
-                  const { error: delErr } = await supabase.from('invoice_items').delete().eq('id', itemId);
-                  if (delErr) throw delErr;
-                }
-
-                if (targetDateStr) {
-                  const dObj = new Date(targetDateStr);
-                  if (!isNaN(dObj.getTime())) {
-                    recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
-                  }
-                }
-              }
-            });
+            pushAction(buildDeleteItemRowAction(itemId, invoice.id, isLastItem, cleanItem, invoiceData, targetDateStr, customerName, onUpdate));
 
             if (onUpdate) onUpdate();
             setConfirmConfig(prev => ({ ...prev, show: false }));
@@ -193,38 +156,9 @@ export default function Billing_GridRow({
       }
 
       const customerName = parentItem?.customers?.first_name || parentItem?.temporary_name || 'Sin nombre';
-      const actionDesc = {
-        undo: `Deshecho: Nuevo registro para ${customerName} eliminado`,
-        redo: `Rehecho: Nuevo registro para ${customerName} restaurado`
-      };
+      const cleanInsertData = { ...data };
 
-      pushAction({
-        view: 'billing',
-        description: actionDesc,
-        undo: async () => {
-          const { error: delErr } = await supabase.from('invoice_items').delete().eq('id', data.id);
-          if (delErr) throw delErr;
-
-          if (targetDateStr) {
-            const dObj = new Date(targetDateStr);
-            if (!isNaN(dObj.getTime())) {
-              recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
-            }
-          }
-        },
-        redo: async () => {
-          const cleanInsertData = { ...data };
-          const { error: insErr } = await supabase.from('invoice_items').insert(cleanInsertData);
-          if (insErr) throw insErr;
-
-          if (targetDateStr) {
-            const dObj = new Date(targetDateStr);
-            if (!isNaN(dObj.getTime())) {
-              recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
-            }
-          }
-        }
-      });
+      pushAction(buildAddChildItemAction(data.id, cleanInsertData, targetDateStr, customerName, onUpdate));
 
       onUpdate();
     } catch (err) {
@@ -377,21 +311,10 @@ export default function Billing_GridRow({
       const { error } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
       if (error) throw error;
 
-      // Registrar en el historial global
-      pushAction({
-        view: 'billing',
-        description: actionDesc,
-        undo: async () => {
-          const { error: undoErr } = await supabase.from('invoice_items').update(oldValues).eq('id', itemId);
-          if (undoErr) throw undoErr;
-        },
-        redo: async () => {
-          const { error: redoErr } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
-          if (redoErr) throw redoErr;
-        }
-      });
-
       const targetDateStr = updates.date || item.date || invoice.created_at;
+
+      pushAction(buildItemUpdateAction(itemId, updates, oldValues, targetDateStr, actionDesc, onUpdate));
+
       if (targetDateStr) {
         const dateObj = new Date(targetDateStr);
         if (!isNaN(dateObj.getTime())) {

@@ -151,9 +151,8 @@ export const UndoProvider = ({ children, currentView, navigateTo }) => {
     <UndoContext.Provider value={{ pushAction, undo, redo, canUndo: past.length > 0, canRedo: future.length > 0, refreshTrigger }}>
       {children}
       
-      {/* Contenedor de Toasts flotantes apilables (más amplio en pantallas medianas/grandes) */}
       <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2.5 items-center pointer-events-none w-full max-w-xl md:max-w-2xl px-4">
-        {toasts.map((toast) => (
+        {[...toasts].reverse().map((toast) => (
           <div
             key={toast.id}
             className={`pointer-events-auto w-full px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3.5 border transition-all duration-300 transform scale-100 hover:scale-[1.01] hover:shadow-3xl ${

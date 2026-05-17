@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useUndo } from '../../../context/UndoContext';
+import {
+  buildUpdateItemAction,
+  buildExpenseUpdateAction,
+  buildAddExpenseAction,
+  buildRemoveExpenseAction
+} from './expensesUndoActions';
 
 export const useExpensesData = () => {
   const { pushAction } = useUndo();
@@ -226,8 +232,13 @@ export const useExpensesData = () => {
   };
 
   const handleDeleteExpense = async (id) => {
-    await supabase.from('daily_expenses').delete().eq('id', id);
-    fetchData(false);
+    const expenseItem = expenses.find(e => e.id === id);
+    if (!expenseItem) return;
+    const { error } = await supabase.from('daily_expenses').delete().eq('id', id);
+    if (!error) {
+      pushAction(buildRemoveExpenseAction(expenseItem, fetchData));
+      fetchData(false);
+    }
   };
 
   const handleAddExpense = async () => {
@@ -236,7 +247,11 @@ export const useExpensesData = () => {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('daily_expenses').insert([{ ...newDataExp, amount: parseFloat(newDataExp.amount) }]);
+    const { data: newExpense, error } = await supabase
+      .from('daily_expenses')
+      .insert([{ ...newDataExp, amount: parseFloat(newDataExp.amount) }])
+      .select()
+      .single();
     
     if (error) {
       console.error("Error saving expense:", error);
@@ -244,6 +259,9 @@ export const useExpensesData = () => {
     } else {
       showNotify("¡Gasto guardado correctamente!");
       setIsAddingExpense(false);
+      if (newExpense) {
+        pushAction(buildAddExpenseAction(newExpense, fetchData));
+      }
       setNewDataExp(prev => ({ description: '', amount: '', category: 'Comidas', date: prev.date }));
       fetchData(false);
     }
@@ -259,36 +277,7 @@ export const useExpensesData = () => {
     if (error) {
       showNotify(`Error al actualizar: ${error.message}`, 'error');
     } else {
-      const desc = {
-        undo: `Deshecho: Modificación restaurada en Comisiones/Oxígeno`,
-        redo: `Rehecho: Modificación aplicada en Comisiones/Oxígeno`
-      };
-      
-      if (field === 'is_comm_paid') {
-        const oldLabel = oldValue ? 'PAGADO' : 'PENDIENTE';
-        const newLabel = value ? 'PAGADO' : 'PENDIENTE';
-        desc.undo = `Deshecho: Comisión restaurada a ${oldLabel} (era ${newLabel})`;
-        desc.redo = `Rehecho: Comisión cambiada a ${newLabel} (era ${oldLabel})`;
-      } else if (field === 'comm_amount_thb') {
-        desc.undo = `Deshecho: Comisión restaurada a ${oldValue || 0} ฿ (era ${value || 0} ฿)`;
-        desc.redo = `Rehecho: Comisión cambiada a ${value || 0} ฿ (era ${oldValue || 0} ฿)`;
-      }
-
-      pushAction({
-        view: 'expenses',
-        description: desc,
-        undo: async () => {
-          const { error: undoErr } = await supabase.from('invoice_items').update({ [field]: oldValue }).eq('id', itemId);
-          if (undoErr) throw undoErr;
-          fetchData(false);
-        },
-        redo: async () => {
-          const { error: redoErr } = await supabase.from('invoice_items').update({ [field]: value }).eq('id', itemId);
-          if (redoErr) throw redoErr;
-          fetchData(false);
-        }
-      });
-
+      pushAction(buildUpdateItemAction(itemId, field, value, oldValue, commissionItem, recipientOptions, fetchData));
       fetchData(false);
     }
   };
@@ -303,26 +292,7 @@ export const useExpensesData = () => {
       const { error } = await supabase.from('daily_expenses').update({ [field]: value }).eq('id', id);
       if (error) throw error;
 
-      const desc = {
-        undo: `Deshecho: Campo '${field}' restaurado a '${oldValue || ''}' (era '${value || ''}') en Gasto '${expenseItem.description}'`,
-        redo: `Rehecho: Campo '${field}' cambiado a '${value || ''}' (era '${oldValue || ''}') en Gasto '${expenseItem.description}'`
-      };
-
-      pushAction({
-        view: 'expenses',
-        description: desc,
-        undo: async () => {
-          const { error: undoErr } = await supabase.from('daily_expenses').update({ [field]: oldValue }).eq('id', id);
-          if (undoErr) throw undoErr;
-          fetchData(false);
-        },
-        redo: async () => {
-          const { error: redoErr } = await supabase.from('daily_expenses').update({ [field]: value }).eq('id', id);
-          if (redoErr) throw redoErr;
-          fetchData(false);
-        }
-      });
-
+      pushAction(buildExpenseUpdateAction(id, field, value, oldValue, expenseItem.description, fetchData));
       fetchData(false);
       showNotify("¡Gasto actualizado correctamente!");
     } catch (err) {
