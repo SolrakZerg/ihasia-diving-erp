@@ -7,4 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables! Check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Evita la advertencia de bloqueos huérfanos generados por la doble inicialización rápida en React Strict Mode (Desarrollo)
+const noOpLock = async (name, acquireTimeout, fn) => {
+  return await fn();
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    lock: noOpLock,
+  }
+});

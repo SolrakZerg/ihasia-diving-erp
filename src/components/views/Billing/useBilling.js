@@ -404,6 +404,35 @@ export function useBilling() {
   useEffect(() => { fetchCashControl(); }, [selectedMonth, selectedYear]);
   
   useEffect(() => {
+    console.log("⚡ [Realtime Billing] Inicializando canal de suscripción...");
+    const channel = supabase
+      .channel('billing-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, (payload) => {
+        console.log("⚡ [Realtime Billing] Cambio recibido en 'invoices':", payload.eventType);
+        fetchInvoices(false);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_items' }, (payload) => {
+        console.log("⚡ [Realtime Billing] Cambio recibido en 'invoice_items':", payload.eventType);
+        fetchInvoices(false);
+      })
+      .subscribe((status, err) => {
+        console.log(`⚡ [Realtime Billing] Estado de suscripción: ${status}`);
+        if (err) {
+          console.error("⚡ [Realtime Billing] Error en suscripción:", err);
+        }
+        if (status === 'SUBSCRIBED') {
+          // Sincronizamos silenciosamente al conectar/reconectar
+          fetchInvoices(false);
+        }
+      });
+
+    return () => {
+      console.log("⚡ [Realtime Billing] Limpiando suscripción de Realtime.");
+      supabase.removeChannel(channel);
+    };
+  }, [selectedMonth, selectedYear]);
+  
+  useEffect(() => {
     if (loadingCash) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => saveCashControl(), 1500);

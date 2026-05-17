@@ -37,8 +37,6 @@ export default function useDashboardData() {
         { data: monthlyReport }, 
         { data: monthlyActivities },
         { data: staffSettlements },
-        { data: partnerSettlement },
-        { data: bExpenses },
         { data: boteMonthly }, 
         { data: fixedSettings },
         { data: sSettlements },
@@ -50,8 +48,6 @@ export default function useDashboardData() {
         supabase.from('monthly_reports').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('monthly_activity_summary').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('staff_settlements').select('*, staff(initials)').eq('year', year).eq('month', month),
-        supabase.from('partner_settlements').select('*').eq('year', year).eq('month', month).maybeSingle(),
-        supabase.from('bote_expenses').select('*').gte('date', firstDay).lte('date', lastDayStr),
         supabase.from('bote_monthly').select('*').eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('fixed_expenses').select('*').order('name'),
         supabase.from('supplier_settlements').select('*').eq('year', year).eq('month', month),
@@ -307,22 +303,47 @@ export default function useDashboardData() {
     fetchDashboardData();
     const channel = supabase
       .channel('dashboard-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_items' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_settlements' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_settlements' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_expenses' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_monthly' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fixed_expenses' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'supplier_settlements' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_expenses' }, () => fetchDashboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_metrics' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_items' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'invoice_items'. Recargando...");
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_settlements' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'staff_settlements'. Recargando...");
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bote_monthly' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'bote_monthly'. Recargando...");
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'monthly_reports'. Recargando...");
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fixed_expenses' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'fixed_expenses'. Recargando...");
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'supplier_settlements' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'supplier_settlements'. Recargando...");
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_expenses' }, () => {
+        console.log("📊 [Realtime Dashboard] Cambio detectado en 'monthly_expenses'. Recargando...");
+        fetchDashboardData();
+      })
       .subscribe((status, err) => {
-        if (err) console.error("Realtime subscription error:", err);
+        console.log(`📊 [Realtime Dashboard] Estado de suscripción: ${status}`);
+        if (err) {
+          console.error("📊 [Realtime Dashboard] Error en la suscripción:", err);
+        }
+        if (status === 'SUBSCRIBED') {
+          // Nos aseguramos de sincronizar los datos al conectar/reconectar
+          fetchDashboardData();
+        }
       });
 
     return () => {
+      console.log("📊 [Realtime Dashboard] Limpiando suscripción de Realtime.");
       supabase.removeChannel(channel);
     };
   }, [fetchDashboardData]);
