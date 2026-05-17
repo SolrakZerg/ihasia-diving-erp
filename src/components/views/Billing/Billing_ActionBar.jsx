@@ -90,7 +90,7 @@ function BulkActivitySelect({ value, onChange, activities, categories }) {
                 return (
                   <div key={act.id}>
                     {showHeader && (
-                      <div className="text-[9px] uppercase tracking-wider text-slate-400 font-black px-2 py-1 bg-slate-50 rounded-sm my-1">
+                      <div className="px-2 py-1 bg-slate-800 text-[9px] font-black text-slate-200 uppercase tracking-[0.2em] rounded-md my-1.5 shadow-inner">
                         {act.category || 'Otros'}
                       </div>
                     )}
@@ -101,12 +101,18 @@ function BulkActivitySelect({ value, onChange, activities, categories }) {
                         setIsOpen(false);
                         setSearch('');
                       }}
-                      className={`w-full text-left px-2 py-1 rounded-lg font-bold text-xs uppercase transition-colors ${String(value) === String(act.id)
+                      className={`w-full text-left px-2 py-1 rounded-lg font-bold text-xs uppercase transition-colors flex items-center gap-1.5 ${String(value) === String(act.id)
                         ? 'bg-indigo-600 text-white'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                     >
-                      {act.acronym?.toUpperCase()}
+                      {act.color && (
+                        <span 
+                          className="w-1.5 h-1.5 rounded-full shrink-0" 
+                          style={{ backgroundColor: act.color }} 
+                        />
+                      )}
+                      <span>{act.acronym?.toUpperCase()}</span>
                     </button>
                   </div>
                 );
