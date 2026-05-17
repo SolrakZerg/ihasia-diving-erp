@@ -140,18 +140,25 @@ export default function Billing_GridRow({
       const itemId = String(finalId);
       let updates = typeof fieldOrUpdates === 'object' ? { ...fieldOrUpdates } : { [fieldOrUpdates]: value };
 
-      if (updates.activity_id) {
-        const act = activities.find(a => String(a.id) === String(updates.activity_id));
-        if (act) {
-          const up = Number(act.price_thb) || 0;
-          const q  = Number(item.quantity) || 0;
-          updates.unit_price_thb = up;
-          updates.total_thb      = up * q;
+      if (updates.activity_id !== undefined) {
+        if (updates.activity_id) {
+          const act = activities.find(a => String(a.id) === String(updates.activity_id));
+          if (act) {
+            const up = Number(act.price_thb) || 0;
+            const q  = Number(item.quantity) || 0;
+            updates.unit_price_thb = up;
+            updates.total_thb      = up * q;
 
-          if (!act.is_commissionable) updates.is_comm = false;
+            if (!act.is_commissionable) updates.is_comm = false;
 
-          const categoryData = categories.find(c => c.name === act.category);
-          if (categoryData?.requires_staff === false) updates.instructor_id = null;
+            const categoryData = categories.find(c => c.name === act.category);
+            if (categoryData?.requires_staff === false) updates.instructor_id = null;
+          }
+        } else {
+          updates.activity_id = null;
+          updates.unit_price_thb = 0;
+          updates.total_thb = 0;
+          updates.is_comm = false;
         }
       } else if (updates.quantity !== undefined) {
         const rawVal = updates.quantity;

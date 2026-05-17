@@ -267,7 +267,7 @@ export default function Billing_GridRow_ItemRow({
       {/* 15. COMISIÓN */}
       <td className={`px-1 py-0 border-r border-gray-100 text-center ${bLine}`}>
         {(() => {
-          const isCommDisabled = !item.activity_id || act?.is_commissionable === false;
+          const isCommDisabled = !item.activity_id || !act?.is_commissionable;
           return (
             <button
               disabled={isCommDisabled}

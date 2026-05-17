@@ -38,6 +38,7 @@ export function useBilling() {
   const [activitySearch, setActivitySearch] = useState('');
   const [bulkDate, setBulkDate] = useState('');
   const [bulkInstructor, setBulkInstructor] = useState('');
+  const [bulkActivity, setBulkActivity] = useState('');
   const [bulkGroupAction, setBulkGroupAction] = useState(null);
   const [instructorSearch, setInstructorSearch] = useState('');
   const [paymentMethodSearch, setPaymentMethodSearch] = useState('');
@@ -672,30 +673,62 @@ export function useBilling() {
       
       if (bulkDate) updates.date = bulkDate;
 
-      const idsToClearInstructor = [];
-      const idsToApplyNormal = [];
-
-      itemIds.forEach(id => {
-        const item = allItems.find(it => it.id === id);
-        const act = activities.find(a => a.id === item?.activity_id);
+      if (bulkActivity) {
+        const act = activities.find(a => String(a.id) === String(bulkActivity));
         const cat = categories.find(c => c.name === act?.category);
         const allowsStaff = cat ? cat.requires_staff !== false : true;
+        const up = act ? Number(act.price_thb) || 0 : 0;
 
-        if (!allowsStaff) idsToClearInstructor.push(id);
-        else idsToApplyNormal.push(id);
-      });
+        const promises = itemIds.map(async (id) => {
+          const item = allItems.find(it => it.id === id);
+          const q = item ? Number(item.quantity) || 0 : 0;
+          
+          const itemUpdates = { ...updates };
+          itemUpdates.activity_id = bulkActivity;
+          itemUpdates.unit_price_thb = up;
+          itemUpdates.total_thb = up * q;
 
-      if (idsToApplyNormal.length > 0) {
-        const finalUpdates = { ...updates };
-        if (bulkInstructor) finalUpdates.instructor_id = bulkInstructor;
-        const { error } = await supabase.from('invoice_items').update(finalUpdates).in('id', idsToApplyNormal);
-        if (error) throw error;
-      }
+          if (act && !act.is_commissionable) {
+            itemUpdates.is_comm = false;
+          }
 
-      if (idsToClearInstructor.length > 0) {
-        const finalUpdates = { ...updates, instructor_id: null };
-        const { error } = await supabase.from('invoice_items').update(finalUpdates).in('id', idsToClearInstructor);
-        if (error) throw error;
+          if (!allowsStaff) {
+            itemUpdates.instructor_id = null;
+          } else if (bulkInstructor) {
+            itemUpdates.instructor_id = bulkInstructor;
+          }
+
+          const { error } = await supabase.from('invoice_items').update(itemUpdates).eq('id', id);
+          if (error) throw error;
+        });
+        
+        await Promise.all(promises);
+      } else {
+        const idsToClearInstructor = [];
+        const idsToApplyNormal = [];
+
+        itemIds.forEach(id => {
+          const item = allItems.find(it => it.id === id);
+          const act = activities.find(a => a.id === item?.activity_id);
+          const cat = categories.find(c => c.name === act?.category);
+          const allowsStaff = cat ? cat.requires_staff !== false : true;
+
+          if (!allowsStaff) idsToClearInstructor.push(id);
+          else idsToApplyNormal.push(id);
+        });
+
+        if (idsToApplyNormal.length > 0) {
+          const finalUpdates = { ...updates };
+          if (bulkInstructor) finalUpdates.instructor_id = bulkInstructor;
+          const { error } = await supabase.from('invoice_items').update(finalUpdates).in('id', idsToApplyNormal);
+          if (error) throw error;
+        }
+
+        if (idsToClearInstructor.length > 0) {
+          const finalUpdates = { ...updates, instructor_id: null };
+          const { error } = await supabase.from('invoice_items').update(finalUpdates).in('id', idsToClearInstructor);
+          if (error) throw error;
+        }
       }
 
       if (bulkGroupAction === 'ungroup') {
@@ -712,7 +745,7 @@ export function useBilling() {
         }
       } catch (e) { console.warn('Cleanup warning:', e); }
       setToast("Cambios aplicados correctamente");
-      setSelectedItemIds(new Set()); setBulkDate(''); setBulkInstructor(''); setBulkGroupAction(null);
+      setSelectedItemIds(new Set()); setBulkDate(''); setBulkInstructor(''); setBulkActivity(''); setBulkGroupAction(null);
       fetchInvoices(false);
     } catch (err) { console.error('Error applying bulk changes:', err); alert('Error al aplicar cambios: ' + err.message); }
     finally { setLoadingInvoices(false); }
@@ -865,7 +898,7 @@ export function useBilling() {
     showOnlyCommissionable, setShowOnlyCommissionable,
     showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
     bulkDate, setBulkDate,
-    bulkInstructor, setBulkInstructor, bulkGroupAction, setBulkGroupAction,
+    bulkInstructor, setBulkInstructor, bulkActivity, setBulkActivity, bulkGroupAction, setBulkGroupAction,
     isSavingCash, dateInputRef,
     actualCash, stats, displayedInvoices, activityStats, expectedCash, diffCash,
     handleToggleSelection, changeArrivalsDate, handleAddArrivalsToTable,

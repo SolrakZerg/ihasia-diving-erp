@@ -85,6 +85,14 @@ export default function Billing_GridRow_SmartActivitySelect({
           direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
         }`}>
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+            {/* Opción para quitar/vaciar actividad */}
+            <button
+              onMouseDown={(e) => { e.preventDefault(); handleSelect({ id: null, name: '' }); }}
+              className="w-full text-left px-4 py-2.5 text-[11px] uppercase tracking-wider text-gray-400 hover:bg-rose-50 hover:text-rose-600 font-black border-b border-gray-100 flex items-center gap-2 transition-colors"
+            >
+              <span>— Quitar Actividad —</span>
+            </button>
+
             {filtered.length === 0 ? (
               <div className="px-4 py-3 text-xs text-gray-400 italic">No hay coincidencias...</div>
             ) : (

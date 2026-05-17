@@ -60,7 +60,7 @@ export default function Billing({ isSidebarCollapsed }) {
     invoices, loadingInvoices, staff, activities, categories,
     selectedItemIds, setSelectedItemIds,
     toast, setToast, confirmConfig, setConfirmConfig,
-    bulkDate, setBulkDate, bulkInstructor, setBulkInstructor,
+    bulkDate, setBulkDate, bulkInstructor, setBulkInstructor, bulkActivity, setBulkActivity,
     bulkGroupAction, setBulkGroupAction,
     handleToggleSelection, fetchInvoices, searchTerm, setSearchTerm,
     activitySearch, setActivitySearch,
@@ -295,6 +295,10 @@ export default function Billing({ isSidebarCollapsed }) {
         setBulkDate={setBulkDate}
         bulkInstructor={bulkInstructor}
         setBulkInstructor={setBulkInstructor}
+        bulkActivity={bulkActivity}
+        setBulkActivity={setBulkActivity}
+        activities={activities}
+        categories={categories}
         staff={staff}
         loadingInvoices={loadingInvoices}
         handleApplyBulkChanges={handleApplyBulkChanges}

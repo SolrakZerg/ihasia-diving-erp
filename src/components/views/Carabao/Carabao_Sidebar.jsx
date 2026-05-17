@@ -2,10 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Settings as SettingsIcon, CheckCircle2, FileText, X as CloseIcon, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
+import EditableInput from '../../common/EditableInput';
 
 export default function Carabao_Sidebar({ invoiceItems, allActivities, month, year, settlementId, paidAmount, setPaidAmount, setSettlementId, showSettings, setShowSettings, setAllActivities, totalAmount, fetchSettlement }) {
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (toast) {
@@ -98,11 +100,17 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
               {isSaving && <span className="text-[8px] text-emerald-500 animate-pulse font-black uppercase">Guardando...</span>}
             </div>
             <div className="relative">
-              <input
+              <EditableInput
+                key={`${settlementId || 'new'}-${paidAmount}-${refreshKey}`}
                 type="number"
-                value={paidAmount || ''}
-                onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
-                onBlur={(e) => saveSettlement(parseInt(e.target.value) || 0)}
+                defaultValue={paidAmount != null ? paidAmount : 0}
+                onSave={async (value) => {
+                   const numVal = parseInt(value);
+                   const finalVal = isNaN(numVal) ? 0 : numVal;
+                   setPaidAmount(finalVal);
+                   await saveSettlement(finalVal);
+                   setRefreshKey(prev => prev + 1);
+                }}
                 className="w-full bg-transparent text-3xl font-black text-white outline-none !border-none !ring-0 focus:!ring-0 transition-colors no-spinner tracking-tighter"
                 placeholder="0"
               />
