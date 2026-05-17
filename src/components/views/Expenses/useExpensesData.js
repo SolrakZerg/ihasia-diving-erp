@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import { useUndo } from '../../../context/UndoContext';
 
 export const useExpensesData = () => {
+  const { pushAction } = useUndo();
   const [expenses, setExpenses] = useState([]);
   const [commissions, setCommissions] = useState([]);
   const [oxygenTours, setOxygenTours] = useState([]);
@@ -249,10 +251,44 @@ export const useExpensesData = () => {
   };
 
   const updateItem = async (itemId, field, value) => {
+    const commissionItem = commissions.find(c => c.id === itemId) || oxygenTours.find(o => o.id === itemId);
+    if (!commissionItem) return;
+    const oldValue = commissionItem[field];
+
     const { error } = await supabase.from('invoice_items').update({ [field]: value }).eq('id', itemId);
     if (error) {
       showNotify(`Error al actualizar: ${error.message}`, 'error');
     } else {
+      const desc = {
+        undo: `Deshecho: Modificación restaurada en Comisiones/Oxígeno`,
+        redo: `Rehecho: Modificación aplicada en Comisiones/Oxígeno`
+      };
+      
+      if (field === 'is_comm_paid') {
+        const oldLabel = oldValue ? 'PAGADO' : 'PENDIENTE';
+        const newLabel = value ? 'PAGADO' : 'PENDIENTE';
+        desc.undo = `Deshecho: Comisión restaurada a ${oldLabel} (era ${newLabel})`;
+        desc.redo = `Rehecho: Comisión cambiada a ${newLabel} (era ${oldLabel})`;
+      } else if (field === 'comm_amount_thb') {
+        desc.undo = `Deshecho: Comisión restaurada a ${oldValue || 0} ฿ (era ${value || 0} ฿)`;
+        desc.redo = `Rehecho: Comisión cambiada a ${value || 0} ฿ (era ${oldValue || 0} ฿)`;
+      }
+
+      pushAction({
+        view: 'expenses',
+        description: desc,
+        undo: async () => {
+          const { error: undoErr } = await supabase.from('invoice_items').update({ [field]: oldValue }).eq('id', itemId);
+          if (undoErr) throw undoErr;
+          fetchData(false);
+        },
+        redo: async () => {
+          const { error: redoErr } = await supabase.from('invoice_items').update({ [field]: value }).eq('id', itemId);
+          if (redoErr) throw redoErr;
+          fetchData(false);
+        }
+      });
+
       fetchData(false);
     }
   };
@@ -260,8 +296,33 @@ export const useExpensesData = () => {
   const handleExpenseUpdate = async (id, field, value) => {
     if (!value) return;
     try {
+      const expenseItem = expenses.find(e => e.id === id);
+      if (!expenseItem) return;
+      const oldValue = expenseItem[field];
+
       const { error } = await supabase.from('daily_expenses').update({ [field]: value }).eq('id', id);
       if (error) throw error;
+
+      const desc = {
+        undo: `Deshecho: Campo '${field}' restaurado a '${oldValue || ''}' (era '${value || ''}') en Gasto '${expenseItem.description}'`,
+        redo: `Rehecho: Campo '${field}' cambiado a '${value || ''}' (era '${oldValue || ''}') en Gasto '${expenseItem.description}'`
+      };
+
+      pushAction({
+        view: 'expenses',
+        description: desc,
+        undo: async () => {
+          const { error: undoErr } = await supabase.from('daily_expenses').update({ [field]: oldValue }).eq('id', id);
+          if (undoErr) throw undoErr;
+          fetchData(false);
+        },
+        redo: async () => {
+          const { error: redoErr } = await supabase.from('daily_expenses').update({ [field]: value }).eq('id', id);
+          if (redoErr) throw redoErr;
+          fetchData(false);
+        }
+      });
+
       fetchData(false);
       showNotify("¡Gasto actualizado correctamente!");
     } catch (err) {

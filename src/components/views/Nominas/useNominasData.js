@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import { useUndo } from '../../../context/UndoContext';
 
 export function useNominasData() {
+  const { pushAction } = useUndo();
   const [selectedStaffId, setSelectedStaffId] = useState(null);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -139,7 +141,8 @@ export function useNominasData() {
     await supabase.from('staff_daily_activity').upsert(payload, { onConflict: 'year, month, day, staff_id' });
   };
 
-  const handleAdjUpdate = async (day, amount, concept) => {
+  const handleAdjUpdate = async (day, amount, concept, skipHistory = false) => {
+    const oldAdj = manualAdj[day] ? { ...manualAdj[day] } : null;
     const newAmount = amount !== undefined ? (parseFloat(amount) || 0) : (manualAdj[day]?.amount || 0);
     const newConcept = concept !== undefined ? concept : (manualAdj[day]?.concept || '');
 
@@ -156,9 +159,28 @@ export function useNominasData() {
         year, month, day, staff_id: selectedStaffId, amount: newAmount, concept: newConcept
       }, { onConflict: 'year, month, day, staff_id' });
     }
+
+    if (!skipHistory) {
+      pushAction({
+        view: 'nominas',
+        description: {
+          undo: `Deshecho: Ajuste del día ${day} restaurado a '${oldAdj?.concept || ''}' (${oldAdj?.amount || 0} ฿)`,
+          redo: `Rehecho: Ajuste del día ${day} cambiado a '${newConcept}' (${newAmount} ฿)`
+        },
+        undo: async () => {
+          await handleAdjUpdate(day, oldAdj?.amount || 0, oldAdj?.concept || '', true);
+          fetchData();
+        },
+        redo: async () => {
+          await handleAdjUpdate(day, newAmount, newConcept, true);
+          fetchData();
+        }
+      });
+    }
   };
   
-  const handleAssChange = async (day, value) => {
+  const handleAssChange = async (day, value, skipHistory = false) => {
+    const oldAss = assists[day] !== undefined ? assists[day] : '';
     if (value === '') {
       setAssists(prev => {
         const newMap = { ...prev };
@@ -171,46 +193,161 @@ export function useNominasData() {
       setAssists(prev => ({ ...prev, [day]: val }));
       await updateDailyActivity(day, { assists: val });
     }
+
+    if (!skipHistory) {
+      pushAction({
+        view: 'nominas',
+        description: {
+          undo: `Deshecho: Asistencias del día ${day} restauradas a ${oldAss || 0}`,
+          redo: `Rehecho: Asistencias del día ${day} cambiadas a ${value || 0}`
+        },
+        undo: async () => {
+          await handleAssChange(day, oldAss, true);
+          fetchData();
+        },
+        redo: async () => {
+          await handleAssChange(day, value, true);
+          fetchData();
+        }
+      });
+    }
   };
 
-  const handleAttendanceToggle = async (day) => {
+  const handleAttendanceToggle = async (day, forcedNext = null, skipHistory = false) => {
     const current = attendanceOverrides[day] || 'AUTO';
     const states = ['AUTO', 'OFF', 'HALF', 'WORK'];
-    const next = states[(states.indexOf(current) + 1) % states.length];
+    const next = forcedNext || states[(states.indexOf(current) + 1) % states.length];
     
     setAttendanceOverrides(prev => ({ ...prev, [day]: next }));
     await updateDailyActivity(day, { attendance_status: next });
+
+    if (!skipHistory) {
+      pushAction({
+        view: 'nominas',
+        description: {
+          undo: `Deshecho: Asistencia del día ${day} restaurada a ${current}`,
+          redo: `Rehecho: Asistencia del día ${day} cambiada a ${next}`
+        },
+        undo: async () => {
+          await handleAttendanceToggle(day, current, true);
+          fetchData();
+        },
+        redo: async () => {
+          await handleAttendanceToggle(day, next, true);
+          fetchData();
+        }
+      });
+    }
   };
 
-  const addAdvance = async (amount, concept = '') => {
+  const addAdvance = async (amount, concept = '', skipHistory = false) => {
     const { data: newAdv } = await supabase.from('staff_advances').insert({
       year, month, staff_id: selectedStaffId, amount: parseFloat(amount) || 0, concept, date: new Date().toISOString()
     }).select().single();
 
     if (newAdv) {
       setAdvances(prev => [...prev, newAdv]);
+
+      if (!skipHistory) {
+        pushAction({
+          view: 'nominas',
+          description: {
+            undo: `Deshecho: Anticipo de ${parseFloat(amount)} ฿ a ${selectedMember?.first_name} eliminado`,
+            redo: `Rehecho: Anticipo de ${parseFloat(amount)} ฿ a ${selectedMember?.first_name} vuelto a crear`
+          },
+          undo: async () => {
+            await supabase.from('staff_advances').delete().eq('id', newAdv.id);
+            fetchData();
+          },
+          redo: async () => {
+            await supabase.from('staff_advances').insert(newAdv);
+            fetchData();
+          }
+        });
+      }
+
       return newAdv;
     }
     return null;
   };
 
-  const updateAdvance = async (id, updates) => {
+  const updateAdvance = async (id, updates, skipHistory = false) => {
+    const advanceItem = advances.find(a => a.id === id);
+    if (!advanceItem) return null;
+    const oldAdvanceState = { ...advanceItem };
+
     const { data, error } = await supabase.from('staff_advances').update(updates).eq('id', id).select().single();
     if (error) {
       console.error("Error updating advance:", error);
     }
     if (data) {
       setAdvances(prev => prev.map(a => a.id === id ? data : a));
+
+      if (!skipHistory) {
+        let undoDesc = `Deshecho: Anticipo de ${selectedMember?.first_name} restaurado`;
+        let redoDesc = `Rehecho: Anticipo de ${selectedMember?.first_name} actualizado`;
+
+        const isAmountChange = updates.amount !== undefined && updates.amount !== oldAdvanceState.amount;
+        const isConceptChange = updates.concept !== undefined && updates.concept !== oldAdvanceState.concept;
+
+        if (isAmountChange) {
+          undoDesc = `Deshecho: Cantidad de anticipo de ${selectedMember?.first_name} restaurada a ${oldAdvanceState.amount} ฿ (era ${updates.amount} ฿)`;
+          redoDesc = `Rehecho: Cantidad de anticipo de ${selectedMember?.first_name} actualizada a ${updates.amount} ฿`;
+        } else if (isConceptChange) {
+          const oldVal = oldAdvanceState.concept ? `"${oldAdvanceState.concept}"` : 'Sin concepto';
+          const newVal = updates.concept ? `"${updates.concept}"` : 'Sin concepto';
+          undoDesc = `Deshecho: Concepto de anticipo de ${selectedMember?.first_name} restaurado a ${oldVal} (era ${newVal})`;
+          redoDesc = `Rehecho: Concepto de anticipo de ${selectedMember?.first_name} actualizado a ${newVal}`;
+        }
+
+        pushAction({
+          view: 'nominas',
+          description: {
+            undo: undoDesc,
+            redo: redoDesc
+          },
+          undo: async () => {
+            await supabase.from('staff_advances').update(oldAdvanceState).eq('id', id);
+            fetchData();
+          },
+          redo: async () => {
+            await supabase.from('staff_advances').update(updates).eq('id', id);
+            fetchData();
+          }
+        });
+      }
+
       return data;
     }
     return null;
   };
 
-  const removeAdvance = async (idx) => {
-    const actualId = advances[idx]?.id;
+  const removeAdvance = async (idx, skipHistory = false) => {
+    const advanceItem = advances[idx];
+    const actualId = advanceItem?.id;
     if (actualId) {
       const { error } = await supabase.from('staff_advances').delete().eq('id', actualId);
-      if (!error) setAdvances(prev => prev.filter(a => a.id !== actualId));
+      if (!error) {
+        setAdvances(prev => prev.filter(a => a.id !== actualId));
+
+        if (!skipHistory) {
+          pushAction({
+            view: 'nominas',
+            description: {
+              undo: `Deshecho: Anticipo de ${advanceItem.amount} ฿ restaurado para ${selectedMember?.first_name}`,
+              redo: `Rehecho: Anticipo de ${advanceItem.amount} ฿ eliminado para ${selectedMember?.first_name}`
+            },
+            undo: async () => {
+              await supabase.from('staff_advances').insert(advanceItem);
+              fetchData();
+            },
+            redo: async () => {
+              await supabase.from('staff_advances').delete().eq('id', actualId);
+              fetchData();
+            }
+          });
+        }
+      }
     }
   };
 

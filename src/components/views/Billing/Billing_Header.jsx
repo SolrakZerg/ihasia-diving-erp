@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Palette, Settings } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
+import { useUndo } from '../../../context/UndoContext';
 
 import Billing_Header_Llegadas      from './Billing_Header_Llegadas';
 import Billing_Header_Actividades   from './Billing_Header_Actividades';
@@ -57,6 +58,8 @@ export default function Billing_Header({
   // Layout
   isSidebarCollapsed,
 }) {
+  const { pushAction } = useUndo();
+
   // Estado local: solo afecta a los modales de configuración
   const [showConfig, setShowConfig]               = useState(false);
   const [showThemeSettings, setShowThemeSettings] = useState(false);
@@ -76,7 +79,7 @@ export default function Billing_Header({
         return;
       }
 
-      const { error: itemErr } = await supabase
+      const { data: itemData, error: itemErr } = await supabase
         .from('invoice_items')
         .insert({
           invoice_id:     inv.id,
@@ -85,13 +88,38 @@ export default function Billing_Header({
           total_thb:      0,
           status:         'Pending',
           date:           null,
-        });
+        })
+        .select()
+        .single();
 
       if (itemErr) {
         console.error('[Billing_Header] Error creating item:', itemErr);
         alert('Error al crear registro: ' + itemErr.message);
         return;
       }
+
+      const actionDesc = {
+        undo: `Deshecho: Nueva factura en blanco eliminada`,
+        redo: `Rehecho: Nueva factura en blanco restaurada`
+      };
+
+      pushAction({
+        view: 'billing',
+        description: actionDesc,
+        undo: async () => {
+          const { error: delErr } = await supabase.from('invoices').delete().eq('id', inv.id);
+          if (delErr) throw delErr;
+        },
+        redo: async () => {
+          const cleanInv = { ...inv };
+          const { error: insInvErr } = await supabase.from('invoices').insert(cleanInv);
+          if (insInvErr) throw insInvErr;
+
+          const cleanItem = { ...itemData };
+          const { error: insItemErr } = await supabase.from('invoice_items').insert(cleanItem);
+          if (insItemErr) throw insItemErr;
+        }
+      });
 
       sessionStorage.setItem('shouldScrollToBottom', 'true');
       fetchInvoices(false);

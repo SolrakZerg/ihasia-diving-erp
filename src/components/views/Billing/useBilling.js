@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { addCustomersToBilling } from '../../common/billingHelpers';
+import { useUndo } from '../../../context/UndoContext';
 
 export function useBilling() {
+  const { pushAction, refreshTrigger } = useUndo();
 
   // ══════════════════════════════════════════════════════════════════════════
   // 1. ESTADO — todos los useState y useRef del módulo
@@ -402,6 +404,13 @@ export function useBilling() {
   useEffect(() => { fetchCatalogs(); fetchTodayArrivals(); fetchInvoices(true); fetchUIConfig(); }, []);
   useEffect(() => { fetchTodayArrivals(); }, [arrivalsDate]);
   useEffect(() => { fetchCashControl(); }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("🔄 [useBilling] refreshTrigger detectado. Recargando facturas...");
+      fetchInvoices(false);
+    }
+  }, [refreshTrigger]);
   
   useEffect(() => {
     console.log("⚡ [Realtime Billing] Inicializando canal de suscripción...");
@@ -552,7 +561,7 @@ export function useBilling() {
 
   const fetchCatalogs = async () => {
     const [actRes, stfRes, catRes] = await Promise.all([
-      supabase.from('activities').select('id, name, price_thb, color, category, acronym, widget_column, widget_order'),
+      supabase.from('activities').select('id, name, price_thb, color, category, acronym, widget_column, widget_order, is_commissionable'),
       supabase.from('staff').select('id, first_name, initials, active').order('first_name'),
       supabase.from('activity_categories').select('*')
     ]);
@@ -572,7 +581,7 @@ export function useBilling() {
 
       const { data, error } = await supabase.from('invoices').select(`
         *, customers!invoices_customer_id_fkey(first_name, last_name, email),
-        invoice_items(id, quantity, total_thb, unit_price_thb, date, status, payment_method, notes, activity_id, instructor_id, bizum_deposit_eur, customer_id, temporary_name, is_comm,
+        invoice_items(id, invoice_id, quantity, total_thb, unit_price_thb, date, status, payment_method, notes, activity_id, instructor_id, bizum_deposit_eur, customer_id, temporary_name, is_comm,
           activities(name, category, color, acronym), staff(first_name, initials),
           customers!invoice_items_customer_id_fkey(first_name, last_name, email))
       `).order('created_at', { ascending: false });
@@ -796,9 +805,36 @@ export function useBilling() {
         .map(inv => inv.id)
     )];
 
+    const itemsToDelete = invoices
+      .flatMap(inv => inv.invoice_items || [])
+      .filter(it => ids.includes(it.id))
+      .map(it => {
+        const clean = { ...it };
+        delete clean.activities;
+        delete clean.staff;
+        delete clean.customers;
+        return clean;
+      });
+
+    const emptyInvoiceIds = [];
+    const invoicesToBackup = [];
+    for (const invId of candidateInvoiceIds) {
+      const inv = invoices.find(i => i.id === invId);
+      const remaining = (inv?.invoice_items || []).filter(it => !ids.includes(it.id));
+      if (remaining.length === 0) {
+        emptyInvoiceIds.push(invId);
+        if (inv) {
+          const cleanInv = { ...inv };
+          delete cleanInv.invoice_items;
+          delete cleanInv.customers;
+          invoicesToBackup.push(cleanInv);
+        }
+      }
+    }
+
     setConfirmConfig({
       show: true, title: 'Eliminar Registros',
-      message: `¿Estás seguro de que deseas eliminar ${ids.length} registros? Esta acción no se puede deshacer.`,
+      message: `¿Estás seguro de que deseas eliminar ${ids.length} registros?`,
       type: 'danger',
       onConfirm: async () => {
         try {
@@ -806,17 +842,37 @@ export function useBilling() {
           const { error } = await supabase.from('invoice_items').delete().in('id', ids);
           if (error) throw error;
           
-          for (const invId of candidateInvoiceIds) {
-            const { data: items } = await supabase
-              .from('invoice_items')
-              .select('id')
-              .eq('invoice_id', invId)
-              .limit(1);
-            
-            if (!items || items.length === 0) {
-              await supabase.from('invoices').delete().eq('id', invId);
-            }
+          for (const invId of emptyInvoiceIds) {
+            await supabase.from('invoices').delete().eq('id', invId);
           }
+
+          const actionDesc = {
+            undo: `Deshecho: Eliminación de ${ids.length} registros restaurados`,
+            redo: `Rehecho: ${ids.length} registros eliminados`
+          };
+
+          pushAction({
+            view: 'billing',
+            description: actionDesc,
+            undo: async () => {
+              if (invoicesToBackup.length > 0) {
+                const { error: invErr } = await supabase.from('invoices').insert(invoicesToBackup);
+                if (invErr) throw invErr;
+              }
+              if (itemsToDelete.length > 0) {
+                const { error: itemErr } = await supabase.from('invoice_items').insert(itemsToDelete);
+                if (itemErr) throw itemErr;
+              }
+            },
+            redo: async () => {
+              const { error: delErr } = await supabase.from('invoice_items').delete().in('id', ids);
+              if (delErr) throw delErr;
+
+              for (const invId of emptyInvoiceIds) {
+                await supabase.from('invoices').delete().eq('id', invId);
+              }
+            }
+          });
 
           setToast(`${ids.length} eliminados`); 
           setSelectedItemIds(new Set()); 
@@ -829,7 +885,21 @@ export function useBilling() {
 
   const handleDeleteInvoice = async (invoiceId) => {
     const inv = invoices.find(i => i.id === invoiceId);
+    if (!inv) return;
     const hasItems = (inv?.invoice_items || []).length > 0;
+
+    const invoiceBackup = { ...inv };
+    delete invoiceBackup.invoice_items;
+    delete invoiceBackup.customers;
+
+    const itemsBackup = (inv?.invoice_items || []).map(it => {
+      const clean = { ...it };
+      delete clean.activities;
+      delete clean.staff;
+      delete clean.customers;
+      return clean;
+    });
+
     setConfirmConfig({
       show: true,
       title: hasItems ? '¿Eliminar Factura?' : 'Fila Vacía',
@@ -840,6 +910,31 @@ export function useBilling() {
           setLoadingInvoices(true);
           const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
           if (error) throw error;
+
+          const customerName = inv.customers?.first_name || inv.temporary_name || 'Sin nombre';
+          const actionDesc = {
+            undo: `Deshecho: Factura de ${customerName} restaurada`,
+            redo: `Rehecho: Factura de ${customerName} eliminada`
+          };
+
+          pushAction({
+            view: 'billing',
+            description: actionDesc,
+            undo: async () => {
+              const { error: invErr } = await supabase.from('invoices').insert(invoiceBackup);
+              if (invErr) throw invErr;
+
+              if (itemsBackup.length > 0) {
+                const { error: itemErr } = await supabase.from('invoice_items').insert(itemsBackup);
+                if (itemErr) throw itemErr;
+              }
+            },
+            redo: async () => {
+              const { error: delErr } = await supabase.from('invoices').delete().eq('id', invoiceId);
+              if (delErr) throw delErr;
+            }
+          });
+
           setToast("Factura eliminada"); fetchInvoices(false);
         } catch (err) { console.error('Error deleting invoice:', err); }
         finally { setLoadingInvoices(false); setConfirmConfig(prev => ({ ...prev, show: false })); }

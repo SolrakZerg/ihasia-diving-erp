@@ -194,6 +194,11 @@ DECLARE
     v_prev_balance NUMERIC := 0;
     v_exists BOOLEAN;
 BEGIN
+    -- ESCUDO CONTRA VALORES NULOS
+    IF p_year IS NULL OR p_month IS NULL THEN
+        RETURN;
+    END IF;
+
     -- SUPER ESCUDO PROTECTOR (Ene-Mar 2026)
     IF p_year < 2026 OR (p_year = 2026 AND p_month <= 3) THEN 
         RETURN; 
@@ -274,8 +279,8 @@ BEGIN
         RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
     END IF;
 
-    -- Si se añade o modifica una fila, recalculamos el mes de esa fecha
-    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+    -- Si se añade o modifica una fila con fecha no nula, recalculamos el mes de esa fecha
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') AND NEW.date IS NOT NULL THEN
         PERFORM logic.recalculate_bote_apartar(
             EXTRACT(YEAR FROM NEW.date)::INT,
             EXTRACT(MONTH FROM NEW.date)::INT

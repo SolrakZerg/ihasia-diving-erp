@@ -4,6 +4,7 @@ import { ChevronUp, AlertTriangle, Trash2, Unlink, Plus } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
 import Billing_GridRow_ItemRow from './Billing_GridRow_ItemRow';
+import { useUndo } from '../../../context/UndoContext';
 
 export default function Billing_GridRow({
   invoice,
@@ -24,6 +25,8 @@ export default function Billing_GridRow({
   setConfirmConfig,
   uiConfig,
 }) {
+  const { pushAction } = useUndo();
+
   // ── Estado local ──────────────────────────────────────────────────────────
   const storageKey = `billing-group-expanded-${invoice.id}`;
   const [expanded, setExpanded] = useState(() => {
@@ -79,7 +82,28 @@ export default function Billing_GridRow({
         type: 'danger',
         onConfirm: async () => {
           try {
-            if (items.length === 1) {
+            const itemToDelete = items.find(it => String(it.id) === String(itemId));
+            if (!itemToDelete) return;
+
+            const cleanItem = { ...itemToDelete };
+            delete cleanItem.activities;
+            delete cleanItem.staff;
+            delete cleanItem.customers;
+
+            const isLastItem = items.length === 1;
+            let invoiceData = null;
+
+            if (isLastItem) {
+              const { data: invData, error: fetchInvErr } = await supabase
+                .from('invoices')
+                .select('*')
+                .eq('id', invoice.id)
+                .single();
+              if (fetchInvErr) throw fetchInvErr;
+              invoiceData = invData;
+            }
+
+            if (isLastItem) {
               const { error } = await supabase.from('invoices').delete().eq('id', invoice.id);
               if (error) throw error;
             } else {
@@ -87,13 +111,55 @@ export default function Billing_GridRow({
               if (error) throw error;
             }
 
-            const targetDateStr = items.find(i => String(i.id) === String(itemId))?.date || invoice.created_at;
+            const targetDateStr = itemToDelete.date || invoice.created_at;
             if (targetDateStr) {
               const dateObj = new Date(targetDateStr);
               if (!isNaN(dateObj.getTime())) {
                 recalculateCarabaoSettlement(dateObj.getMonth() + 1, dateObj.getFullYear());
               }
             }
+
+            const customerName = itemToDelete.customers?.first_name || itemToDelete.temporary_name || 'Sin nombre';
+            const actionDesc = {
+              undo: `Deshecho: Eliminación de registro de ${customerName} restaurado`,
+              redo: `Rehecho: Registro de ${customerName} eliminado`
+            };
+
+            pushAction({
+              view: 'billing',
+              description: actionDesc,
+              undo: async () => {
+                if (isLastItem && invoiceData) {
+                  const { error: invErr } = await supabase.from('invoices').insert(invoiceData);
+                  if (invErr) throw invErr;
+                }
+                const { error: itemErr } = await supabase.from('invoice_items').insert(cleanItem);
+                if (itemErr) throw itemErr;
+
+                if (targetDateStr) {
+                  const dObj = new Date(targetDateStr);
+                  if (!isNaN(dObj.getTime())) {
+                    recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
+                  }
+                }
+              },
+              redo: async () => {
+                if (isLastItem) {
+                  const { error: delErr } = await supabase.from('invoices').delete().eq('id', invoice.id);
+                  if (delErr) throw delErr;
+                } else {
+                  const { error: delErr } = await supabase.from('invoice_items').delete().eq('id', itemId);
+                  if (delErr) throw delErr;
+                }
+
+                if (targetDateStr) {
+                  const dObj = new Date(targetDateStr);
+                  if (!isNaN(dObj.getTime())) {
+                    recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
+                  }
+                }
+              }
+            });
 
             if (onUpdate) onUpdate();
             setConfirmConfig(prev => ({ ...prev, show: false }));
@@ -109,7 +175,7 @@ export default function Billing_GridRow({
   const handleAddChildItem = async (e, parentItem = null) => {
     if (e) e.stopPropagation();
     try {
-      const { error } = await supabase.from('invoice_items').insert({
+      const { data, error } = await supabase.from('invoice_items').insert({
         invoice_id:     invoice.id,
         customer_id:    parentItem?.customer_id || null,
         date:           null,
@@ -117,7 +183,7 @@ export default function Billing_GridRow({
         unit_price_thb: 0,
         total_thb:      0,
         status:         'Pending',
-      });
+      }).select().single();
       if (error) throw error;
 
       const targetDateStr = invoice.created_at || new Date().toISOString();
@@ -125,6 +191,40 @@ export default function Billing_GridRow({
       if (!isNaN(dateObj.getTime())) {
         recalculateCarabaoSettlement(dateObj.getMonth() + 1, dateObj.getFullYear());
       }
+
+      const customerName = parentItem?.customers?.first_name || parentItem?.temporary_name || 'Sin nombre';
+      const actionDesc = {
+        undo: `Deshecho: Nuevo registro para ${customerName} eliminado`,
+        redo: `Rehecho: Nuevo registro para ${customerName} restaurado`
+      };
+
+      pushAction({
+        view: 'billing',
+        description: actionDesc,
+        undo: async () => {
+          const { error: delErr } = await supabase.from('invoice_items').delete().eq('id', data.id);
+          if (delErr) throw delErr;
+
+          if (targetDateStr) {
+            const dObj = new Date(targetDateStr);
+            if (!isNaN(dObj.getTime())) {
+              recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
+            }
+          }
+        },
+        redo: async () => {
+          const cleanInsertData = { ...data };
+          const { error: insErr } = await supabase.from('invoice_items').insert(cleanInsertData);
+          if (insErr) throw insErr;
+
+          if (targetDateStr) {
+            const dObj = new Date(targetDateStr);
+            if (!isNaN(dObj.getTime())) {
+              recalculateCarabaoSettlement(dObj.getMonth() + 1, dObj.getFullYear());
+            }
+          }
+        }
+      });
 
       onUpdate();
     } catch (err) {
@@ -183,8 +283,113 @@ export default function Billing_GridRow({
         String(it.id) === String(itemId) ? { ...it, ...optimisticItemUpdates } : it
       ));
 
+      // Extraer los valores antiguos de todos los campos que vamos a modificar
+      const oldValues = {};
+      Object.keys(updates).forEach(k => {
+        oldValues[k] = item[k];
+      });
+
+      // Crear la descripción hiper-detallada para el Toast
+      const customerName = item.customers?.first_name || item.temporary_name || 'Sin nombre';
+      let actionDesc = {
+        undo: `Deshecho: Modificación en factura de ${customerName}`,
+        redo: `Rehecho: Modificación en factura de ${customerName}`
+      };
+
+      if (updates.customer_id !== undefined) {
+        const oldCustName = item.customers ? `${item.customers.first_name || ''} ${item.customers.last_name || ''}`.trim() : (item.temporary_name || 'Ninguno');
+        const newCustName = updates._customer ? `${updates._customer.first_name || ''} ${updates._customer.last_name || ''}`.trim() : 'Ninguno';
+        actionDesc = {
+          undo: `Deshecho: Cliente de factura restaurado a '${oldCustName}' (era '${newCustName}')`,
+          redo: `Rehecho: Cliente de factura cambiado a '${newCustName}' (era '${oldCustName}')`
+        };
+      } else if (typeof fieldOrUpdates === 'string') {
+        const field = fieldOrUpdates;
+        const oldVal = oldValues[field];
+        const newVal = updates[field];
+
+        if (field === 'unit_price_thb') {
+          actionDesc = {
+            undo: `Deshecho: Precio de factura de ${customerName} restaurado a ${oldVal || 0} ฿ (era ${newVal || 0} ฿)`,
+            redo: `Rehecho: Precio de factura de ${customerName} cambiado a ${newVal || 0} ฿ (era ${oldVal || 0} ฿)`
+          };
+        } else if (field === 'status') {
+          const oldLabel = oldVal === 'Paid' ? 'PAGADO' : 'PENDIENTE';
+          const newLabel = newVal === 'Paid' ? 'PAGADO' : 'PENDIENTE';
+          actionDesc = {
+            undo: `Deshecho: Estado de factura de ${customerName} restaurado a ${oldLabel} (era ${newLabel})`,
+            redo: `Rehecho: Estado de factura de ${customerName} cambiado a ${newLabel} (era ${oldLabel})`
+          };
+        } else if (field === 'quantity') {
+          actionDesc = {
+            undo: `Deshecho: Cantidad de factura de ${customerName} restaurada a ${oldVal || 0} (era ${newVal || 0})`,
+            redo: `Rehecho: Cantidad de factura de ${customerName} cambiada a ${newVal || 0} (era ${oldVal || 0})`
+          };
+        } else if (field === 'payment_method') {
+          actionDesc = {
+            undo: `Deshecho: Método de pago de ${customerName} restaurado a '${oldVal || 'Ninguno'}' (era '${newVal || 'Ninguno'}')`,
+            redo: `Rehecho: Método de pago de ${customerName} cambiado a '${newVal || 'Ninguno'}' (era '${oldVal || 'Ninguno'}')`
+          };
+        } else if (field === 'is_comm') {
+          const oldComm = oldVal ? 'SÍ' : 'NO';
+          const newComm = newVal ? 'SÍ' : 'NO';
+          actionDesc = {
+            undo: `Deshecho: Comisión de ${customerName} restaurada a ${oldComm} (era ${newComm})`,
+            redo: `Rehecho: Comisión de ${customerName} cambiada a ${newComm} (era ${oldComm})`
+          };
+        } else if (field === 'instructor_id') {
+          const getInitials = (id) => {
+            if (!id) return 'Ninguno';
+            const s = staff.find(member => String(member.id) === String(id));
+            return s ? s.initials : 'Ninguno';
+          };
+          const oldInitials = getInitials(oldVal);
+          const newInitials = getInitials(newVal);
+          actionDesc = {
+            undo: `Deshecho: Instructor de ${customerName} restaurado a ${oldInitials} (era ${newInitials})`,
+            redo: `Rehecho: Instructor de ${customerName} cambiado a ${newInitials} (era ${oldInitials})`
+          };
+        } else if (field === 'activity_id') {
+          const getName = (id) => {
+            if (!id) return 'Ninguna';
+            const act = activities.find(a => String(a.id) === String(id));
+            return act ? act.name : 'Ninguna';
+          };
+          const oldName = getName(oldVal);
+          const newName = getName(newVal);
+          actionDesc = {
+            undo: `Deshecho: Actividad de ${customerName} restaurada a '${oldName}' (era '${newName}')`,
+            redo: `Rehecho: Actividad de ${customerName} cambiada a '${newName}' (era '${oldName}')`
+          };
+        } else if (field === 'temporary_name') {
+          actionDesc = {
+            undo: `Deshecho: Nombre provisional restaurado a '${oldVal || 'Ninguno'}' (era '${newVal || 'Ninguno'}')`,
+            redo: `Rehecho: Nombre provisional cambiado a '${newVal || 'Ninguno'}' (era '${oldVal || 'Ninguno'}')`
+          };
+        } else {
+          actionDesc = {
+            undo: `Deshecho: Campo '${field}' restaurado a '${oldVal || ''}' (era '${newVal || ''}') en factura de ${customerName}`,
+            redo: `Rehecho: Campo '${field}' cambiado a '${newVal || ''}' (era '${oldVal || ''}') en factura de ${customerName}`
+          };
+        }
+      }
+
       const { error } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
       if (error) throw error;
+
+      // Registrar en el historial global
+      pushAction({
+        view: 'billing',
+        description: actionDesc,
+        undo: async () => {
+          const { error: undoErr } = await supabase.from('invoice_items').update(oldValues).eq('id', itemId);
+          if (undoErr) throw undoErr;
+        },
+        redo: async () => {
+          const { error: redoErr } = await supabase.from('invoice_items').update(updates).eq('id', itemId);
+          if (redoErr) throw redoErr;
+        }
+      });
 
       const targetDateStr = updates.date || item.date || invoice.created_at;
       if (targetDateStr) {

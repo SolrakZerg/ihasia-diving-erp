@@ -8,10 +8,11 @@ import SettingsView from './views/Settings/Settings';
 import Billing from './views/Billing/Billing';
 import Expenses from './views/Expenses/Expenses_View';
 import SSIView from './views/SSI/SSIView';
-import StaffSettlement from './views/Nominas/Nominas_View';
+import Nominas_View from './views/Nominas/Nominas_View';
 import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_Header from './views/Carabao/Carabao_Header';
 import { ChevronRight } from 'lucide-react';
+import { UndoProvider } from '../context/UndoContext';
 
 
 export default function Dashboard({ user }) {
@@ -52,18 +53,17 @@ export default function Dashboard({ user }) {
       case 'billing': return <Billing isSidebarCollapsed={isSidebarCollapsed} />;
       case 'expenses': return <Expenses />;
       case 'ssi': return <SSIView />;
-      case 'staff-settlement': return <StaffSettlement />;
-      case 'partners-payouts': return <CRBT_View />;
-      case 'supplier-payout': return <Carabao_Header />;
-      case 'staff-payouts': return <Activities />; // This was likely meant for payout rules, using Activities or similar as placeholder or check actual mapping
-      case 'activities': return <Activities />;
+      case 'nominas': return <Nominas_View />;
+      case 'crbt': return <CRBT_View />;
+      case 'carabao': return <Carabao_Header />;
 
       default: return <Dashboard_View />;
     }
   };
 
   return (
-    <div className="flex bg-surface min-h-screen">
+    <UndoProvider currentView={activeView} navigateTo={navigateTo}>
+      <div className="flex bg-surface min-h-screen">
       {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div 
@@ -101,5 +101,6 @@ export default function Dashboard({ user }) {
         </button>
       )}
     </div>
+    </UndoProvider>
   );
 }

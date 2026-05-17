@@ -37,7 +37,7 @@ const EditableInput = forwardRef(({
       }
       const newValue = ev.target.value;
       if (newValue !== originalValue) {
-         onSave(newValue);
+         onSave(newValue, originalValue);
          setOriginalValue(newValue); // Actualizamos el original tras guardar
       }
       if (props.onBlur) props.onBlur(ev);
