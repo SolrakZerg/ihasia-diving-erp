@@ -160,8 +160,8 @@ export const useExpensesData = () => {
         }
         
         if (oxyRes.data) {
-          const pending = oxyRes.data.filter(o => !o.is_prov_paid).reduce((sum, o) => sum + (Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)), 0);
-          const total = oxyRes.data.reduce((sum, o) => sum + (Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)), 0);
+          const pending = oxyRes.data.filter(o => !o.is_prov_paid).reduce((sum, o) => sum + ((Number(o.quantity) || 0) * Number(o.activities?.ssi_cost_thb || 0)), 0);
+          const total = oxyRes.data.reduce((sum, o) => sum + ((Number(o.quantity) || 0) * Number(o.activities?.ssi_cost_thb || 0)), 0);
           setOxygenPending(pending);
           setOxygenTotal(total);
         }

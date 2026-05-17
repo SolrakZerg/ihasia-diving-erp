@@ -84,7 +84,7 @@ export function useBilling() {
     const cobrado = facturado - pendiente;
     const { activityBreakdown } = allMonthInvoices.reduce((acc, inv) => {
       inv.invoice_items?.forEach(item => {
-        const qty = Number(item.quantity ?? 1);
+        const qty = Number(item.quantity) || 0;
         
         // 1. Obtener acrónimo de forma segura
         let acr = (item.activities?.acronym || '').trim();

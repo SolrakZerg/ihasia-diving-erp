@@ -80,7 +80,7 @@ export default function Billing_Header({
         .from('invoice_items')
         .insert({
           invoice_id:     inv.id,
-          quantity:       1,
+          quantity:       null,
           unit_price_thb: 0,
           total_thb:      0,
           status:         'Pending',

@@ -75,7 +75,7 @@ const Expenses_Oxygen_Table = ({
                     <td className="px-3 py-1.5 text-center text-sm font-black text-white">{o.quantity}</td>
                     <td className="px-3 py-1.5 text-right w-[100px]">
                        <span className={`text-base font-bold transition-colors ${o.is_prov_paid ? 'text-success' : 'text-warning'}`}>
-                         {(Number(o.quantity ?? 1) * Number(o.activities?.ssi_cost_thb || 0)).toLocaleString()}
+                         {((Number(o.quantity) || 0) * Number(o.activities?.ssi_cost_thb || 0)).toLocaleString()}
                        </span>
                     </td>
                     <td className="px-3 py-1.5 text-center">

@@ -81,11 +81,12 @@ BEGIN
 
     -- Recalcular Comisiones
     SELECT 
-        COALESCE(SUM(CASE WHEN is_comm_paid THEN COALESCE(comm_amount_thb, total_thb * 0.1) ELSE 0 END), 0),
-        COALESCE(SUM(CASE WHEN NOT is_comm_paid THEN COALESCE(comm_amount_thb, total_thb * 0.1) ELSE 0 END), 0)
+        COALESCE(SUM(CASE WHEN i.is_comm_paid THEN COALESCE(i.comm_amount_thb, a.price_thb * 0.1) ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN NOT i.is_comm_paid THEN COALESCE(i.comm_amount_thb, a.price_thb * 0.1) ELSE 0 END), 0)
     INTO c_paid, c_pending
-    FROM invoice_items
-    WHERE is_comm = true AND EXTRACT(YEAR FROM date) = target_year AND EXTRACT(MONTH FROM date) = target_month;
+    FROM invoice_items i
+    LEFT JOIN activities a ON i.activity_id = a.id
+    WHERE i.is_comm = true AND EXTRACT(YEAR FROM i.date) = target_year AND EXTRACT(MONTH FROM i.date) = target_month;
 
     -- Upsert monthly_expenses
     INSERT INTO monthly_expenses (year, month, total_expenses, comm_paid, comm_pending, updated_at)

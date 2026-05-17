@@ -14,6 +14,8 @@ const Expenses_Commissions_Table = ({
   setEditCommVal,
   updateItem
 }) => {
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
   return (
     <div className="bg-surface-soft border border-surface-edge rounded-2xl shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="py-2 px-4 border-b border-surface-edge flex justify-between items-center bg-surface-soft/50 flex-none h-[58px] gap-4">
@@ -95,11 +97,13 @@ const Expenses_Commissions_Table = ({
                   <td className="px-3 py-1.5 text-right w-[120px]">
                      <div className="flex flex-col items-end">
                         <EditableInput
+                          key={`${c.id}-${c.comm_amount_thb}-${refreshKey}`}
                           type="number"
                           defaultValue={c.comm_amount_thb != null ? parseFloat(c.comm_amount_thb) : parseFloat(c.activities?.price_thb || 0) * 0.1}
                           onSave={async (value) => {
                              const numVal = parseFloat(value);
                              await updateItem(c.id, 'comm_amount_thb', isNaN(numVal) ? null : numVal);
+                             setRefreshKey(prev => prev + 1);
                           }}
                           className={`bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded text-right text-base font-bold outline-none px-1 py-0.5 transition-colors w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${c.comm_amount_thb != null ? 'text-brand' : (c.is_comm_paid ? 'text-success' : 'text-warning')}`}
                         />

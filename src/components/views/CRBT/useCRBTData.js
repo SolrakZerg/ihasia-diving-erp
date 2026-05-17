@@ -216,7 +216,7 @@ export default function useCRBTData() {
         if (dynCol) colKey = `dyn_${actId}`;
       }
       if (!colKey || !data[d]) return;
-      const qty = Number(item.quantity ?? 1);
+      const qty = Number(item.quantity) || 0;
       data[d].items[colKey] = (data[d].items[colKey] || 0) + qty;
       const rule = payoutRules.find(r => String(r.activity_id) === actId);
       if (rule) data[d].total += qty * rule.amount_thb;

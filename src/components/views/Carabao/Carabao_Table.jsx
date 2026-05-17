@@ -33,7 +33,7 @@ export default function Carabao_Table({ invoiceItems, month, year, allActivities
       if (fixedCol) colKey = fixedCol.key;
 
       if (!colKey || !data[d]) return;
-      const qty = Number(item.quantity ?? 1);
+      const qty = Number(item.quantity) || 0;
       data[d].items[colKey] = (data[d].items[colKey] || 0) + qty;
 
       const mult = multipliers[colKey] || 0;
@@ -123,7 +123,7 @@ export default function Carabao_Table({ invoiceItems, month, year, allActivities
                 return col.activityIds.map(String).includes(actId);
               });
               const columnAmount = columnItems.reduce((sum, item) => {
-                const qty = Number(item.quantity ?? 1);
+                const qty = Number(item.quantity) || 0;
                 const mult = multipliers[col.key] || 0;
                 return sum + (qty * mult);
               }, 0);

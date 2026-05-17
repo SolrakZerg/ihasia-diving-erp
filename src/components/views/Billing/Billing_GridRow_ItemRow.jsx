@@ -3,6 +3,7 @@ import Billing_GridRow_DateCell             from './Billing_GridRow_DateCell';
 import Billing_GridRow_SmartActivitySelect  from './Billing_GridRow_SmartActivitySelect';
 import Billing_GridRow_CustomerSearchInput  from './Billing_GridRow_CustomerSearchInput';
 import Billing_GridRow_InstructorSelect    from './Billing_GridRow_InstructorSelect';
+import EditableInput                        from '../../common/EditableInput';
 
 // CSS class for the right-border accent driven by the parent row's CSS variable
 const rb = 'border-r-4 border-r-[var(--group-color)]';
@@ -144,10 +145,10 @@ export default function Billing_GridRow_ItemRow({
 
       {/* 8. Precio */}
       <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <input
+        <EditableInput
           type="number"
-          value={item.unit_price_thb ?? 0}
-          onChange={(e) => handleItemUpdate(item, 'unit_price_thb', e.target.value)}
+          defaultValue={item.unit_price_thb ?? 0}
+          onSave={(val) => handleItemUpdate(item, 'unit_price_thb', val)}
           aria-label="Precio unitario"
           className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-right outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
         />
@@ -155,10 +156,10 @@ export default function Billing_GridRow_ItemRow({
 
       {/* 9. Q */}
       <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <input
+        <EditableInput
           type="number"
-          value={item.quantity ?? 1}
-          onChange={(e) => handleItemUpdate(item, 'quantity', e.target.value)}
+          defaultValue={item.quantity ?? ''}
+          onSave={(val) => handleItemUpdate(item, 'quantity', val)}
           aria-label="Cantidad"
           className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
         />

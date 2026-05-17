@@ -264,7 +264,7 @@ export function useNominasData() {
         if (dynCol) colKey = `dyn_${actId}`;
       }
       if (colKey) {
-        const qty = Number(item.quantity ?? 1);
+        const qty = Number(item.quantity) || 0;
         data[d].items[colKey] = (data[d].items[colKey] || 0) + qty;
         const rule = payoutRules.find(r => String(r.activity_id) === actId);
         if (rule) {

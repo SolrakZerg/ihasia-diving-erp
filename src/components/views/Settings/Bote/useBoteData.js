@@ -95,7 +95,7 @@ export default function useBoteData() {
         .eq('activities.tshirt_included', true)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
-      const tshirtsCount = items?.reduce((acc, item) => acc + Number(item.quantity ?? 1), 0) || 0;
+      const tshirtsCount = items?.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0) || 0;
 
       // 3. Ingresos por seguros
       const { data: batches } = await supabase

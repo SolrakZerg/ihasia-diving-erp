@@ -65,12 +65,12 @@ export async function addCustomersToBilling(customers) {
       invoiceId = newInv.id;
     }
 
-    // 4. Create the new invoice item with NULL date
+    // 4. Create the new invoice item with NULL date and quantity
     const { error: createItemErr } = await supabase.from('invoice_items').insert({
       invoice_id: invoiceId,
       customer_id: cust.id,
       date: null, // Forces manual validation in the UI
-      quantity: 1,
+      quantity: null, // Default to null for manual entry/validation
       unit_price_thb: 0,
       total_thb: 0,
       status: 'Pending'

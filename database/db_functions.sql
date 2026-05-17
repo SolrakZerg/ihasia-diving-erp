@@ -269,11 +269,36 @@ CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote_invoices()
  SET search_path TO 'public'
 AS $function$
 BEGIN
-    PERFORM logic.recalculate_bote_apartar(
-        EXTRACT(YEAR FROM COALESCE(NEW.date, OLD.date))::INT,
-        EXTRACT(MONTH FROM COALESCE(NEW.date, OLD.date))::INT
-    );
-    RETURN NULL;
+    -- Si la fecha es nula, salimos de inmediato sin gastar recursos de la base de datos
+    IF COALESCE(NEW.date, OLD.date) IS NULL THEN
+        RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+    END IF;
+
+    -- Si se añade o modifica una fila, recalculamos el mes de esa fecha
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        PERFORM logic.recalculate_bote_apartar(
+            EXTRACT(YEAR FROM NEW.date)::INT,
+            EXTRACT(MONTH FROM NEW.date)::INT
+        );
+    END IF;
+
+    -- Si se edita y cambia la fecha de un mes a otro, recalculamos el mes anterior (OLD) para restar
+    IF (TG_OP = 'UPDATE' AND OLD.date IS DISTINCT FROM NEW.date AND OLD.date IS NOT NULL) THEN
+        PERFORM logic.recalculate_bote_apartar(
+            EXTRACT(YEAR FROM OLD.date)::INT,
+            EXTRACT(MONTH FROM OLD.date)::INT
+        );
+    END IF;
+
+    -- Si se borra la fila, recalculamos su mes para restar
+    IF (TG_OP = 'DELETE') THEN
+        PERFORM logic.recalculate_bote_apartar(
+            EXTRACT(YEAR FROM OLD.date)::INT,
+            EXTRACT(MONTH FROM OLD.date)::INT
+        );
+    END IF;
+
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
 $function$;
 
@@ -443,10 +468,12 @@ BEGIN
 
     -- Recalcular Comisiones
     SELECT 
-        COALESCE(SUM(CASE WHEN is_comm_paid THEN COALESCE(comm_amount_thb, total_thb * 0.1) ELSE 0 END), 0),
-        COALESCE(SUM(CASE WHEN NOT is_comm_paid THEN COALESCE(comm_amount_thb, total_thb * 0.1) ELSE 0 END), 0)
-    INTO c_paid, c_pending FROM invoice_items
-    WHERE is_comm = true AND EXTRACT(YEAR FROM date) = target_year AND EXTRACT(MONTH FROM date) = target_month;
+        COALESCE(SUM(CASE WHEN i.is_comm_paid THEN COALESCE(i.comm_amount_thb, a.price_thb * 0.1) ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN NOT i.is_comm_paid THEN COALESCE(i.comm_amount_thb, a.price_thb * 0.1) ELSE 0 END), 0)
+    INTO c_paid, c_pending 
+    FROM invoice_items i
+    LEFT JOIN activities a ON i.activity_id = a.id
+    WHERE i.is_comm = true AND EXTRACT(YEAR FROM i.date) = target_year AND EXTRACT(MONTH FROM i.date) = target_month;
 
     -- Recalcular Snorkel
     SELECT 

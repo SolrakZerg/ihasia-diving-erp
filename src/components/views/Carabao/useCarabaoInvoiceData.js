@@ -32,7 +32,7 @@ export default function useCarabaoInvoiceData({
     const qtyMap = {};
     invoiceItems.forEach(item => {
       if (item.activity_id) {
-        qtyMap[item.activity_id] = (qtyMap[item.activity_id] || 0) + Number(item.quantity ?? 1);
+        qtyMap[item.activity_id] = (qtyMap[item.activity_id] || 0) + (Number(item.quantity) || 0);
       }
     });
     return allActivities.filter(a => {
@@ -54,7 +54,7 @@ export default function useCarabaoInvoiceData({
     const monthQtyMap = {};
     invoiceItems.forEach(item => {
       const actId = item.activity_id;
-      if (actId) monthQtyMap[actId] = (monthQtyMap[actId] || 0) + Number(item.quantity ?? 1);
+      if (actId) monthQtyMap[actId] = (monthQtyMap[actId] || 0) + (Number(item.quantity) || 0);
     });
 
     billableActivities.filter(a => a.is_supplier_billable).forEach(act => {

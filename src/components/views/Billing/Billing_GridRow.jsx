@@ -113,7 +113,7 @@ export default function Billing_GridRow({
         invoice_id:     invoice.id,
         customer_id:    parentItem?.customer_id || null,
         date:           null,
-        quantity:       1,
+        quantity:       null,
         unit_price_thb: 0,
         total_thb:      0,
         status:         'Pending',
@@ -144,7 +144,7 @@ export default function Billing_GridRow({
         const act = activities.find(a => String(a.id) === String(updates.activity_id));
         if (act) {
           const up = Number(act.price_thb) || 0;
-          const q  = Number(item.quantity ?? 1);
+          const q  = Number(item.quantity) || 0;
           updates.unit_price_thb = up;
           updates.total_thb      = up * q;
 
@@ -154,12 +154,14 @@ export default function Billing_GridRow({
           if (categoryData?.requires_staff === false) updates.instructor_id = null;
         }
       } else if (updates.quantity !== undefined) {
-        const q  = Number(updates.quantity) || 0;
+        const rawVal = updates.quantity;
+        const q = (rawVal === '' || rawVal === null) ? null : (Number(rawVal) || 0);
+        updates.quantity = q;
         const up = Number(item.unit_price_thb) || 0;
-        updates.total_thb = q * up;
+        updates.total_thb = (q || 0) * up;
       } else if (updates.unit_price_thb !== undefined) {
         const up = Number(updates.unit_price_thb) || 0;
-        const q  = Number(item.quantity ?? 1);
+        const q  = Number(item.quantity) || 0;
         updates.total_thb = q * up;
       }
 
