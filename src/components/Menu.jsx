@@ -5,7 +5,7 @@ import Dashboard_View from './views/Dashboard/Dashboard_View';
 import Customers_View from './views/Customers/Customers_View';
 import InsuranceView from './views/Insurance/InsuranceView';
 import SettingsView from './views/Settings/Settings';
-import Billing from './views/Billing/Billing';
+import Billing_View from './views/Billing/Billing_View';
 import Expenses from './views/Expenses/Expenses_View';
 import SSIView from './views/SSI/SSIView';
 import Nominas_View from './views/Nominas/Nominas_View';
@@ -50,7 +50,7 @@ export default function Dashboard({ user }) {
       case 'customers': return <Customers_View onNavigate={navigateTo} />;
       case 'insurance': return <InsuranceView initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
       case 'settings': return <SettingsView />;
-      case 'billing': return <Billing isSidebarCollapsed={isSidebarCollapsed} />;
+      case 'billing': return <Billing_View isSidebarCollapsed={isSidebarCollapsed} />;
       case 'expenses': return <Expenses />;
       case 'ssi': return <SSIView />;
       case 'nominas': return <Nominas_View />;
