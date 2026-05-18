@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import { useUndo } from '../../../context/UndoContext';
+import { buildDashboardOpeningCashAction, buildDashboardPendingAction } from './dashboardUndoActions';
 
 export default function useDashboardData() {
+  const { pushAction } = useUndo();
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -249,16 +252,28 @@ export default function useDashboardData() {
     }
     const isBlank = val === '';
     const num = isBlank ? 0 : Number(val);
+
+    const oldVal = incomeData.openingCash === undefined || incomeData.openingCash === null ? '' : incomeData.openingCash;
+    if (oldVal === val) return;
+
+    // Registrar acción de deshacer
+    const action = buildDashboardOpeningCashAction(
+      year,
+      month,
+      oldVal,
+      val,
+      fetchDashboardData
+    );
+    pushAction(action);
+
     setIncomeData(prev => ({ ...prev, openingCash: isBlank ? '' : num }));
 
-    if (!isBlank) {
-      await supabase.from('monthly_reports').upsert({ 
-        year, 
-        month, 
-        mes_anterior: num,
-        updated_at: new Date().toISOString() 
-      }, { onConflict: 'year, month' });
-    }
+    await supabase.from('monthly_reports').upsert({ 
+      year, 
+      month, 
+      mes_anterior: num,
+      updated_at: new Date().toISOString() 
+    }, { onConflict: 'year, month' });
     
     // Recargamos los datos DESPUÉS de guardar
     await fetchDashboardData();
@@ -272,6 +287,24 @@ export default function useDashboardData() {
     const isBlank = val === '';
     const num = isBlank ? null : Number(val);
     
+    const targetExpense = expenseData.find(e => e.col === col);
+    const oldVal = targetExpense ? targetExpense.pending : '';
+    const name = targetExpense ? targetExpense.name : col;
+
+    if (oldVal === val) return;
+
+    // Registrar acción de deshacer
+    const action = buildDashboardPendingAction(
+      year,
+      month,
+      col,
+      name,
+      oldVal,
+      val,
+      fetchDashboardData
+    );
+    pushAction(action);
+
     setExpenseData(prev => prev.map(e => {
       if (e.col === col) {
         return { ...e, pending: val }; 

@@ -86,7 +86,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
   };
 
   const menuItems = [
-    { id: 'overview', label: 'Panel Principal', icon: BarChart3 },
+    { id: 'dashboard', label: 'Panel Principal', icon: BarChart3 },
     { id: 'billing', label: 'Facturas', icon: Rows3 },
     { id: 'nominas', label: 'Liquidación Staff', icon: Handshake },
     { id: 'expenses', label: 'Gastos', icon: DollarSign },

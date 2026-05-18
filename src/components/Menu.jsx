@@ -3,21 +3,21 @@ import { supabase } from '../lib/supabaseClient';
 import Sidebar from './Sidebar';
 import Dashboard_View from './views/Dashboard/Dashboard_View';
 import Customers_View from './views/Customers/Customers_View';
-import InsuranceView from './views/Insurance/InsuranceView';
-import SettingsView from './views/Settings/Settings';
+import Insurance_View from './views/Insurance/InsuranceView';
+import Settings_View from './views/Settings/Settings';
 import Billing_View from './views/Billing/Billing_View';
-import Expenses from './views/Expenses/Expenses_View';
-import SSIView from './views/SSI/SSIView';
+import Expenses_View from './views/Expenses/Expenses_View';
+import SSI_View from './views/SSI/SSIView';
 import Nominas_View from './views/Nominas/Nominas_View';
 import CRBT_View from './views/CRBT/CRBT_View';
-import Carabao_Header from './views/Carabao/Carabao_Header';
+import Carabao_View from './views/Carabao/Carabao_Header';
 import { ChevronRight } from 'lucide-react';
 import { UndoProvider } from '../context/UndoContext';
 
 
 export default function Dashboard({ user }) {
   const [activeView, setActiveView] = useState(() => {
-    return localStorage.getItem('active-view') || 'overview';
+    return localStorage.getItem('active-view') || 'dashboard';
   });
   const [viewPayload, setViewPayload] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -46,16 +46,16 @@ export default function Dashboard({ user }) {
 
   const renderView = () => {
     switch (activeView) {
-      case 'overview': return <Dashboard_View />;
+      case 'dashboard': return <Dashboard_View />;
       case 'customers': return <Customers_View onNavigate={navigateTo} />;
-      case 'insurance': return <InsuranceView initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
-      case 'settings': return <SettingsView />;
+      case 'insurance': return <Insurance_View initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
+      case 'settings': return <Settings_View />;
       case 'billing': return <Billing_View isSidebarCollapsed={isSidebarCollapsed} />;
-      case 'expenses': return <Expenses />;
-      case 'ssi': return <SSIView />;
+      case 'expenses': return <Expenses_View />;
+      case 'ssi': return <SSI_View />;
       case 'nominas': return <Nominas_View />;
       case 'crbt': return <CRBT_View />;
-      case 'carabao': return <Carabao_Header />;
+      case 'carabao': return <Carabao_View />;
 
       default: return <Dashboard_View />;
     }
