@@ -814,7 +814,9 @@ AS $function$
 DECLARE
   v_calculated_total numeric;
   v_adj_prev numeric;
-  v_impact numeric;
+  v_adj_next numeric;
+  v_next_year integer;
+  v_next_month integer;
   v_total numeric;
 BEGIN
   -- 1. Sumar los totales de las filas
@@ -830,13 +832,26 @@ BEGIN
   WHERE supplier_name = 'SSI'
   AND year = p_year AND month = p_month;
   
-  -- 3. Calcular impacto
-  v_impact := v_adj_prev * 1067;
+  -- 3. Calcular mes y año siguiente
+  IF p_month = 12 THEN
+      v_next_year := p_year + 1;
+      v_next_month := 1;
+  ELSE
+      v_next_year := p_year;
+      v_next_month := p_month + 1;
+  END IF;
+
+  -- 4. Leer el adelanto (mes_anterior del mes siguiente)
+  SELECT COALESCE(mes_anterior, 0)
+  INTO v_adj_next
+  FROM public.supplier_settlements
+  WHERE supplier_name = 'SSI'
+  AND year = v_next_year AND month = v_next_month;
+
+  -- 5. Total = Calculado - (Ajuste Mes Anterior * 1067) + (Adelanto Próx Mes * 1067)
+  v_total := v_calculated_total - (v_adj_prev * 1067) + (v_adj_next * 1067);
   
-  -- 4. Total = Calculado - Impacto
-  v_total := v_calculated_total - v_impact;
-  
-  -- 5. Actualizar supplier_settlements
+  -- 6. Actualizar supplier_settlements
   UPDATE public.supplier_settlements
   SET total_amount = v_total
   WHERE supplier_name = 'SSI' AND year = p_year AND month = p_month;
