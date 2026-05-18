@@ -1,7 +1,7 @@
-import { 
-  BarChart3, 
-  Calendar, 
-  Settings as SettingsIcon, 
+import {
+  BarChart3,
+  Calendar,
+  Settings as SettingsIcon,
   LogOut,
   ChevronRight,
   ChevronLeft,
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const SSIIcon = ({ className }) => (
-  <div 
+  <div
     className={className}
     style={{
       backgroundColor: 'currentColor',
@@ -37,7 +37,7 @@ const SSIIcon = ({ className }) => (
 );
 
 const CarabaoIcon = ({ className }) => (
-  <div 
+  <div
     className={className}
     style={{
       backgroundColor: 'currentColor',
@@ -73,7 +73,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
         .select('logo_url, secondary_image_url')
         .eq('is_own_company', true)
         .single();
-      
+
       if (data) {
         setLogos({
           full: data.logo_url,
@@ -88,9 +88,9 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
   const menuItems = [
     { id: 'dashboard', label: 'Panel Principal', icon: BarChart3 },
     { id: 'billing', label: 'Facturas', icon: Rows3 },
-    { id: 'nominas', label: 'Liquidación Staff', icon: Handshake },
+    { id: 'nominas', label: 'Nominas', icon: Handshake },
     { id: 'expenses', label: 'Gastos', icon: DollarSign },
-    { id: 'ssi', label: 'Pagos SSI', icon: SSIIcon },
+    { id: 'ssi', label: 'SSI', icon: SSIIcon },
     { id: 'customers', label: 'Buceadores', icon: UserRoundSearch },
     { id: 'insurance', label: 'Seguros Diarios', icon: ShieldCheck },
     { id: 'carabao', label: 'Carabao', icon: CarabaoIcon },
@@ -101,34 +101,34 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
   return (
     <aside className={`fixed sm:sticky top-0 left-0 h-screen ${isCollapsed ? 'w-64 sm:w-20' : 'w-64'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-surface-soft border-r border-surface-edge flex flex-col transition-all duration-300 ease-in-out z-[150]`}>
       <div className={`p-4 flex items-center justify-center border-b border-surface-edge relative ${isCollapsed ? 'sm:h-20 h-48' : 'h-48'}`}>
-        
+
         {/* Small Logo (visible when collapsed on desktop) */}
         <div className={isCollapsed ? 'hidden sm:block' : 'hidden'}>
-          <img 
-            src={logos.small || logoSmallFallback} 
-            alt="Logo" 
-            className="w-10 h-10 object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert" 
+          <img
+            src={logos.small || logoSmallFallback}
+            alt="Logo"
+            className="w-10 h-10 object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert"
           />
         </div>
 
         {/* Full Logo (visible when not collapsed, or on mobile even if collapsed) */}
         <div className={isCollapsed ? 'sm:hidden block' : 'block'}>
           <div className="flex flex-col items-center gap-4">
-            <img 
-              src={logos.full || logoFullFallback} 
-              alt="Ihasia Logo" 
-              className="h-28 w-auto object-contain animate-in fade-in slide-in-from-top-4 duration-500 brightness-0 invert" 
+            <img
+              src={logos.full || logoFullFallback}
+              alt="Ihasia Logo"
+              className="h-28 w-auto object-contain animate-in fade-in slide-in-from-top-4 duration-500 brightness-0 invert"
             />
-            <img 
-              src={logos.small || logoSmallFallback} 
-              alt="Ihasia Name" 
-              className="h-10 w-auto object-contain animate-in fade-in slide-in-from-bottom-4 duration-700 brightness-0 invert opacity-90" 
+            <img
+              src={logos.small || logoSmallFallback}
+              alt="Ihasia Name"
+              className="h-10 w-auto object-contain animate-in fade-in slide-in-from-bottom-4 duration-700 brightness-0 invert opacity-90"
             />
           </div>
         </div>
-        
+
         {/* Toggle Button */}
-        <button 
+        <button
           onClick={onToggleCollapse}
           aria-label={isCollapsed ? "Expandir menú lateral" : "Colapsar menú lateral"}
           className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-edge border border-surface-edge items-center justify-center text-gray-300 hover:text-white hover:scale-110 transition-all z-50 shadow-lg focus-visible:ring-2 focus-visible:ring-brand"
@@ -146,11 +146,10 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
               key={item.id}
               onClick={() => onViewChange(item.id)}
               title={isCollapsed ? item.label : ''}
-              className={`w-full flex items-center ${isCollapsed ? 'sm:justify-center justify-between' : 'justify-between'} p-3 rounded-xl transition-all group relative border border-transparent focus-visible:border-brand-light focus-visible:bg-brand/10 ${
-                isActive 
-                  ? 'bg-brand text-white shadow-lg shadow-brand/20' 
+              className={`w-full flex items-center ${isCollapsed ? 'sm:justify-center justify-between' : 'justify-between'} p-3 rounded-xl transition-all group relative border border-transparent focus-visible:border-brand-light focus-visible:bg-brand/10 ${isActive
+                  ? 'bg-brand text-white shadow-lg shadow-brand/20'
                   : 'text-gray-300 hover:bg-surface hover:text-white focus-visible:text-white'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <Icon className={`${isCollapsed ? 'sm:w-6 sm:h-6 w-5 h-5' : 'w-5 h-5'} flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-brand-light'}`} />
@@ -159,7 +158,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
                 </span>
               </div>
               {isActive && <ChevronRight className={`w-4 h-4 ${isCollapsed ? 'sm:hidden' : ''}`} />}
-              
+
               {/* Tooltip for collapsed mode */}
               {isCollapsed && (
                 <div className="hidden sm:block absolute left-full ml-4 px-2 py-1 bg-brand text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl">
