@@ -753,11 +753,13 @@ $function$;
 
 -- --------------------------------------------------------------------------------
 -- Table: ssi_monthly_breakdown (Auto fill unit cost)
+-- Moved to logic schema. Trigger: trg_fill_ssi_breakdown_unit_cost (BEFORE INSERT OR UPDATE)
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.func_fill_ssi_breakdown_unit_cost()
+CREATE OR REPLACE FUNCTION logic.func_fill_ssi_breakdown_unit_cost()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
+ SET search_path = public, logic
 AS $function$
 BEGIN
     IF NEW.unit_cost IS NULL OR NEW.unit_cost = 0 THEN
@@ -772,11 +774,13 @@ $function$;
 
 -- --------------------------------------------------------------------------------
 -- Table: ssi_monthly_breakdown (Total Calculation)
+-- Moved to logic schema. Trigger: trigger_update_ssi_total (AFTER INSERT OR UPDATE OR DELETE)
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.update_ssi_total_amount()
+CREATE OR REPLACE FUNCTION logic.trigger_update_ssi_total_amount()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
+ SET search_path = public, logic
 AS $function$
 DECLARE
     v_year integer;
