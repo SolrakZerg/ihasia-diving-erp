@@ -66,7 +66,7 @@ export default function useCRBTData() {
     prevMonthRef.current = month;
     prevYearRef.current = year;
 
-    fetchData(!isPeriodChange);
+    fetchData(isPeriodChange);
   }, [month, year, refreshTrigger]);
 
   const fetchPayoutRules = async () => {

@@ -1,13 +1,10 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import MonthYearSelector from '../../common/MonthYearSelector';
 
 export default function Dashboard_Header({
   month,
   setMonth,
   year,
   setYear,
-  months,
-  handlePrevMonth,
-  handleNextMonth
 }) {
   return (
     <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-surface-soft/30 py-8 px-6 rounded-2xl border border-surface-edge shadow-2xl backdrop-blur-sm">
@@ -20,23 +17,13 @@ export default function Dashboard_Header({
         />
       </div>
 
-      <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
-        <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-          <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none text-center uppercase tracking-tighter">
-            {months.map((m, i) => (<option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>))}
-          </select>
-          <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-          <select value={year} onChange={e => setYear(parseInt(e.target.value))} className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none text-center">
-            {[2024, 2025, 2026, 2027].map(y => (<option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>))}
-          </select>
-        </div>
-        <button onClick={handleNextMonth} className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all">
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+      <MonthYearSelector
+          month={month}
+          setMonth={setMonth}
+          year={year}
+          setYear={setYear}
+          shortNames={true}
+        />
 
       <div className="flex items-center gap-4">
         {/* Espacio reservado para futuros widgets de cabecera */}

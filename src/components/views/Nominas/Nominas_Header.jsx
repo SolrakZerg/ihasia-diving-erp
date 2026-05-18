@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Handshake, Search, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Handshake, Search, Check, ChevronDown } from 'lucide-react';
+import MonthYearSelector from '../../common/MonthYearSelector';
 
 export default function Nominas_Header({
   month, setMonth,
@@ -9,11 +10,6 @@ export default function Nominas_Header({
   selectedStaffId, setSelectedStaffId
 }) {
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
-
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
 
   return (
     <div className="bg-surface-soft/50 border-b border-surface-edge px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
@@ -58,59 +54,13 @@ export default function Nominas_Header({
         </div>
 
         {/* HYBRID DATE SELECTOR */}
-        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
-          <button
-            onClick={() => {
-              if (month === 1) {
-                setMonth(12);
-                setYear(prev => prev - 1);
-              } else {
-                setMonth(prev => prev - 1);
-              }
-            }}
-            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-            <select
-              value={month}
-              onChange={e => setMonth(parseInt(e.target.value))}
-              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
-            >
-              {months.map((m, i) => (
-                <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
-              ))}
-            </select>
-
-            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-
-            <select
-              value={year}
-              onChange={e => setYear(parseInt(e.target.value))}
-              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
-            >
-              {[2024, 2025, 2026, 2027].map(y => (
-                <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={() => {
-              if (month === 12) {
-                setMonth(1);
-                setYear(prev => prev + 1);
-              } else {
-                setMonth(prev => prev + 1);
-              }
-            }}
-            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+        <MonthYearSelector
+          month={month}
+          setMonth={setMonth}
+          year={year}
+          setYear={setYear}
+          shortNames={true}
+        />
       </div>
     </div>
   );

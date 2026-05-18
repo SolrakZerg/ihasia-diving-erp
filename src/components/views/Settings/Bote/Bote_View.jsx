@@ -1,9 +1,10 @@
-import { Loader2, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, PiggyBank } from 'lucide-react';
 import useBoteData, { MONTHS } from './useBoteData';
 import Bote_Stats from './Bote_Stats';
 import Bote_ExpenseTable from './Bote_ExpenseTable';
 import Bote_ExpenseForm from './Bote_ExpenseForm';
 import ConfirmModal from '../../../common/ConfirmModal';
+import MonthYearSelector from '../../../common/MonthYearSelector';
 
 /**
  * Bote_View — Orquestador del módulo Gestión de Bote.
@@ -12,7 +13,7 @@ import ConfirmModal from '../../../common/ConfirmModal';
  */
 export default function Bote_View() {
   const {
-    year, month, setMonth, setYear, handlePrevMonth, handleNextMonth,
+    year, month, setMonth, setYear,
     loading, saving, initialBote, expenses, stats,
     isEditingInitial, setIsEditingInitial, updateInitialBote,
     newExpense, setNewExpense, handleAddExpense,
@@ -44,45 +45,13 @@ export default function Bote_View() {
         </div>
 
         {/* Selector de mes/año */}
-        <div className="flex items-center bg-surface p-1 rounded-2xl border border-surface-edge shadow-inner">
-          <button
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-            <select
-              value={month}
-              onChange={e => setMonth(parseInt(e.target.value))}
-              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
-            >
-              {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
-              ))}
-            </select>
-
-            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-
-            <select
-              value={year}
-              onChange={e => setYear(parseInt(e.target.value))}
-              className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
-            >
-              {[2024, 2025, 2026, 2027].map(y => (
-                <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-surface-edge/50 rounded-xl text-gray-400 hover:text-white transition-all"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+        <MonthYearSelector
+          month={month}
+          setMonth={setMonth}
+          year={year}
+          setYear={setYear}
+          shortNames={true}
+        />
       </div>
 
       {/* ── Stats Cards ─────────────────────────────────────────────────────── */}

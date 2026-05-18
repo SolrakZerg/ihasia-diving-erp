@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
 
 export const MONTHS = [
@@ -43,7 +43,12 @@ export default function useBoteData() {
   });
 
   // ── Efectos ───────────────────────────────────────────────────────────────
-  useEffect(() => { fetchBoteData(); }, [month, year]);
+  const isFirstLoad = useRef(true);
+  useEffect(() => {
+    const silent = !isFirstLoad.current;
+    isFirstLoad.current = false;
+    fetchBoteData(silent);
+  }, [month, year]);
 
   // AUTO-SAVE: Sincroniza el saldo final con la BD cuando cambian los stats
   useEffect(() => {
@@ -54,8 +59,8 @@ export default function useBoteData() {
   }, [stats, loading]);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
-  const fetchBoteData = async () => {
-    setLoading(true);
+  const fetchBoteData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const startOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = new Date(year, month, 0).getDate();

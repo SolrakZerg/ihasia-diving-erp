@@ -47,9 +47,6 @@ export default function Dashboard_View() {
         setMonth={setMonth}
         year={year}
         setYear={setYear}
-        months={months}
-        handlePrevMonth={handlePrevMonth}
-        handleNextMonth={handleNextMonth}
       />
 
       {/* 2. Top Row (Charts and CRBT) */}

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutGrid, FileText, ChevronLeft, ChevronRight, Settings as SettingsIcon, Printer } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { LayoutGrid, FileText, Settings as SettingsIcon, Printer } from 'lucide-react';
+import MonthYearSelector from '../../common/MonthYearSelector';
 import { supabase } from '../../../lib/supabaseClient';
 import Carabao_Table from './Carabao_Table';
 import Carabao_Invoice_View from './Carabao_Invoice_View';
@@ -34,17 +35,17 @@ export default function Carabao_Header() {
 
   const { refreshTrigger } = useUndo();
 
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
+
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   useEffect(() => {
-    fetchMonthlyData();
+    const silent = !isFirstLoad.current;
+    isFirstLoad.current = false;
+    fetchMonthlyData(silent);
   }, [month, year]);
 
   useEffect(() => {
@@ -62,8 +63,8 @@ export default function Carabao_Header() {
     }
   };
 
-  const fetchMonthlyData = async () => {
-    setLoading(true);
+  const fetchMonthlyData = async (silent = false) => {
+    if (!silent) setLoading(true);
     const mm = String(month).padStart(2, '0');
     const firstDay = `${year}-${mm}-01`;
     const lastDay = `${year}-${mm}-${new Date(year, month, 0).getDate()}`;
@@ -123,59 +124,13 @@ export default function Carabao_Header() {
 
               <div className="flex items-center gap-3">
                 {/* Date Selector */}
-                <div className="flex items-center bg-surface-soft/50 p-1 rounded-xl border border-surface-edge/30 w-fit shadow-inner">
-                  <button
-                    onClick={() => {
-                      if (month === 1) {
-                        setMonth(12);
-                        setYear(prev => prev - 1);
-                      } else {
-                        setMonth(prev => prev - 1);
-                      }
-                    }}
-                    className="p-2 hover:bg-surface-edge/30 rounded-lg text-text-header hover:text-white transition-all"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-                    <select
-                      value={month}
-                      onChange={e => setMonth(parseInt(e.target.value))}
-                      className="bg-transparent text-xs font-black text-white outline-none px-1.5 py-0.5 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
-                    >
-                      {months.map((m, i) => (
-                        <option key={m} value={i + 1} className="bg-[#1a1c2d]">{m.slice(0, 3)}</option>
-                      ))}
-                    </select>
-
-                    <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-
-                    <select
-                      value={year}
-                      onChange={e => setYear(parseInt(e.target.value))}
-                      className="bg-transparent text-xs font-black text-white outline-none px-1.5 py-0.5 cursor-pointer appearance-none transition-colors text-center"
-                    >
-                      {[2024, 2025, 2026, 2027].map(y => (
-                        <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (month === 12) {
-                        setMonth(1);
-                        setYear(prev => prev + 1);
-                      } else {
-                        setMonth(prev => prev + 1);
-                      }
-                    }}
-                    className="p-2 hover:bg-surface-edge/30 rounded-lg text-text-header hover:text-white transition-all"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+                <MonthYearSelector
+                  month={month}
+                  setMonth={setMonth}
+                  year={year}
+                  setYear={setYear}
+                  shortNames={true}
+                />
 
                 {/* Quick Actions (Settings/Print) next to Date */}
                 <div className="flex items-center gap-2">
