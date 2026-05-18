@@ -752,6 +752,25 @@ END;
 $function$;
 
 -- --------------------------------------------------------------------------------
+-- Table: ssi_monthly_breakdown (Auto fill unit cost)
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.func_fill_ssi_breakdown_unit_cost()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+BEGIN
+    IF NEW.unit_cost IS NULL OR NEW.unit_cost = 0 THEN
+        SELECT COALESCE(ssi_cost_thb, 0)
+        INTO NEW.unit_cost
+        FROM public.activities
+        WHERE id = NEW.activity_id;
+    END IF;
+    RETURN NEW;
+END;
+$function$;
+
+-- --------------------------------------------------------------------------------
 -- Table: ssi_monthly_breakdown (Total Calculation)
 -- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.update_ssi_total_amount()

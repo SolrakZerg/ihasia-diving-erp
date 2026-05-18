@@ -233,7 +233,8 @@ export default function TestSSIView() {
         year: selectedYear,
         month: selectedMonth + 1,
         activity_id: activityId,
-        manual_adjustment: val
+        manual_adjustment: val,
+        unit_cost: activityItem ? activityItem.unit_cost : 0
       }, { onConflict: 'year,month,activity_id' });
     
     // El trigger en la BD actualizará el total en supplier_settlements

@@ -113,5 +113,8 @@ CREATE TRIGGER trg_sync_invoice_to_ssi AFTER INSERT OR UPDATE OR DELETE ON publi
 -- --------------------------------------------------------------------------------
 -- Table: ssi_monthly_breakdown
 -- --------------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_fill_ssi_breakdown_unit_cost ON public.ssi_monthly_breakdown;
+CREATE TRIGGER trg_fill_ssi_breakdown_unit_cost BEFORE INSERT OR UPDATE ON public.ssi_monthly_breakdown FOR EACH ROW EXECUTE FUNCTION public.func_fill_ssi_breakdown_unit_cost();
+
 DROP TRIGGER IF EXISTS trigger_update_ssi_total ON public.ssi_monthly_breakdown;
 CREATE TRIGGER trigger_update_ssi_total AFTER INSERT OR UPDATE OR DELETE ON public.ssi_monthly_breakdown FOR EACH ROW EXECUTE FUNCTION update_ssi_total_amount();
