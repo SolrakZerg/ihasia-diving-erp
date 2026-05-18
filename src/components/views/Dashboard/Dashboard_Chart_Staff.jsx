@@ -77,8 +77,8 @@ export default function Dashboard_Chart_Staff({ staffData }) {
   return (
     <div className="bg-surface-soft border border-surface-edge rounded-2xl py-4 px-0 shadow-xl flex flex-col md:flex-[3] flex-none h-[280px] md:h-auto min-h-[240px] max-md:w-full md:max-w-[900px]">
        <h3 className="text-[14px] font-black text-text-header uppercase tracking-[0.2em] mb-2 text-center">Generado Staff</h3>
-       <div className="w-full flex-1 min-h-[180px]">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+       <div className="w-full h-[180px]">
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={staffData} margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
               <CartesianGrid 
                 vertical={false} 
