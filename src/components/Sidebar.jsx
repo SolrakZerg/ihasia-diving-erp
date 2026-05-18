@@ -54,8 +54,7 @@ const CarabaoIcon = ({ className }) => (
   />
 );
 
-import logoFullFallback from '../assets/Logo_Ihasia.svg';
-import logoSmallFallback from '../assets/logo-version-movil-ihasia.webp';
+
 import { supabase } from '../lib/supabaseClient';
 import { useEffect, useState } from 'react';
 
@@ -105,7 +104,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
         {/* Small Logo (visible when collapsed on desktop) */}
         <div className={isCollapsed ? 'hidden sm:block' : 'hidden'}>
           <img
-            src={logos.small || logoSmallFallback}
+            src={logos.small}
             alt="Logo"
             className="w-10 h-10 object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert"
           />
@@ -115,12 +114,12 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
         <div className={isCollapsed ? 'sm:hidden block' : 'block'}>
           <div className="flex flex-col items-center gap-4">
             <img
-              src={logos.full || logoFullFallback}
+              src={logos.full}
               alt="Ihasia Logo"
               className="h-28 w-auto object-contain animate-in fade-in slide-in-from-top-4 duration-500 brightness-0 invert"
             />
             <img
-              src={logos.small || logoSmallFallback}
+              src={logos.small}
               alt="Ihasia Name"
               className="h-10 w-auto object-contain animate-in fade-in slide-in-from-bottom-4 duration-700 brightness-0 invert opacity-90"
             />

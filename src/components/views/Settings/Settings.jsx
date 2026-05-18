@@ -30,8 +30,6 @@ import {
   TrendingUp as TrendingIcon
 } from 'lucide-react';
 
-import logoFull from '../../../assets/Logo_Ihasia.svg';
-import logoSmall from '../../../assets/logo-version-movil-ihasia.webp';
 
 import Staff_View from './Staff/Staff_View';
 import Staff_fee_View from './Staff_fee/Staff_fee_View';

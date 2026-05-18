@@ -11,8 +11,6 @@ import {
   Image as ImageIcon, 
   X as CloseIcon 
 } from 'lucide-react';
-import logoFull from '../../../../assets/Logo_Ihasia.svg';
-import logoSmall from '../../../../assets/logo-version-movil-ihasia.webp';
 import EditableInput from '../../../common/EditableInput';
 
 const General_EntityCard = ({ entity, saving, updateEntityField, saveEntity, handleFileUpload, removeImage }) => {
@@ -194,12 +192,12 @@ const General_EntityCard = ({ entity, saving, updateEntityField, saveEntity, han
               <div className="space-y-2">
                 <p className="text-[9px] font-bold text-gray-400 uppercase ml-1">Logo Principal</p>
                 <div className="relative aspect-square rounded-2xl bg-black/40 border-2 border-dashed border-surface-edge group/img overflow-hidden flex items-center justify-center hover:border-brand/50 transition-all cursor-pointer">
-                  { (!logoError && (entity.logo_url || (entity.is_own_company ? logoFull : null))) ? (
+                  { (!logoError && (entity.logo_url)) ? (
                     <>
                       <img 
-                        src={entity.logo_url || logoFull} 
+                        src={entity.logo_url} 
                         alt="Logo" 
-                        className={`w-full h-full object-contain p-4 ${!entity.logo_url && entity.is_own_company ? 'brightness-0 invert opacity-50' : ''}`} 
+                        className={`w-full h-full object-contain p-4`} 
                         onError={() => setLogoError(true)}
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
@@ -234,12 +232,12 @@ const General_EntityCard = ({ entity, saving, updateEntityField, saveEntity, han
               <div className="space-y-2">
                 <p className="text-[9px] font-bold text-gray-400 uppercase ml-1">Imagen Secundaria</p>
                 <div className="relative aspect-square rounded-2xl bg-black/40 border-2 border-dashed border-surface-edge group/img overflow-hidden flex items-center justify-center hover:border-brand/50 transition-all cursor-pointer">
-                  { (!secondaryError && (entity.secondary_image_url || (entity.is_own_company ? logoSmall : null))) ? (
+                  { (!secondaryError && (entity.secondary_image_url)) ? (
                     <>
                       <img 
-                        src={entity.secondary_image_url || logoSmall} 
+                        src={entity.secondary_image_url} 
                         alt="Secondary" 
-                        className={`w-full h-full object-contain p-4 ${!entity.secondary_image_url && entity.is_own_company ? 'brightness-0 invert opacity-50' : ''}`} 
+                        className={`w-full h-full object-contain p-4`} 
                         onError={() => setSecondaryError(true)}
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
