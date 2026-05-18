@@ -1,3 +1,4 @@
+import { useRef, useMemo } from 'react';
 import { Search, BookOpen, Users, CreditCard, Coins, Calendar, X as CloseIcon } from 'lucide-react';
 
 export default function Billing_Header_Filtros({
@@ -6,9 +7,33 @@ export default function Billing_Header_Filtros({
   instructorSearch,        setInstructorSearch,
   paymentMethodSearch,     setPaymentMethodSearch,
   showOnlyCommissionable,  setShowOnlyCommissionable,
-  showOnlyToday,           setShowOnlyToday,
   showOnlyUnpaid,          setShowOnlyUnpaid,
+  selectedDay,             setSelectedDay,
+  selectedMonth,           setSelectedMonth,
+  selectedYear,            setSelectedYear,
 }) {
+  const dayInputRef = useRef(null);
+
+  // Computar rango mínimo y máximo del mes actual para el input date
+  const minDate = useMemo(() => {
+    const month = String(selectedMonth + 1).padStart(2, '0');
+    return `${selectedYear}-${month}-01`;
+  }, [selectedMonth, selectedYear]);
+
+  const maxDate = useMemo(() => {
+    const month = String(selectedMonth + 1).padStart(2, '0');
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    return `${selectedYear}-${month}-${lastDay}`;
+  }, [selectedMonth, selectedYear]);
+
+  // Formato para el value del input date oculto (si hay día seleccionado)
+  const dateValue = useMemo(() => {
+    if (!selectedDay) return '';
+    const m = String(selectedMonth + 1).padStart(2, '0');
+    const d = String(selectedDay).padStart(2, '0');
+    return `${selectedYear}-${m}-${d}`;
+  }, [selectedDay, selectedMonth, selectedYear]);
+
   return (
     <div className="flex-none w-[300px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
       {/* Cabecera */}
@@ -68,8 +93,9 @@ export default function Billing_Header_Filtros({
           />
         </div>
 
-        {/* Fila 1: Método de pago + toggle comisionable */}
+        {/* Cuadrícula de Filtros 2x2 Simétrica y Premium */}
         <div className="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-surface-edge/20">
+          {/* Fila 1 - Columna 1: Método de pago */}
           <div className="relative h-8 w-full group">
             {/* Presentador visual perfectamente centrado e idéntico a los otros botones */}
             <div
@@ -98,6 +124,7 @@ export default function Billing_Header_Filtros({
             </select>
           </div>
 
+          {/* Fila 1 - Columna 2: Comisionable */}
           <button
             onClick={() => setShowOnlyCommissionable(!showOnlyCommissionable)}
             className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 whitespace-nowrap uppercase tracking-tighter ${
@@ -110,19 +137,53 @@ export default function Billing_Header_Filtros({
             {showOnlyCommissionable ? 'COMISIONABLE' : 'TODOS'}
           </button>
 
-          {/* Fila 2: Día + estado de pago */}
-          <button
-            onClick={() => setShowOnlyToday(!showOnlyToday)}
-            className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 whitespace-nowrap uppercase tracking-tighter ${
-              showOnlyToday
-                ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                : 'bg-surface border-surface-edge text-gray-400 hover:text-white'
-            }`}
-          >
-            <Calendar className={`w-3 h-3 ${showOnlyToday ? 'text-blue-400' : ''}`} />
-            {showOnlyToday ? 'HOY' : 'TODOS LOS DIAS'}
-          </button>
+          {/* Fila 2 - Columna 1: Selector de día (datepicker nativo) */}
+          <div className="relative h-8 w-full group">
+            <button
+              onClick={() => dayInputRef.current?.showPicker()}
+              className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 w-full uppercase tracking-tighter ${
+                selectedDay
+                  ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                  : 'bg-surface border-surface-edge text-gray-400 hover:text-white'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{selectedDay ? `DÍA: ${selectedDay}` : 'FILTRAR DÍA'}</span>
+            </button>
 
+            <input
+              ref={dayInputRef}
+              type="date"
+              value={dateValue}
+              min={minDate}
+              max={maxDate}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) {
+                  setSelectedDay(null);
+                } else {
+                  const parts = val.split('-');
+                  setSelectedDay(Number(parts[2]));
+                }
+              }}
+              className="absolute w-0 h-0 opacity-0 pointer-events-none"
+            />
+
+            {selectedDay && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedDay(null);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 hover:text-white transition-colors p-1 z-10"
+                title="Limpiar filtro de día"
+              >
+                <CloseIcon className="w-2.5 h-2.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Fila 2 - Columna 2: Pendientes */}
           <button
             onClick={() => setShowOnlyUnpaid(!showOnlyUnpaid)}
             className={`flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black transition-all border shadow-sm h-8 whitespace-nowrap uppercase tracking-tighter ${
@@ -132,7 +193,7 @@ export default function Billing_Header_Filtros({
             }`}
           >
             <Search className={`w-3 h-3 ${showOnlyUnpaid ? 'text-amber-500' : ''}`} />
-            {showOnlyUnpaid ? 'PENDIENTES' : 'TODOS LOS ESTADOS'}
+            {showOnlyUnpaid ? 'PENDIENTES' : 'TODOS'}
           </button>
         </div>
 

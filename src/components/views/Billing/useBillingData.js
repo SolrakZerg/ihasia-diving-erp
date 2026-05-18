@@ -40,7 +40,6 @@ export function useBillingData() {
     invoices: state.invoices,
     sortBy: state.sortBy,
     showOnlyUnpaid: state.showOnlyUnpaid,
-    showOnlyToday: state.showOnlyToday,
     selectedDay: state.selectedDay,
     searchTerm: state.searchTerm,
     activitySearch: state.activitySearch,
@@ -166,6 +165,94 @@ export function useBillingData() {
     return () => clearTimeout(t);
   }, [stats.stats, state.selectedMonth, state.selectedYear, state.loadingInvoices]);
 
+  // Manejo de la selección por grupo / híbrida (soporte para Shift+Click)
+  const handleToggleSelection = (invoice, index, shiftKey) => {
+    const itemIds = invoice.invoice_items?.map(it => it.id) || [];
+    if (itemIds.length === 0) return;
+
+    const prevIdx = state.lastClickedIndex.current;
+    state.setSelectedItemIds(prev => {
+      const newSet = new Set(prev);
+      const isCurrentlySelected = itemIds.every(id => prev.has(id));
+      const shouldSelect = !isCurrentlySelected;
+
+      if (shiftKey && prevIdx !== null) {
+        const start = Math.min(prevIdx, index);
+        const end = Math.max(prevIdx, index);
+        for (let i = start; i <= end; i++) {
+          const inv = filters.displayedInvoices[i];
+          if (!inv) continue;
+          (inv.invoice_items?.map(it => it.id) || []).forEach(id => {
+            if (shouldSelect) newSet.add(id);
+            else newSet.delete(id);
+          });
+        }
+      } else {
+        itemIds.forEach(id => {
+          if (isCurrentlySelected) newSet.delete(id);
+          else newSet.add(id);
+        });
+      }
+      return newSet;
+    });
+
+    state.lastClickedIndex.current = index;
+    if (shiftKey) window.getSelection()?.removeAllRanges();
+  };
+
+  // Obtener la lista plana de todos los items visibles en el orden actual de la pantalla
+  const getVisibleItemIds = () => {
+    const visibleIds = [];
+    filters.displayedInvoices.forEach(inv => {
+      const items = inv.invoice_items || [];
+      if (items.length === 1) {
+        visibleIds.push(items[0].id);
+      } else if (items.length > 1) {
+        const saved = localStorage.getItem(`billing-group-expanded-${inv.id}`);
+        const isExpanded = saved !== 'false'; // por defecto true
+        if (isExpanded) {
+          items.forEach(it => {
+            visibleIds.push(it.id);
+          });
+        }
+      }
+    });
+    return visibleIds;
+  };
+
+  // Manejo de la selección de items individuales (soporte para Shift+Click)
+  const handleSelectItemSelection = (itemId, shiftKey) => {
+    const prevId = state.lastClickedItemId.current;
+    state.setSelectedItemIds(prev => {
+      const newSet = new Set(prev);
+      const isCurrentlySelected = prev.has(itemId);
+      const shouldSelect = !isCurrentlySelected;
+
+      if (shiftKey && prevId !== null) {
+        const visibleIds = getVisibleItemIds();
+        const startIdx = visibleIds.indexOf(prevId);
+        const endIdx = visibleIds.indexOf(itemId);
+
+        if (startIdx !== -1 && endIdx !== -1) {
+          const start = Math.min(startIdx, endIdx);
+          const end = Math.max(startIdx, endIdx);
+          for (let i = start; i <= end; i++) {
+            const id = visibleIds[i];
+            if (shouldSelect) newSet.add(id);
+            else newSet.delete(id);
+          }
+        }
+      } else {
+        if (isCurrentlySelected) newSet.delete(itemId);
+        else newSet.add(itemId);
+      }
+      return newSet;
+    });
+
+    state.lastClickedItemId.current = itemId;
+    if (shiftKey) window.getSelection()?.removeAllRanges();
+  };
+
   // Retornamos la API pública unificada
   return {
     ...state,
@@ -173,5 +260,8 @@ export function useBillingData() {
     ...filters,
     ...mutations,
     actualCash,
+    handleToggleSelection,
+    handleSelectItemSelection,
   };
 }
+

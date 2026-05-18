@@ -63,7 +63,7 @@ export default function Billing_View({ isSidebarCollapsed }) {
     bulkGroupAction, setBulkGroupAction,
     handleToggleSelection, fetchInvoices, searchTerm, setSearchTerm,
     activitySearch, setActivitySearch,
-    showOnlyToday, setShowOnlyToday, showOnlyUnpaid, setShowOnlyUnpaid,
+    showOnlyUnpaid, setShowOnlyUnpaid,
     handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
     handleApplyBulkChanges, handleCopyEmails, handleDeleteItems,
   } = billing;
@@ -101,7 +101,6 @@ export default function Billing_View({ isSidebarCollapsed }) {
         instructorSearch={billing.instructorSearch} setInstructorSearch={billing.setInstructorSearch}
         paymentMethodSearch={billing.paymentMethodSearch} setPaymentMethodSearch={billing.setPaymentMethodSearch}
         showOnlyCommissionable={billing.showOnlyCommissionable} setShowOnlyCommissionable={billing.setShowOnlyCommissionable}
-        showOnlyToday={billing.showOnlyToday} setShowOnlyToday={billing.setShowOnlyToday}
         showOnlyUnpaid={billing.showOnlyUnpaid} setShowOnlyUnpaid={billing.setShowOnlyUnpaid}
         activities={billing.activities}
         categories={billing.categories}
@@ -219,14 +218,7 @@ export default function Billing_View({ isSidebarCollapsed }) {
                     selectedMonth={billing.selectedMonth}
                     selectedYear={billing.selectedYear}
                     setToast={setToast}
-                    onSelectItem={(itemId) => {
-                      setSelectedItemIds(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(itemId)) newSet.delete(itemId);
-                        else newSet.add(itemId);
-                        return newSet;
-                      });
-                    }}
+                    onSelectItem={(itemId, event) => billing.handleSelectItemSelection(itemId, event?.shiftKey)}
                     onToggleGroup={(event) => handleToggleSelection(inv, index, event.shiftKey)}
                     onSelectItems={(ids, selected) => {
                       setSelectedItemIds(prev => {

@@ -1,249 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, ArrowDownRight, Calendar, Briefcase, CheckCircle2, Copy, Trash2, X, Compass, Search } from 'lucide-react';
-
-function BulkActivitySelect({ value, onChange, activities, categories }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectedAct = activities.find(a => String(a.id) === String(value));
-  const displayedLabel = selectedAct ? selectedAct.acronym?.toUpperCase() : '¿ACT.?';
-
-  const eligibleActivities = activities.filter(a => a.acronym && a.acronym.trim() !== '');
-
-  const filteredActivities = eligibleActivities.filter(a =>
-    a.acronym.toLowerCase().includes(search.toLowerCase()) ||
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.category.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div ref={containerRef} className="relative h-10 select-none">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all h-full text-xs font-black uppercase tracking-wider cursor-pointer ${value
-          ? 'bg-indigo-700 border-indigo-600 text-white hover:bg-indigo-800 hover:scale-[1.07] active:scale-95 shadow-lg shadow-indigo-500/30 scale-[1.02]'
-          : 'bg-indigo-500 border-indigo-400 text-white hover:bg-indigo-600 hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20'
-          }`}
-      >
-        <Compass className="w-4 h-4 text-white" />
-        <span>{displayedLabel}</span>
-        {value && (
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange('');
-              setSearch('');
-            }}
-            className="ml-0.5 text-indigo-200 hover:text-white p-0.5 rounded transition-colors"
-          >
-            <X className="w-3 h-3" />
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="absolute bottom-full mb-2 left-0 w-32 bg-white border border-slate-200/80 shadow-[0_10px_40px_rgba(0,0,0,0.15)] rounded-xl p-2 z-[200] animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="relative mb-2">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-450" />
-            <input
-              type="text"
-              placeholder="Buscar..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 pl-7 pr-1 text-slate-800 text-[11px] placeholder-slate-400 outline-none focus:border-indigo-500/40 transition-colors"
-              autoFocus
-            />
-          </div>
-
-          <div className="max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
-            {value && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('');
-                  setIsOpen(false);
-                  setSearch('');
-                }}
-                className="w-full text-left px-2 py-1 rounded-lg text-red-500 hover:bg-red-50 font-bold text-[10px] uppercase transition-colors mb-1"
-              >
-                — Quitar —
-              </button>
-            )}
-
-            {(() => {
-              let lastCategory = null;
-              return filteredActivities.map(act => {
-                const showHeader = act.category !== lastCategory;
-                lastCategory = act.category;
-                return (
-                  <div key={act.id}>
-                    {showHeader && (
-                      <div className="px-2 py-1 bg-slate-800 text-[9px] font-black text-slate-200 uppercase tracking-[0.2em] rounded-md my-1.5 shadow-inner">
-                        {act.category || 'Otros'}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onChange(act.id);
-                        setIsOpen(false);
-                        setSearch('');
-                      }}
-                      className={`w-full text-left px-2 py-1 rounded-lg font-bold text-xs uppercase transition-colors flex items-center gap-1.5 ${String(value) === String(act.id)
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                    >
-                      {act.color && (
-                        <span 
-                          className="w-1.5 h-1.5 rounded-full shrink-0" 
-                          style={{ backgroundColor: act.color }} 
-                        />
-                      )}
-                      <span>{act.acronym?.toUpperCase()}</span>
-                    </button>
-                  </div>
-                );
-              });
-            })()}
-
-            {filteredActivities.length === 0 && (
-              <div className="text-center py-4 text-[10px] text-slate-400 italic">Sin resultados</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BulkInstructorSelect({ value, onChange, staff, isStaffDisabled }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  if (isStaffDisabled) {
-    return (
-      <div className="flex items-center gap-1.5 rounded-xl px-3 border border-slate-100 bg-slate-50 h-10 opacity-30 cursor-not-allowed select-none">
-        <Briefcase className="w-4 h-4 text-slate-400" />
-        <span className="text-slate-400 text-xs font-black uppercase tracking-wider">—</span>
-      </div>
-    );
-  }
-
-  const selectedInst = staff.find(s => String(s.id) === String(value));
-  const displayedLabel = selectedInst ? (selectedInst.initials || selectedInst.first_name).toUpperCase() : '¿INS.?';
-
-  const activeStaff = staff.filter(s => s.active);
-  const filteredStaff = activeStaff.filter(s =>
-    s.initials?.toLowerCase().includes(search.toLowerCase()) ||
-    s.first_name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div ref={containerRef} className="relative h-10 select-none">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all h-full text-xs font-black uppercase tracking-wider cursor-pointer ${value
-          ? 'bg-amber-600 border-amber-600 text-white hover:bg-amber-600/80 hover:scale-[1.07] active:scale-95 shadow-lg shadow-amber-500/30 scale-[1.02]'
-          : 'bg-amber-500 border-amber-400 text-white hover:bg-amber-600/80 hover:scale-105 active:scale-95 shadow-md shadow-amber-500/20'
-          }`}
-      >
-        <Briefcase className="w-4 h-4 text-white" />
-        <span>{displayedLabel}</span>
-        {value && (
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange('');
-              setSearch('');
-            }}
-            className="ml-0.5 text-amber-200 hover:text-white p-0.5 rounded transition-colors"
-          >
-            <X className="w-3 h-3" />
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="absolute bottom-full mb-2 left-0 w-28 bg-white border border-slate-200/80 shadow-[0_10px_40px_rgba(0,0,0,0.15)] rounded-xl p-2 z-[200] animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="relative mb-2">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-450" />
-            <input
-              type="text"
-              placeholder="Buscar..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 pl-7 pr-1 text-slate-800 text-[11px] placeholder-slate-400 outline-none focus:border-amber-500/40 transition-colors"
-              autoFocus
-            />
-          </div>
-
-          <div className="max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
-            {value && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('');
-                  setIsOpen(false);
-                  setSearch('');
-                }}
-                className="w-full text-left px-2 py-1 rounded-lg text-red-500 hover:bg-red-50 font-bold text-[10px] uppercase transition-colors mb-1"
-              >
-                — Quitar —
-              </button>
-            )}
-
-            {filteredStaff.map(s => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => {
-                  onChange(s.id);
-                  setIsOpen(false);
-                  setSearch('');
-                }}
-                className={`w-full text-left px-2.5 py-1 rounded-lg font-bold text-xs uppercase transition-colors ${String(value) === String(s.id)
-                  ? 'bg-amber-600 text-white'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-              >
-                {s.initials?.toUpperCase() || s.first_name.toUpperCase()}
-              </button>
-            ))}
-
-            {filteredStaff.length === 0 && (
-              <div className="text-center py-4 text-[10px] text-slate-400 italic">Sin resultados</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+import SmartSelect from '../../common/SmartSelect';
 
 export default function BillingActionBar({
   selectedItemIds, setSelectedItemIds,
@@ -318,20 +75,122 @@ export default function BillingActionBar({
           </div>
 
           {/* Bulk Activity */}
-          <BulkActivitySelect
+          <SmartSelect
             value={bulkActivity}
-            onChange={setBulkActivity}
-            activities={activities}
-            categories={categories}
+            options={activities.filter(a => a.acronym && a.acronym.trim() !== '')}
+            onChange={(opt) => setBulkActivity(opt ? opt.id : '')}
+            placeholder="¿ACT.?"
+            placement="up"
+            groupByKey="category"
+            dropdownClassName="absolute bottom-full mb-2 left-0 w-32 bg-white border border-slate-200/80 shadow-[0_10px_40px_rgba(0,0,0,0.15)] rounded-xl p-2 z-[200] animate-in fade-in slide-in-from-bottom-2 duration-200"
+            searchContainerClassName="relative mb-2"
+            searchIcon={<Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-450" />}
+            searchInputClassName="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 pl-7 pr-1 text-slate-800 text-[11px] placeholder-slate-400 outline-none focus:border-indigo-500/40 transition-colors"
+            optionClassName={(act, isSelected) => `w-full text-left px-2 py-1 rounded-lg font-bold text-xs uppercase transition-colors flex items-center gap-1.5 ${
+              isSelected
+                ? 'bg-indigo-600 text-white'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+            renderTrigger={(selectedOption, isOpen, setIsOpen) => {
+              const displayedLabel = selectedOption ? selectedOption.acronym?.toUpperCase() : '¿ACT.?';
+              return (
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(!isOpen)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all h-full text-xs font-black uppercase tracking-wider cursor-pointer ${bulkActivity
+                    ? 'bg-indigo-700 border-indigo-600 text-white hover:bg-indigo-800 hover:scale-[1.07] active:scale-95 shadow-lg shadow-indigo-500/30 scale-[1.02]'
+                    : 'bg-indigo-500 border-indigo-400 text-white hover:bg-indigo-600 hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20'
+                  }`}
+                >
+                  <Compass className="w-4 h-4 text-white" />
+                  <span>{displayedLabel}</span>
+                  {bulkActivity && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBulkActivity('');
+                      }}
+                      className="ml-0.5 text-indigo-200 hover:text-white p-0.5 rounded transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </span>
+                  )}
+                </button>
+              );
+            }}
+            renderOption={(act, isSelected) => (
+              <>
+                {act.color && (
+                  <span 
+                    className="w-1.5 h-1.5 rounded-full shrink-0" 
+                    style={{ backgroundColor: act.color }} 
+                  />
+                )}
+                <span>{act.acronym?.toUpperCase()}</span>
+              </>
+            )}
+            showClear={true}
+            clearLabel="--"
           />
 
           {/* Bulk Instructor */}
-          <BulkInstructorSelect
-            value={bulkInstructor}
-            onChange={setBulkInstructor}
-            staff={staff}
-            isStaffDisabled={isStaffDisabled}
-          />
+          {isStaffDisabled ? (
+            <div className="flex items-center gap-1.5 rounded-xl px-3 border border-slate-100 bg-slate-50 h-10 opacity-30 cursor-not-allowed select-none">
+              <Briefcase className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-400 text-xs font-black uppercase tracking-wider">—</span>
+            </div>
+          ) : (
+            <SmartSelect
+              value={bulkInstructor}
+              options={staff.filter(s => s.active)}
+              onChange={(opt) => setBulkInstructor(opt ? opt.id : '')}
+              placeholder="¿INS.?"
+              placement="up"
+              dropdownClassName="absolute bottom-full mb-2 left-0 w-28 bg-white border border-slate-200/80 shadow-[0_10px_40px_rgba(0,0,0,0.15)] rounded-xl p-2 z-[200] animate-in fade-in slide-in-from-bottom-2 duration-200"
+              searchContainerClassName="relative mb-2"
+              searchIcon={<Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-450" />}
+              searchInputClassName="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 pl-7 pr-1 text-slate-800 text-[11px] placeholder-slate-400 outline-none focus:border-amber-500/40 transition-colors"
+              optionClassName={(o, isSelected) => `w-full text-left px-2.5 py-1 rounded-lg font-bold text-xs uppercase transition-colors ${
+                isSelected
+                  ? 'bg-amber-600 text-white'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+              renderTrigger={(selectedOption, isOpen, setIsOpen) => {
+                const displayedLabel = selectedOption ? (selectedOption.initials || selectedOption.first_name).toUpperCase() : '¿INS.?';
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all h-full text-xs font-black uppercase tracking-wider cursor-pointer ${bulkInstructor
+                      ? 'bg-amber-600 border-amber-600 text-white hover:bg-amber-600/80 hover:scale-[1.07] active:scale-95 shadow-lg shadow-amber-500/30 scale-[1.02]'
+                      : 'bg-amber-500 border-amber-400 text-white hover:bg-amber-600/80 hover:scale-105 active:scale-95 shadow-md shadow-amber-500/20'
+                    }`}
+                  >
+                    <Briefcase className="w-4 h-4 text-white" />
+                    <span>{displayedLabel}</span>
+                    {bulkInstructor && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBulkInstructor('');
+                        }}
+                        className="ml-0.5 text-amber-200 hover:text-white p-0.5 rounded transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </span>
+                    )}
+                  </button>
+                );
+              }}
+              renderOption={(s, isSelected) => (
+                <span className={`font-bold text-xs uppercase ${isSelected ? 'text-white' : 'text-slate-700'}`}>
+                  {s.initials?.toUpperCase() || s.first_name.toUpperCase()}
+                </span>
+              )}
+              showClear={true}
+              clearLabel="--"
+            />
+          )}
 
           <div className="w-px h-6 bg-slate-200 mx-1" />
 

@@ -38,7 +38,6 @@ export default function Billing_Header({
   instructorSearch,       setInstructorSearch,
   paymentMethodSearch,    setPaymentMethodSearch,
   showOnlyCommissionable, setShowOnlyCommissionable,
-  showOnlyToday,          setShowOnlyToday,
   showOnlyUnpaid,         setShowOnlyUnpaid,
 
   // Selector de mes / año / día
@@ -173,31 +172,16 @@ export default function Billing_Header({
           instructorSearch={instructorSearch}           setInstructorSearch={setInstructorSearch}
           paymentMethodSearch={paymentMethodSearch}     setPaymentMethodSearch={setPaymentMethodSearch}
           showOnlyCommissionable={showOnlyCommissionable} setShowOnlyCommissionable={setShowOnlyCommissionable}
-          showOnlyToday={showOnlyToday}                 setShowOnlyToday={setShowOnlyToday}
           showOnlyUnpaid={showOnlyUnpaid}               setShowOnlyUnpaid={setShowOnlyUnpaid}
+          selectedDay={selectedDay}                     setSelectedDay={setSelectedDay}
+          selectedMonth={selectedMonth}                 setSelectedMonth={setSelectedMonth}
+          selectedYear={selectedYear}                   setSelectedYear={setSelectedYear}
         />
 
-        {/* ── SELECTOR MES / AÑO / DÍA (esquina superior derecha) ── */}
+        {/* ── SELECTOR MES / AÑO (esquina superior derecha) ── */}
         <div className="flex flex-col justify-start pt-1.5 items-end ml-auto pr-2 shrink-0 h-full">
           <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner h-11">
 
-            {/* Selector de DÍA */}
-            <select
-              value={selectedDay || ''}
-              onChange={(e) => {
-                const v = e.target.value === '' ? null : Number(e.target.value);
-                setSelectedDay(v);
-                if (v !== null) setShowOnlyToday(false);
-              }}
-              className={`bg-transparent text-[11px] font-black outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter ${selectedDay ? 'text-brand' : 'text-gray-400'}`}
-            >
-              <option value="" className="bg-slate-900 text-gray-400">DÍA</option>
-              {Array.from({ length: new Date(selectedYear, selectedMonth + 1, 0).getDate() }, (_, i) => i + 1).map(d => (
-                <option key={d} value={d} className="bg-slate-900 text-white">{d}</option>
-              ))}
-            </select>
-
-            <div className="w-px h-4 bg-surface-edge/30 mx-1" />
 
             {/* Mes anterior */}
             <button
@@ -206,7 +190,7 @@ export default function Billing_Header({
                 if (nm < 0) { nm = 11; ny--; }
                 setSelectedMonth(nm);
                 setSelectedYear(ny);
-                fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny, selectedDay);
+                fetchInvoices(false, null, showOnlyUnpaid, nm, ny, selectedDay);
               }}
               className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
             >
@@ -220,7 +204,7 @@ export default function Billing_Header({
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   setSelectedMonth(v);
-                  fetchInvoices(false, showOnlyToday, showOnlyUnpaid, v, selectedYear, selectedDay);
+                  fetchInvoices(false, null, showOnlyUnpaid, v, selectedYear, selectedDay);
                 }}
                 className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
               >
@@ -234,7 +218,7 @@ export default function Billing_Header({
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   setSelectedYear(v);
-                  fetchInvoices(false, showOnlyToday, showOnlyUnpaid, selectedMonth, v, selectedDay);
+                  fetchInvoices(false, null, showOnlyUnpaid, selectedMonth, v, selectedDay);
                 }}
                 className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center"
               >
@@ -251,7 +235,7 @@ export default function Billing_Header({
                 if (nm > 11) { nm = 0; ny++; }
                 setSelectedMonth(nm);
                 setSelectedYear(ny);
-                fetchInvoices(false, showOnlyToday, showOnlyUnpaid, nm, ny, selectedDay);
+                fetchInvoices(false, null, showOnlyUnpaid, nm, ny, selectedDay);
               }}
               className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
             >

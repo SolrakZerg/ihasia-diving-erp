@@ -19,6 +19,7 @@ export function useBillingState() {
   const [selectedArrivalIds, setSelectedArrivalIds] = useState(new Set());
   const [selectedItemIds, setSelectedItemIds] = useState(new Set());
   const lastClickedIndex = useRef(null);
+  const lastClickedItemId = useRef(null);
   const lastClickTime = useRef(0);
   const [toast, setToast] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState({ show: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
@@ -27,7 +28,6 @@ export function useBillingState() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOnlyToday, setShowOnlyToday] = useState(false);
   const [showOnlyUnpaid, setShowOnlyUnpaid] = useState(false);
   const [activitySearch, setActivitySearch] = useState('');
   const [bulkDate, setBulkDate] = useState('');
@@ -66,6 +66,7 @@ export function useBillingState() {
     selectedArrivalIds, setSelectedArrivalIds,
     selectedItemIds, setSelectedItemIds,
     lastClickedIndex,
+    lastClickedItemId,
     lastClickTime,
     toast, setToast,
     confirmConfig, setConfirmConfig,
@@ -74,7 +75,6 @@ export function useBillingState() {
     selectedYear, setSelectedYear,
     selectedDay, setSelectedDay,
     searchTerm, setSearchTerm,
-    showOnlyToday, setShowOnlyToday,
     showOnlyUnpaid, setShowOnlyUnpaid,
     activitySearch, setActivitySearch,
     bulkDate, setBulkDate,

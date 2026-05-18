@@ -4,7 +4,6 @@ export function useBillingFilters({
   invoices,
   sortBy,
   showOnlyUnpaid,
-  showOnlyToday,
   selectedDay,
   searchTerm,
   activitySearch,
@@ -16,7 +15,6 @@ export function useBillingFilters({
   arrivalsDate,
 }) {
   const displayedInvoices = useMemo(() => {
-    const today = new Date().toLocaleDateString('en-CA');
     const s = searchTerm.toLowerCase().trim();
 
     return [...invoices]
@@ -64,10 +62,7 @@ export function useBillingFilters({
           if (!matchesAct) return false;
         }
 
-        // Filtrar "Solo Hoy"
-        if (showOnlyToday) {
-          if (!items.some(it => it.date === today)) return false;
-        }
+
 
         // Filtrar "Solo Pendientes"
         if (showOnlyUnpaid) {
@@ -196,7 +191,6 @@ export function useBillingFilters({
     invoices,
     sortBy,
     showOnlyUnpaid,
-    showOnlyToday,
     selectedDay,
     searchTerm,
     activitySearch,

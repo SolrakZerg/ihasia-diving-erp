@@ -102,7 +102,13 @@ export default function Billing_GridRow({
         <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative cursor-default" onClick={(e) => e.stopPropagation()}>
           <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
           <div className="flex justify-center items-center h-full pl-1">
-            <input type="checkbox" checked={selectedItemIds.has(item.id)} onChange={(e) => onToggleGroup(e)} className="w-5 h-5 rounded cursor-pointer accent-brand" />
+            <input
+              type="checkbox"
+              checked={selectedItemIds.has(item.id)}
+              onClick={(e) => onToggleGroup(e)}
+              onChange={() => {}}
+              className="w-5 h-5 rounded cursor-pointer accent-brand"
+            />
           </div>
         </td>
         <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100">
@@ -133,7 +139,8 @@ export default function Billing_GridRow({
               type="checkbox"
               checked={isSelectedGroup}
               ref={el => el && (el.indeterminate = isPartialGroup)}
-              onChange={(e) => onToggleGroup(e)}
+              onClick={(e) => onToggleGroup(e)}
+              onChange={() => {}}
               className="w-5 h-5 rounded cursor-pointer accent-brand"
             />
           </div>
@@ -224,7 +231,8 @@ export default function Billing_GridRow({
                   <input
                     type="checkbox"
                     checked={selectedItemIds.has(item.id)}
-                    onChange={() => onSelectItem(item.id)}
+                    onClick={(e) => onSelectItem(item.id, e)}
+                    onChange={() => {}}
                     className="w-5 h-5 rounded hover:opacity-100 transition-opacity cursor-pointer accent-brand"
                   />
                 </div>
