@@ -8,6 +8,7 @@ export default function useStaffFeeData() {
   // ── Datos ────────────────────────────────────────────────────────────────
   const [payouts, setPayouts] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -37,12 +38,14 @@ export default function useStaffFeeData() {
   // ── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = async () => {
     setLoading(true);
-    const [payoutsRes, activitiesRes] = await Promise.all([
+    const [payoutsRes, activitiesRes, categoriesRes] = await Promise.all([
       supabase.from('instructor_payouts').select('*, activities(name, category, acronym, color)').order('created_at'),
-      supabase.from('activities').select('id, name, category').order('name')
+      supabase.from('activities').select('id, name, category').order('name'),
+      supabase.from('activity_categories').select('name, color')
     ]);
     if (payoutsRes.data) setPayouts(payoutsRes.data);
     if (activitiesRes.data) setActivities(activitiesRes.data);
+    if (categoriesRes.data) setCategories(categoriesRes.data);
     setLoading(false);
   };
 
@@ -128,7 +131,7 @@ export default function useStaffFeeData() {
     view, setView,
 
     // Datos
-    payouts, activities, loading, saving, sortedPayouts,
+    payouts, activities, categories, loading, saving, sortedPayouts,
 
     // Ordenación
     sortConfig, handleSort,

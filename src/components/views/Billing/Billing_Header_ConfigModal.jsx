@@ -35,7 +35,7 @@ export default function Billing_Header_ConfigModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-xl text-gray-500 transition-colors"
+            className="p-2 hover:bg-white/5 rounded-xl text-text-muted transition-colors"
           >
             <CloseIcon className="w-5 h-5" />
           </button>
@@ -56,7 +56,7 @@ export default function Billing_Header_ConfigModal({
                 className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
                   isActive
                     ? (cat.color || 'bg-brand/20 border-brand text-brand') + ' shadow-lg shadow-brand/10'
-                    : 'bg-white/5 border border-white/10 text-gray-500 hover:text-gray-300'
+                    : 'bg-white/5 border border-white/10 text-text-muted hover:text-text-primary'
                 }`}
               >
                 {cat.name}

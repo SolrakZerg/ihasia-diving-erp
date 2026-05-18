@@ -21,7 +21,7 @@ export default function Bote_ExpenseForm({ newExpense, setNewExpense, handleAddE
         {/* Día + Concepto */}
         <div className="grid grid-cols-4 gap-4">
           <div className="col-span-1">
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 text-center">Día</label>
+            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 text-center">Día</label>
             <input
               type="number"
               placeholder="0"
@@ -33,7 +33,7 @@ export default function Bote_ExpenseForm({ newExpense, setNewExpense, handleAddE
             />
           </div>
           <div className="col-span-3">
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Concepto</label>
+            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2">Concepto</label>
             <input
               placeholder="Ej: Compra 50 Camisetas"
               value={newExpense.concept}
@@ -46,7 +46,7 @@ export default function Bote_ExpenseForm({ newExpense, setNewExpense, handleAddE
         {/* Cantidad + Categoría */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Cantidad (฿)</label>
+            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2">Cantidad (฿)</label>
             <input
               type="number"
               placeholder="0"
@@ -56,7 +56,7 @@ export default function Bote_ExpenseForm({ newExpense, setNewExpense, handleAddE
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Categoría</label>
+            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2">Categoría</label>
             <select
               value={newExpense.category}
               onChange={e => setNewExpense({ ...newExpense, category: e.target.value })}

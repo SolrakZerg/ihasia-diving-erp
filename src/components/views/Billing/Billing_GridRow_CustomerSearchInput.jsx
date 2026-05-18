@@ -124,9 +124,8 @@ export default function Billing_GridRow_CustomerSearchInput({
       />
 
       {query.length >= 2 && (
-        <div className={`absolute left-0 right-[-140px] z-[1002] bg-white border-2 border-brand/20 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150 ${
-          direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
-        }`}>
+        <div className={`absolute left-0 right-[-140px] z-[1002] bg-white border-2 border-brand/20 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150 ${direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}>
           {isLoading ? (
             <div className="px-4 py-3 text-[11px] text-brand font-black flex items-center gap-2">
               <div className="w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin" />
@@ -164,7 +163,7 @@ export default function Billing_GridRow_CustomerSearchInput({
                     <div className="text-[12px] font-black text-gray-900 group-hover/res:text-brand truncate">
                       {c.first_name} {c.last_name}
                     </div>
-                    <div className="text-[11px] text-slate-500 truncate">{c.email}</div>
+                    <div className="text-[11px] text-brand/90 truncate">{c.email}</div>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <span className="text-[10px] bg-amber-50 text-amber-700 font-black px-2 py-1 rounded-md uppercase tracking-tight shadow-sm border border-amber-100">

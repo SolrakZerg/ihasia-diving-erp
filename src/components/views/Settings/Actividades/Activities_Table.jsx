@@ -7,6 +7,55 @@ function getBadgeStyle(colorStr) {
   return { className: 'text-white border border-white/20 shadow-sm', style: { backgroundColor: colorStr } };
 }
 
+function getAcronymBadgeStyle(activity, getCategoryColor) {
+  const color = activity.color || getCategoryColor(activity.category);
+  if (!color) {
+    return { className: 'bg-brand/10 text-brand px-1.5 py-0.5 rounded border border-brand/20' };
+  }
+  if (color.startsWith('bg-')) {
+    return { className: `px-1.5 py-0.5 rounded ${color}` };
+  }
+  
+  let bgStyle = 'rgba(59, 130, 246, 0.1)';
+  let textStyle = 'rgba(59, 130, 246, 1)';
+  let borderStyle = 'rgba(59, 130, 246, 0.2)';
+  
+  if (color.startsWith('rgba')) {
+    bgStyle = color.replace(/,([^,]*)\)$/, ', 0.1)');
+    borderStyle = color.replace(/,([^,]*)\)$/, ', 0.2)');
+    textStyle = color;
+  } else if (color.startsWith('rgb')) {
+    const rgbMatch = color.match(/\d+/g);
+    if (rgbMatch && rgbMatch.length >= 3) {
+      bgStyle = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 0.1)`;
+      borderStyle = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 0.2)`;
+      textStyle = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 1)`;
+    }
+  } else if (color.startsWith('#')) {
+    let c = color.substring(1).split('');
+    if (c.length === 3) {
+      c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+    }
+    const hexVal = parseInt(c.join(''), 16);
+    const r = (hexVal >> 16) & 255;
+    const g = (hexVal >> 8) & 255;
+    const b = hexVal & 255;
+    bgStyle = `rgba(${r}, ${g}, ${b}, 0.1)`;
+    borderStyle = `rgba(${r}, ${g}, ${b}, 0.2)`;
+    textStyle = `rgba(${r}, ${g}, ${b}, 1)`;
+  }
+  
+  return {
+    className: 'px-1.5 py-0.5 rounded border shadow-sm',
+    style: {
+      backgroundColor: bgStyle,
+      borderColor: borderStyle,
+      color: textStyle
+    }
+  };
+}
+
+
 export default function Activities_Table({
   isNested,
   searchTerm, setSearchTerm,
@@ -172,7 +221,10 @@ export default function Activities_Table({
                     <div className="flex items-center gap-3">
                        <span className="font-bold text-gray-200 text-[16px]">{activity.name}</span>
                        {activity.acronym && (
-                         <span className="text-[12px] font-black bg-brand/10 text-brand px-1.5 py-0.5 rounded border border-brand/20">
+                         <span 
+                           className={`text-[12px] font-black ${getAcronymBadgeStyle(activity, getCategoryColor).className}`}
+                           style={getAcronymBadgeStyle(activity, getCategoryColor).style}
+                         >
                            {activity.acronym}
                          </span>
                        )}

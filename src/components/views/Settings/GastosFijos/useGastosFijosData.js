@@ -69,8 +69,7 @@ export const useGastosFijosData = () => {
     }
   };
 
-  const deleteExpense = async (id, name) => {
-    if (!window.confirm(`¿Seguro que quieres eliminar "${name}"?`)) return;
+  const deleteExpense = async (id) => {
     setSaving(true);
     try {
       const { error } = await supabase.from('fixed_expenses').delete().eq('id', id);

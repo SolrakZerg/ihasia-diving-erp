@@ -87,19 +87,19 @@ export default function Bote_Stats({
         </div>
         <div className="space-y-2 mt-4 pt-4 border-t border-emerald-500/10">
           <div className="flex justify-between items-center">
-            <span className="text-[11px] font-black text-gray-500 uppercase flex items-center gap-2">
+            <span className="text-[11px] font-black text-text-muted uppercase flex items-center gap-2">
               <Shirt className="w-3 h-3" /> Camisetas
             </span>
             <span className="text-[11px] font-black text-white/80">{(stats.tshirts * 160).toLocaleString()} ฿</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] font-black text-gray-500 uppercase flex items-center gap-2">
+            <span className="text-[11px] font-black text-text-muted uppercase flex items-center gap-2">
               <ShieldCheck className="w-3 h-3" /> Seguros
             </span>
             <span className="text-[11px] font-black text-white/80">{(stats.insurances * 75).toLocaleString()} ฿</span>
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-emerald-500/5">
-            <span className="text-[11px] font-black text-gray-500 uppercase flex items-center gap-2">
+            <span className="text-[11px] font-black text-text-muted uppercase flex items-center gap-2">
               Dejado en Caja
             </span>
             <span className="text-[11px] font-black text-rose-400">{(pendingAmount || 0).toLocaleString()} ฿</span>

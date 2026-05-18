@@ -38,7 +38,7 @@ export default function Nominas_AdjModal({
                 autoFocus
                 value={adjModal.amount} 
                 onChange={(e) => setAdjModal(prev => ({ ...prev, amount: e.target.value }))}
-                className="w-full bg-surface-edge/20 border border-surface-edge/50 rounded-[20px] p-6 pl-12 text-4xl font-black text-white outline-none focus:border-brand/50 focus:bg-brand/5 transition-all appearance-none"
+                className="w-full bg-surface-edge/20 border border-surface-edge/50 rounded-[20px] p-6 pl-12 text-4xl font-black text-white outline-none focus:border-brand/50 focus:bg-brand/5 transition-all appearance-none no-spinner"
                 placeholder="0"
               />
             </div>
@@ -58,7 +58,7 @@ export default function Nominas_AdjModal({
         <div className="p-6 bg-white/5 flex gap-4">
           <button 
             onClick={() => setAdjModal({ open: false, day: null, amount: 0, concept: '' })}
-            className="flex-1 px-6 py-5 rounded-2xl font-black text-sm uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+            className="flex-1 btn-modal-cancel"
           >
             Cancelar
           </button>
@@ -67,7 +67,7 @@ export default function Nominas_AdjModal({
               handleAdjUpdate(adjModal.day, adjModal.amount, adjModal.concept);
               setAdjModal({ open: false, day: null, amount: 0, concept: '' });
             }}
-            className="flex-[2] px-6 py-5 rounded-2xl font-black text-base uppercase tracking-widest bg-brand text-[#1a1c2d] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand/20"
+            className="flex-[2] btn-modal-confirm"
           >
             Confirmar
           </button>

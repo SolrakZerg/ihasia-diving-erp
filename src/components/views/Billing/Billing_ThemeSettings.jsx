@@ -5,7 +5,7 @@ import AdvancedColorPicker from '../../common/AdvancedColorPicker';
 // Memorizamos los inputs para que no se re-rendericen mientras el usuario arrastra el ratón
 const ColorInput = memo(({ label, field, value, onChange }) => (
   <div className="flex flex-col gap-1">
-    <label className="text-[9px] font-black text-gray-500 uppercase tracking-wider">{label}</label>
+    <label className="text-[9px] font-black text-text-muted uppercase tracking-wider">{label}</label>
     <div className="flex items-center gap-1.5 h-10">
        <AdvancedColorPicker 
           color={value || 'rgba(0,0,0,1)'} 
@@ -18,7 +18,7 @@ const ColorInput = memo(({ label, field, value, onChange }) => (
 
 const TextInput = memo(({ label, field, value, onChange, placeholder }) => (
   <div className="flex flex-col gap-1">
-    <label className="text-[9px] font-black text-gray-500 uppercase tracking-wider">{label}</label>
+    <label className="text-[9px] font-black text-text-muted uppercase tracking-wider">{label}</label>
     <input 
       type="text" 
       value={value || ''} 
@@ -72,7 +72,7 @@ export default function ThemeSettings({ uiConfig, setUiConfig, updateUIConfig, o
             <Palette className="w-4 h-4 text-brand" />
             DISEÑO ERP
           </h3>
-          <button onClick={handleCancel} className="p-1.5 hover:bg-white/5 rounded-lg text-gray-500 transition-colors">
+          <button onClick={handleCancel} className="p-1.5 hover:bg-white/5 rounded-lg text-text-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>

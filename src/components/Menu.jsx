@@ -7,7 +7,7 @@ import Insurance_View from './views/Insurance/InsuranceView';
 import Settings_View from './views/Settings/Settings';
 import Billing_View from './views/Billing/Billing_View';
 import Expenses_View from './views/Expenses/Expenses_View';
-import SSI_View from './views/SSI/SSIView';
+import SSI_View from './views/SSI/SSI_View';
 import Nominas_View from './views/Nominas/Nominas_View';
 import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_View from './views/Carabao/Carabao_Header';

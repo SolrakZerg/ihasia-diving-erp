@@ -123,7 +123,7 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
           <button 
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white transition-all"
+            className="btn-cancel"
           >
             Cancelar
           </button>

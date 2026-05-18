@@ -99,8 +99,8 @@ export default function Billing_Header({
       }
 
       const actionDesc = {
-        undo: `Deshecho: Nueva factura en blanco eliminada`,
-        redo: `Rehecho: Nueva factura en blanco restaurada`
+        undo: `Nueva factura en blanco eliminada`,
+        redo: `Nueva factura en blanco restaurada`
       };
 
       pushAction({
@@ -161,6 +161,8 @@ export default function Billing_Header({
           expectedCash={expectedCash}
           diffCash={diffCash}
           isSavingCash={isSavingCash}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
         />
 
         <Billing_Header_Finanzas stats={stats} />

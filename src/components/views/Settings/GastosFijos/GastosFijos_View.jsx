@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Building, Ship, ShieldCheck, Banknote, Coins, Receipt,
   Globe, Database, Mail, Phone, MapPin, Globe2,
-  Plus, X as CloseIcon, AlertCircle, CheckCircle2, Trash2
+  Plus, X as CloseIcon, AlertCircle, CheckCircle2, Trash2,
+  Infinity, User, Shield
 } from 'lucide-react';
 import { useGastosFijosData } from './useGastosFijosData';
 import EditableInput from '../../../common/EditableInput';
+import ConfirmModal from '../../../common/ConfirmModal';
 
 const GastosFijos_View = () => {
   const {
@@ -22,8 +24,10 @@ const GastosFijos_View = () => {
     deleteExpense
   } = useGastosFijosData();
 
+  const [confirmConfig, setConfirmConfig] = useState({ show: false, id: null, name: '' });
+
   // Icon mapping for dynamic rendering
-  const iconMap = { Building, Ship, ShieldCheck, Banknote, Coins, Receipt, Globe, Database, Mail, Phone, MapPin, Globe2 };
+  const iconMap = { Building, Ship, ShieldCheck, Banknote, Coins, Receipt, Globe, Database, Mail, Phone, MapPin, Globe2, Infinity, User, Shield };
 
   if (loading) return (
     <div className="flex h-full items-center justify-center bg-surface">
@@ -89,8 +93,8 @@ const GastosFijos_View = () => {
           return (
             <div key={item.id} className="bg-surface-soft border border-surface-edge rounded-3xl p-6 shadow-xl space-y-4 relative group">
               <button
-                onClick={() => deleteExpense(item.id, item.name)}
-                className="absolute top-4 right-4 p-2 rounded-xl bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
+                onClick={() => setConfirmConfig({ show: true, id: item.id, name: item.name })}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-rose-400/10 text-rose-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -101,7 +105,6 @@ const GastosFijos_View = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-black text-white uppercase tracking-wider">{item.name}</h3>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Importe THB mensual</p>
                 </div>
               </div>
 
@@ -133,6 +136,19 @@ const GastosFijos_View = () => {
           Ahora puedes añadir tantos gastos fijos como necesites. Estos valores se utilizan automáticamente en el Dashboard para calcular tus proyecciones de beneficios mensuales.
         </p>
       </div>
+
+      <ConfirmModal
+        show={confirmConfig.show}
+        title="Eliminar Gasto Fijo"
+        message={`¿Estás seguro de que quieres eliminar el gasto fijo "${confirmConfig.name}"? Esta acción no se puede deshacer y afectará a las proyecciones del Dashboard.`}
+        type="danger"
+        confirmationWord="ELIMINAR"
+        onConfirm={() => {
+          deleteExpense(confirmConfig.id);
+          setConfirmConfig({ show: false, id: null, name: '' });
+        }}
+        onCancel={() => setConfirmConfig({ show: false, id: null, name: '' })}
+      />
     </div>
   );
 };

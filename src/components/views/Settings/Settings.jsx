@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { 
+import {
   Handshake,
   DollarSign,
   PiggyBank,
-  Settings as SettingsIcon, 
-  Users, 
-  Receipt, 
+  Settings as SettingsIcon,
+  Users,
+  Receipt,
   Globe,
   Database,
   ShieldCheck,
@@ -75,13 +75,12 @@ export default function SettingsView() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
-                  isActive 
-                    ? 'border-brand text-brand' 
-                    : 'border-transparent text-gray-500 hover:text-white hover:border-gray-700'
-                }`}
+                className={`flex items-center gap-3 px-6 py-4 text-sm font-bold border-b-2 transition-all ${isActive
+                  ? 'border-brand-light text-brand-light'
+                  : 'border-transparent text-text-muted hover:text-white hover:border-surface-edge'
+                  }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-brand' : 'text-gray-500'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-brand-light' : 'text-text-muted'}`} />
                 {tab.label}
               </button>
             );

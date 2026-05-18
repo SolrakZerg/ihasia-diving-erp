@@ -13,8 +13,8 @@ import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
 export const buildDeleteItemsAction = (ids, itemsToDelete, emptyInvoiceIds, invoicesToBackup, fetchData) => ({
   view: 'billing',
   description: {
-    undo: `Deshecho: Eliminación de ${ids.length} registros restaurados`,
-    redo: `Rehecho: ${ids.length} registros eliminados`
+    undo: `Eliminación de ${ids.length} registros restaurados`,
+    redo: `${ids.length} registros eliminados`
   },
   undo: async () => {
     if (invoicesToBackup.length > 0) {
@@ -44,8 +44,8 @@ export const buildDeleteItemsAction = (ids, itemsToDelete, emptyInvoiceIds, invo
 export const buildDeleteInvoiceAction = (invoiceId, customerName, invoiceBackup, itemsBackup, fetchData) => ({
   view: 'billing',
   description: {
-    undo: `Deshecho: Factura de ${customerName} restaurada`,
-    redo: `Rehecho: Factura de ${customerName} eliminada`
+    undo: `Factura de ${customerName} restaurada`,
+    redo: `Factura de ${customerName} eliminada`
   },
   undo: async () => {
     const { error: invErr } = await supabase.from('invoices').insert(invoiceBackup);
@@ -70,8 +70,8 @@ export const buildDeleteInvoiceAction = (invoiceId, customerName, invoiceBackup,
 export const buildDeleteItemRowAction = (itemId, invoiceId, isLastItem, cleanItem, invoiceData, targetDateStr, customerName, onUpdate) => ({
   view: 'billing',
   description: {
-    undo: `Deshecho: Eliminación de registro de ${customerName} restaurado`,
-    redo: `Rehecho: Registro de ${customerName} eliminado`
+    undo: `Registro de ${customerName} restaurado`,
+    redo: `Registro de ${customerName} eliminado`
   },
   undo: async () => {
     if (isLastItem && invoiceData) {
@@ -114,8 +114,8 @@ export const buildDeleteItemRowAction = (itemId, invoiceId, isLastItem, cleanIte
 export const buildAddChildItemAction = (itemId, data, targetDateStr, customerName, onUpdate) => ({
   view: 'billing',
   description: {
-    undo: `Deshecho: Nuevo registro para ${customerName} eliminado`,
-    redo: `Rehecho: Nuevo registro para ${customerName} restaurado`
+    undo: `Nuevo registro para ${customerName} eliminado`,
+    redo: `Nuevo registro para ${customerName} restaurado`
   },
   undo: async () => {
     const { error: delErr } = await supabase.from('invoice_items').delete().eq('id', itemId);
@@ -174,3 +174,95 @@ export const buildItemUpdateAction = (itemId, updates, oldValues, targetDateStr,
     if (onUpdate) onUpdate();
   }
 });
+
+/**
+ * Acción para modificar los billetes del Control de Caja (Caja) en Facturas.
+ * Centraliza la actualización de cash_control_monthly y monthly_reports.
+ */
+export const buildBillingCashControlAction = ({
+  selectedYear,
+  selectedMonth,
+  label,
+  oldVal,
+  newVal,
+  oldBills,
+  newBills,
+  oldTotal,
+  newTotal,
+  setters: {
+    setBills50000,
+    setBills1000,
+    setBills500,
+    setBills100,
+    setBills50,
+    setBills20,
+  }
+}) => {
+  const formattedOldVal = oldVal === '' || oldVal === null || oldVal === undefined ? 0 : Number(oldVal);
+  const formattedNewVal = newVal === '' || newVal === null || newVal === undefined ? 0 : Number(newVal);
+
+  return {
+    view: 'billing',
+    description: {
+      undo: `Billetes de ${label} ฿ restaurados de ${formattedNewVal} a ${formattedOldVal} (Caja: ${oldTotal.toLocaleString()} ฿)`,
+      redo: `Billetes de ${label} ฿ cambiados de ${formattedOldVal} a ${formattedNewVal} (Caja: ${newTotal.toLocaleString()} ฿)`
+    },
+  undo: async () => {
+    const { error: err1 } = await supabase.from('cash_control_monthly').upsert({
+      year: selectedYear,
+      month: selectedMonth + 1,
+      b_50000: oldBills['50.000'],
+      b_1000: oldBills['1.000'],
+      b_500: oldBills['500'],
+      b_100: oldBills['100'],
+      b_50: oldBills['50'],
+      b_20: oldBills['20']
+    }, { onConflict: 'year, month' });
+    if (err1) throw err1;
+
+    const { error: err2 } = await supabase.from('monthly_reports').upsert({
+      year: selectedYear,
+      month: selectedMonth + 1,
+      cash: oldTotal,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'year, month' });
+    if (err2) throw err2;
+
+    setBills50000(oldBills['50.000']);
+    setBills1000(oldBills['1.000']);
+    setBills500(oldBills['500']);
+    setBills100(oldBills['100']);
+    setBills50(oldBills['50']);
+    setBills20(oldBills['20']);
+  },
+  redo: async () => {
+    const { error: err1 } = await supabase.from('cash_control_monthly').upsert({
+      year: selectedYear,
+      month: selectedMonth + 1,
+      b_50000: newBills['50.000'],
+      b_1000: newBills['1.000'],
+      b_500: newBills['500'],
+      b_100: newBills['100'],
+      b_50: newBills['50'],
+      b_20: newBills['20']
+    }, { onConflict: 'year, month' });
+    if (err1) throw err1;
+
+    const { error: err2 } = await supabase.from('monthly_reports').upsert({
+      year: selectedYear,
+      month: selectedMonth + 1,
+      cash: newTotal,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'year, month' });
+    if (err2) throw err2;
+
+    setBills50000(newBills['50.000']);
+    setBills1000(newBills['1.000']);
+    setBills500(newBills['500']);
+    setBills100(newBills['100']);
+    setBills50(newBills['50']);
+    setBills20(newBills['20']);
+  }
+};
+};
+

@@ -5,6 +5,7 @@ import Expenses_Daily_Table from './Expenses_Daily_Table';
 import Expenses_Commissions_Table from './Expenses_Commissions_Table';
 import Expenses_Oxygen_Table from './Expenses_Oxygen_Table';
 import Expenses_ConfigModal from './Expenses_ConfigModal';
+import ConfirmModal from '../../common/ConfirmModal';
 import { AlertCircle, PlusCircle } from 'lucide-react';
 
 const Expenses_View = () => {
@@ -73,39 +74,17 @@ const Expenses_View = () => {
     <div className="h-full flex flex-col bg-surface md:overflow-hidden overflow-auto relative">
 
       {/* CONFIRMATION MODAL */}
-      {confirmConfig.show && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface-soft border border-surface-edge w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 rounded-2xl ${confirmConfig.type === 'danger' ? 'bg-danger/10 text-danger' : 'bg-brand/10 text-brand'}`}>
-                  <AlertCircle className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-black text-white">{confirmConfig.title}</h3>
-              </div>
-              <p className="text-text-header/60 font-bold ml-16">{confirmConfig.message}</p>
-            </div>
-            <div className="bg-surface-edge/20 px-6 py-4 flex justify-end gap-3">
-              <button 
-                onClick={() => setConfirmConfig({ ...confirmConfig, show: false })}
-                className="px-4 py-2 rounded-xl text-sm font-black text-text-header hover:text-white hover:bg-surface-edge/30 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={() => {
-                  if (confirmConfig.onConfirm) confirmConfig.onConfirm();
-                }}
-                className={`px-5 py-2 rounded-xl text-sm font-black text-white shadow-lg transition-all ${
-                  confirmConfig.type === 'danger' ? 'bg-danger hover:bg-danger/80 shadow-danger/20' : 'bg-brand hover:bg-brand-light shadow-brand/20'
-                }`}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        show={confirmConfig.show}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        onConfirm={() => {
+          if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+          setConfirmConfig(prev => ({ ...prev, show: false }));
+        }}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, show: false }))}
+      />
 
       {/* HEADER */}
       <Expenses_Header 

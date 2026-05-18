@@ -3,11 +3,14 @@ import { Settings as SettingsIcon, CheckCircle2, FileText, X as CloseIcon, Alert
 import { supabase } from '../../../lib/supabaseClient';
 import { recalculateCarabaoSettlement } from '../../../lib/carabaoSettlement';
 import EditableInput from '../../common/EditableInput';
+import { useUndo } from '../../../context/UndoContext';
+import { buildCarabaoPaidAction } from './carabaoUndoActions';
 
 export default function Carabao_Sidebar({ invoiceItems, allActivities, month, year, settlementId, paidAmount, setPaidAmount, setSettlementId, showSettings, setShowSettings, setAllActivities, totalAmount, fetchSettlement }) {
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { pushAction } = useUndo();
 
   useEffect(() => {
     if (toast) {
@@ -107,9 +110,12 @@ export default function Carabao_Sidebar({ invoiceItems, allActivities, month, ye
                 onSave={async (value) => {
                    const numVal = parseInt(value);
                    const finalVal = isNaN(numVal) ? 0 : numVal;
-                   setPaidAmount(finalVal);
-                   await saveSettlement(finalVal);
-                   setRefreshKey(prev => prev + 1);
+                   if (finalVal !== paidAmount) {
+                     pushAction(buildCarabaoPaidAction(month, year, paidAmount, finalVal, totalAmount, fetchSettlement));
+                     setPaidAmount(finalVal);
+                     await saveSettlement(finalVal);
+                     setRefreshKey(prev => prev + 1);
+                   }
                 }}
                 className="w-full bg-transparent text-3xl font-black text-white outline-none !border-none !ring-0 focus:!ring-0 transition-colors no-spinner tracking-tighter"
                 placeholder="0"

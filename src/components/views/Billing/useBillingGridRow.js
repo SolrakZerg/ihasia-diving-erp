@@ -220,16 +220,16 @@ export function useBillingGridRow({
       // Construcción del Toast hiper-detallado de deshacer/rehacer
       const customerName = item.customers?.first_name || item.temporary_name || 'Sin nombre';
       let actionDesc = {
-        undo: `Deshecho: Modificación en factura de ${customerName}`,
-        redo: `Rehecho: Modificación en factura de ${customerName}`
+        undo: `Modificación en factura de ${customerName}`,
+        redo: `Modificación en factura de ${customerName}`
       };
 
       if (updates.customer_id !== undefined) {
         const oldCustName = item.customers ? `${item.customers.first_name || ''} ${item.customers.last_name || ''}`.trim() : (item.temporary_name || 'Ninguno');
         const newCustName = updates._customer ? `${updates._customer.first_name || ''} ${updates._customer.last_name || ''}`.trim() : 'Ninguno';
         actionDesc = {
-          undo: `Deshecho: Cliente de factura restaurado a '${oldCustName}' (era '${newCustName}')`,
-          redo: `Rehecho: Cliente de factura cambiado a '${newCustName}' (era '${oldCustName}')`
+          undo: `Cliente de factura restaurado a '${oldCustName}' (era '${newCustName}')`,
+          redo: `Cliente de factura cambiado a '${newCustName}' (era '${oldCustName}')`
         };
       } else if (typeof fieldOrUpdates === 'string') {
         const field = fieldOrUpdates;
@@ -238,32 +238,32 @@ export function useBillingGridRow({
 
         if (field === 'unit_price_thb') {
           actionDesc = {
-            undo: `Deshecho: Precio de factura de ${customerName} restaurado a ${oldVal || 0} ฿ (era ${newVal || 0} ฿)`,
-            redo: `Rehecho: Precio de factura de ${customerName} cambiado a ${newVal || 0} ฿ (era ${oldVal || 0} ฿)`
+            undo: `Precio de factura de ${customerName} restaurado a ${oldVal || 0} ฿ (era ${newVal || 0} ฿)`,
+            redo: `Precio de factura de ${customerName} cambiado a ${newVal || 0} ฿ (era ${oldVal || 0} ฿)`
           };
         } else if (field === 'status') {
           const oldLabel = oldVal === 'Paid' ? 'PAGADO' : 'PENDIENTE';
           const newLabel = newVal === 'Paid' ? 'PAGADO' : 'PENDIENTE';
           actionDesc = {
-            undo: `Deshecho: Estado de factura de ${customerName} restaurado a ${oldLabel} (era ${newLabel})`,
-            redo: `Rehecho: Estado de factura de ${customerName} cambiado a ${newLabel} (era ${oldLabel})`
+            undo: `Estado de factura de ${customerName} restaurado a ${oldLabel} (era ${newLabel})`,
+            redo: `Estado de factura de ${customerName} cambiado a ${newLabel} (era ${oldLabel})`
           };
         } else if (field === 'quantity') {
           actionDesc = {
-            undo: `Deshecho: Cantidad de factura de ${customerName} restaurada a ${oldVal || 0} (era ${newVal || 0})`,
-            redo: `Rehecho: Cantidad de factura de ${customerName} cambiada a ${newVal || 0} (era ${oldVal || 0})`
+            undo: `Cantidad de factura de ${customerName} restaurada a ${oldVal || 0} (era ${newVal || 0})`,
+            redo: `Cantidad de factura de ${customerName} cambiada a ${newVal || 0} (era ${oldVal || 0})`
           };
         } else if (field === 'payment_method') {
           actionDesc = {
-            undo: `Deshecho: Método de pago de ${customerName} restaurado a '${oldVal || 'Ninguno'}' (era '${newVal || 'Ninguno'}')`,
-            redo: `Rehecho: Método de pago de ${customerName} cambiado a '${newVal || 'Ninguno'}' (era '${oldVal || 'Ninguno'}')`
+            undo: `Método de pago de ${customerName} restaurado a '${oldVal || 'Ninguno'}' (era '${newVal || 'Ninguno'}')`,
+            redo: `Método de pago de ${customerName} cambiado a '${newVal || 'Ninguno'}' (era '${oldVal || 'Ninguno'}')`
           };
         } else if (field === 'is_comm') {
           const oldComm = oldVal ? 'SÍ' : 'NO';
           const newComm = newVal ? 'SÍ' : 'NO';
           actionDesc = {
-            undo: `Deshecho: Comisión de ${customerName} restaurada a ${oldComm} (era ${newComm})`,
-            redo: `Rehecho: Comisión de ${customerName} cambiada a ${newComm} (era ${oldComm})`
+            undo: `Comisión de ${customerName} restaurada a ${oldComm} (era ${newComm})`,
+            redo: `Comisión de ${customerName} cambiada a ${newComm} (era ${oldComm})`
           };
         } else if (field === 'instructor_id') {
           const getInitials = (id) => {
@@ -274,8 +274,8 @@ export function useBillingGridRow({
           const oldInitials = getInitials(oldVal);
           const newInitials = getInitials(newVal);
           actionDesc = {
-            undo: `Deshecho: Instructor de ${customerName} restaurado a ${oldInitials} (era ${newInitials})`,
-            redo: `Rehecho: Instructor de ${customerName} cambiado a ${newInitials} (era ${oldInitials})`
+            undo: `Instructor de ${customerName} restaurado a ${oldInitials} (era ${newInitials})`,
+            redo: `Instructor de ${customerName} cambiado a ${newInitials} (era ${oldInitials})`
           };
         } else if (field === 'activity_id') {
           const getName = (id) => {
@@ -286,18 +286,23 @@ export function useBillingGridRow({
           const oldName = getName(oldVal);
           const newName = getName(newVal);
           actionDesc = {
-            undo: `Deshecho: Actividad de ${customerName} restaurada a '${oldName}' (era '${newName}')`,
-            redo: `Rehecho: Actividad de ${customerName} cambiada a '${newName}' (era '${oldName}')`
+            undo: `Actividad de ${customerName} restaurada a '${oldName}' (era '${newName}')`,
+            redo: `Actividad de ${customerName} cambiada a '${newName}' (era '${oldName}')`
           };
         } else if (field === 'temporary_name') {
           actionDesc = {
-            undo: `Deshecho: Nombre provisional restaurado a '${oldVal || 'Ninguno'}' (era '${newVal || 'Ninguno'}')`,
-            redo: `Rehecho: Nombre provisional cambiado a '${newVal || 'Ninguno'}' (era '${oldVal || 'Ninguno'}')`
+            undo: `Nombre provisional restaurado a '${oldVal || 'Ninguno'}' (era '${newVal || 'Ninguno'}')`,
+            redo: `Nombre provisional cambiado a '${newVal || 'Ninguno'}' (era '${oldVal || 'Ninguno'}')`
+          };
+        } else if (field === 'notes') {
+          actionDesc = {
+            undo: `Notas de ${customerName} restauradas a '${oldVal || 'vacío'}' (eran '${newVal || 'vacío'}')`,
+            redo: `Notas de ${customerName} cambiadas a '${newVal || 'vacío'}' (eran '${oldVal || 'vacío'}')`
           };
         } else {
           actionDesc = {
-            undo: `Deshecho: Campo '${field}' restaurado a '${oldVal || ''}' (era '${newVal || ''}') en factura de ${customerName}`,
-            redo: `Rehecho: Campo '${field}' cambiado a '${newVal || ''}' (era '${oldVal || ''}') en factura de ${customerName}`
+            undo: `Campo '${field}' restaurado a '${oldVal || ''}' (era '${newVal || ''}') en factura de ${customerName}`,
+            redo: `Campo '${field}' cambiado a '${newVal || ''}' (era '${oldVal || ''}') en factura de ${customerName}`
           };
         }
       }

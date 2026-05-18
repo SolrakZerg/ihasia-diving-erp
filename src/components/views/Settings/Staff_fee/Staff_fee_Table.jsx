@@ -13,7 +13,15 @@ export default function Staff_fee_Table({
   cancelEdit,
   startEditing,
   deletePayout,
+  categories = [],
 }) {
+  const getCategoryTextColorClass = (catName) => {
+    const cat = categories.find(c => c.name === catName);
+    if (!cat || !cat.color) return 'text-gray-500';
+    const classes = cat.color.split(' ');
+    const textClass = classes.find(cls => cls.startsWith('text-'));
+    return textClass || 'text-gray-500';
+  };
   return (
     <div className="bg-surface-soft rounded-2xl border border-surface-edge overflow-hidden shadow-xl flex flex-col min-h-[400px]">
       {/* CSS para quitar spinners de inputs tipo number */}
@@ -21,11 +29,11 @@ export default function Staff_fee_Table({
         __html: `
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
+        -webkit-appearance: none; 
+        margin: 0; 
         }
         input[type=number] {
-          -moz-appearance: textfield;
+        -moz-appearance: textfield;
         }
       `}} />
 
@@ -38,7 +46,7 @@ export default function Staff_fee_Table({
               <SortableTh label="Acr." colKey="acronym" sortConfig={sortConfig} handleSort={handleSort} center className="w-16" />
               <SortableTh label="Tipo" colKey="type" sortConfig={sortConfig} handleSort={handleSort} center className="w-24" />
               <SortableTh label="Cuota (THB)" colKey="amount_thb" sortConfig={sortConfig} handleSort={handleSort} right className="w-32" />
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right w-12">
+              <th className="px-6 py-4 text-[10px] font-black text-text-header uppercase tracking-widest text-right w-12">
                 Acc.
               </th>
             </tr>
@@ -60,7 +68,7 @@ export default function Staff_fee_Table({
                       {p.activities?.name || p.concept_name}
                     </span>
                     {p.activities?.category && (
-                      <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">
+                      <span className={`text-[10px] uppercase font-bold tracking-tighter mt-0.5 ${getCategoryTextColorClass(p.activities.category)}`}>
                         {p.activities.category}
                       </span>
                     )}
@@ -116,8 +124,8 @@ export default function Staff_fee_Table({
 
       {/* Footer informativo */}
       <div className="p-4 bg-surface-edge/10 border-t border-surface-edge flex items-center gap-3">
-        <AlertCircle className="w-4 h-4 text-gray-500 shrink-0" />
-        <p className="text-[11px] text-gray-500">
+        <AlertCircle className="w-4 h-4 text-text-muted shrink-0" />
+        <p className="text-[11px] text-text-muted">
           Estos montos se usarán para calcular automáticamente la liquidación del staff en facturas y salidas.
         </p>
       </div>
@@ -133,7 +141,7 @@ function SortableTh({ label, colKey, sortConfig, handleSort, center, right, clas
   return (
     <th
       onClick={() => handleSort(colKey)}
-      className={`px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-surface-edge/50 transition-colors group ${thAlign} ${className}`}
+      className={`px-6 py-4 text-[10px] font-black text-text-header uppercase tracking-widest cursor-pointer hover:bg-surface-edge/50 transition-colors group ${thAlign} ${className}`}
     >
       <div className={`flex items-center gap-2 ${align}`}>
         {label}

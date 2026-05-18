@@ -17,8 +17,8 @@ const getRecipientName = (id, options) => {
  */
 export const buildUpdateItemAction = (itemId, field, value, oldValue, item, recipientOptions, fetchData) => {
   const desc = {
-    undo: `Deshecho: Modificación restaurada en Comisiones/Oxígeno`,
-    redo: `Rehecho: Modificación aplicada en Comisiones/Oxígeno`
+    undo: `Modificación restaurada en Comisiones/Oxígeno`,
+    redo: `Modificación aplicada en Comisiones/Oxígeno`
   };
   
   const clientName = `${item?.customers?.first_name || ''} ${item?.customers?.last_name || ''}`.trim() || 'Cliente';
@@ -27,24 +27,24 @@ export const buildUpdateItemAction = (itemId, field, value, oldValue, item, reci
   if (field === 'comm_recipient_id') {
     const oldName = getRecipientName(oldValue, recipientOptions);
     const newName = getRecipientName(value, recipientOptions);
-    desc.undo = `Deshecho: Receptor de comisión de ${clientName} (${activityName}) restaurado a ${oldName} (era ${newName})`;
-    desc.redo = `Rehecho: Receptor de comisión de ${clientName} (${activityName}) cambiado a ${newName}`;
+    desc.undo = `Receptor de comisión de ${clientName} (${activityName}) restaurado a ${oldName} (era ${newName})`;
+    desc.redo = `Receptor de comisión de ${clientName} (${activityName}) cambiado a ${newName}`;
   } else if (field === 'is_comm_paid') {
     const oldLabel = oldValue ? 'PAGADO' : 'PENDIENTE';
     const newLabel = value ? 'PAGADO' : 'PENDIENTE';
-    desc.undo = `Deshecho: Estado de comisión de ${clientName} (${activityName}) restaurado a ${oldLabel}`;
-    desc.redo = `Rehecho: Estado de comisión de ${clientName} (${activityName}) cambiado a ${newLabel}`;
+    desc.undo = `Estado de comisión de ${clientName} (${activityName}) restaurado a ${oldLabel}`;
+    desc.redo = `Estado de comisión de ${clientName} (${activityName}) cambiado a ${newLabel}`;
   } else if (field === 'comm_amount_thb') {
-    desc.undo = `Deshecho: Comisión de ${clientName} (${activityName}) restaurada a ${oldValue || 0} ฿ (era ${value || 0} ฿)`;
-    desc.redo = `Rehecho: Comisión de ${clientName} (${activityName}) cambiada a ${value || 0} ฿`;
+    desc.undo = `Comisión de ${clientName} (${activityName}) restaurada a ${oldValue || 0} ฿ (era ${value || 0} ฿)`;
+    desc.redo = `Comisión de ${clientName} (${activityName}) cambiada a ${value || 0} ฿`;
   } else if (field === 'is_prov_paid') {
     const oldLabel = oldValue ? 'PAGADO' : 'PENDIENTE';
     const newLabel = value ? 'PAGADO' : 'PENDIENTE';
-    desc.undo = `Deshecho: Pago a proveedor snorkel de ${clientName} restaurado a ${oldLabel}`;
-    desc.redo = `Rehecho: Pago a proveedor snorkel de ${clientName} cambiado a ${newLabel}`;
+    desc.undo = `Pago a proveedor snorkel de ${clientName} restaurado a ${oldLabel}`;
+    desc.redo = `Pago a proveedor snorkel de ${clientName} cambiado a ${newLabel}`;
   } else if (field === 'quantity') {
-    desc.undo = `Deshecho: Plazas de snorkel de ${clientName} restauradas a ${oldValue} (eran ${value})`;
-    desc.redo = `Rehecho: Plazas de snorkel de ${clientName} actualizadas a ${value}`;
+    desc.undo = `Plazas de snorkel de ${clientName} restauradas a ${oldValue} (eran ${value})`;
+    desc.redo = `Plazas de snorkel de ${clientName} actualizadas a ${value}`;
   }
 
   return {
@@ -68,8 +68,8 @@ export const buildUpdateItemAction = (itemId, field, value, oldValue, item, reci
  */
 export const buildExpenseUpdateAction = (id, field, value, oldValue, expenseDescription, fetchData) => {
   const desc = {
-    undo: `Deshecho: Campo '${field}' restaurado a '${oldValue || ''}' (era '${value || ''}') en Gasto '${expenseDescription}'`,
-    redo: `Rehecho: Campo '${field}' cambiado a '${value || ''}' (era '${oldValue || ''}') en Gasto '${expenseDescription}'`
+    undo: `Campo '${field}' restaurado a '${oldValue || ''}' (era '${value || ''}') en Gasto '${expenseDescription}'`,
+    redo: `Campo '${field}' cambiado a '${value || ''}' (era '${oldValue || ''}') en Gasto '${expenseDescription}'`
   };
 
   return {
@@ -94,8 +94,8 @@ export const buildExpenseUpdateAction = (id, field, value, oldValue, expenseDesc
 export const buildAddExpenseAction = (newExpense, fetchData) => ({
   view: 'expenses',
   description: {
-    undo: `Deshecho: Gasto '${newExpense.description}' de ${newExpense.amount} ฿ eliminado`,
-    redo: `Rehecho: Gasto '${newExpense.description}' de ${newExpense.amount} ฿ vuelto a crear`
+    undo: `Gasto '${newExpense.description}' de ${newExpense.amount} ฿ eliminado`,
+    redo: `Gasto '${newExpense.description}' de ${newExpense.amount} ฿ vuelto a crear`
   },
   undo: async () => {
     const { error } = await supabase.from('daily_expenses').delete().eq('id', newExpense.id);
@@ -115,8 +115,8 @@ export const buildAddExpenseAction = (newExpense, fetchData) => ({
 export const buildRemoveExpenseAction = (expenseItem, fetchData) => ({
   view: 'expenses',
   description: {
-    undo: `Deshecho: Gasto '${expenseItem.description}' de ${expenseItem.amount} ฿ restaurado`,
-    redo: `Rehecho: Gasto '${expenseItem.description}' de ${expenseItem.amount} ฿ eliminado`
+    undo: `Gasto '${expenseItem.description}' de ${expenseItem.amount} ฿ restaurado`,
+    redo: `Gasto '${expenseItem.description}' de ${expenseItem.amount} ฿ eliminado`
   },
   undo: async () => {
     const { error } = await supabase.from('daily_expenses').insert(expenseItem);

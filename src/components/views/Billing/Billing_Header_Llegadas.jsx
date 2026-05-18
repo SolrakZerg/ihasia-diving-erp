@@ -78,7 +78,7 @@ export default function Billing_Header_Llegadas({
                     setSelectedArrivalIds(s);
                   }}
                 >
-                  <td className="py-0.5 px-1.5 w-6 text-center text-gray-500 text-[10px] font-mono">{i + 1}</td>
+                  <td className="py-0.5 px-1.5 w-6 text-center text-text-muted text-[10px] font-mono">{i + 1}</td>
                   <td className="py-0.5 px-1.5 w-6 text-center">
                     <input
                       type="checkbox"

@@ -19,6 +19,7 @@ export default function Staff_fee_View() {
     saveEdit,
     formData, setFormData,
     confirmConfig, setConfirmConfig,
+    categories,
   } = useStaffFeeData();
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ export default function Staff_fee_View() {
         handleSort={handleSort}
         saveEdit={saveEdit}
         deletePayout={deletePayout}
+        categories={categories}
       />
 
       {/* Modal confirmación */}

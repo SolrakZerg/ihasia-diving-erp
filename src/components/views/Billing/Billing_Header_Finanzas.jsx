@@ -39,25 +39,25 @@ export default function Billing_Header_Finanzas({ stats }) {
         {/* Desglose por método de pago */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 py-1.5 border-y border-surface-edge/20">
           <div>
-            <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">Wise BT</span>
+            <span className="text-text-muted text-[12px] uppercase font-black block leading-none">Wise BT</span>
             <span className="text-pink-400 font-black text-[16px]">
               {stats.wiseBT.toLocaleString()} <span className="text-[10px] opacity-50">฿</span>
             </span>
           </div>
           <div className="text-right">
-            <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">Wise CR</span>
+            <span className="text-text-muted text-[12px] uppercase font-black block leading-none">Wise CR</span>
             <span className="text-blue-400 font-black text-[16px]">
               {stats.wiseCR.toLocaleString()} <span className="text-[10px] opacity-50">฿</span>
             </span>
           </div>
           <div>
-            <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">EUR BT</span>
+            <span className="text-text-muted text-[12px] uppercase font-black block leading-none">EUR BT</span>
             <span className="text-pink-400 font-black text-[16px]">
               {stats.eurBT.toLocaleString()} <span className="text-[10px] opacity-50">฿</span>
             </span>
           </div>
           <div className="text-right">
-            <span className="text-gray-500 text-[12px] uppercase font-black block leading-none">EUR CR</span>
+            <span className="text-text-muted text-[12px] uppercase font-black block leading-none">EUR CR</span>
             <span className="text-blue-400 font-black text-[16px]">
               {stats.eurCR.toLocaleString()} <span className="text-[10px] opacity-50">฿</span>
             </span>

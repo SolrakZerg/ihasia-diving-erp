@@ -24,16 +24,16 @@ export default function Billing_Header_Filtros({
 
         {/* Buscador de clientes */}
         <div className="relative group w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 group-focus-within:text-brand transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted group-focus-within:text-brand transition-colors" />
           <input
             type="text"
             placeholder="NOMBRE O APELLIDO..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-8 w-full bg-surface-soft/40 border border-gray-500 rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-gray-400 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
+            className="h-8 w-full bg-surface-soft/40 border border-surface-edge rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-text-muted outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1">
+            <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors p-1">
               <CloseIcon className="w-3 h-3" />
             </button>
           )}
@@ -41,16 +41,16 @@ export default function Billing_Header_Filtros({
 
         {/* Buscador de actividades */}
         <div className="relative group w-full">
-          <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 group-focus-within:text-brand transition-colors" />
+          <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted group-focus-within:text-brand transition-colors" />
           <input
             type="text"
             placeholder="ACTIVIDAD (EJ. OPEN...)"
             value={activitySearch}
             onChange={(e) => setActivitySearch(e.target.value)}
-            className="h-8 w-full bg-surface-soft/40 border border-gray-500 rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-gray-400 outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
+            className="h-8 w-full bg-surface-soft/40 border border-surface-edge rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-text-muted outline-none focus:border-brand/40 focus:ring-4 focus:ring-brand/5 transition-all shadow-inner tracking-widest uppercase"
           />
           {activitySearch && (
-            <button onClick={() => setActivitySearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1">
+            <button onClick={() => setActivitySearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors p-1">
               <CloseIcon className="w-3 h-3" />
             </button>
           )}
@@ -58,28 +58,36 @@ export default function Billing_Header_Filtros({
 
         {/* Buscador de instructor */}
         <div className="relative group w-full">
-          <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+          <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted group-focus-within:text-blue-400 transition-colors" />
           <input
             type="text"
             placeholder="INSTRUCTOR..."
             value={instructorSearch}
             onChange={(e) => setInstructorSearch(e.target.value)}
-            className="h-8 w-full bg-surface-soft/40 border border-gray-500 rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-gray-400 outline-none focus:border-blue-400/40 focus:ring-4 focus:ring-blue-400/5 transition-all shadow-inner tracking-widest uppercase"
+            className="h-8 w-full bg-surface-soft/40 border border-surface-edge rounded-lg pl-8 pr-8 text-[9px] font-black text-white placeholder:text-text-muted outline-none focus:border-blue-400/40 focus:ring-4 focus:ring-blue-400/5 transition-all shadow-inner tracking-widest uppercase"
           />
         </div>
 
         {/* Fila 1: Método de pago + toggle comisionable */}
         <div className="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-surface-edge/20">
-          <div className="relative group">
-            <CreditCard className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 transition-colors pointer-events-none ${paymentMethodSearch ? 'text-amber-400' : 'text-gray-500'}`} />
+          <div className="relative h-8 w-full group">
+            {/* Presentador visual perfectamente centrado e idéntico a los otros botones */}
+            <div
+              className={`absolute inset-0 flex items-center justify-center gap-2 px-2 py-1 rounded-lg text-[9px] font-black border shadow-sm transition-all uppercase tracking-tighter pointer-events-none ${
+                paymentMethodSearch
+                  ? 'bg-amber-600/10 border-amber-500/50 text-amber-400'
+                  : 'bg-surface border-surface-edge text-gray-400 group-hover:text-white'
+              }`}
+            >
+              <CreditCard className={`w-3 h-3 ${paymentMethodSearch ? 'text-amber-400' : 'text-text-muted'}`} />
+              <span>{paymentMethodSearch || 'PAGO (TODO)'}</span>
+            </div>
+
+            {/* Selector nativo transparente que captura los clics */}
             <select
               value={paymentMethodSearch}
               onChange={(e) => setPaymentMethodSearch(e.target.value)}
-              className={`h-8 w-full rounded-lg pl-8 pr-2 text-[9px] font-black outline-none transition-all border shadow-sm cursor-pointer appearance-none uppercase tracking-tighter ${
-                paymentMethodSearch
-                  ? 'bg-amber-600/10 border-amber-500/50 text-amber-400'
-                  : 'bg-surface border-surface-edge text-gray-400 hover:text-white'
-              }`}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[9px]"
             >
               <option value="" className="bg-slate-900 text-gray-400">PAGO (TODO)</option>
               <option value="WISE BT" className="bg-slate-900 text-white">WISE BT</option>

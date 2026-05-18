@@ -81,7 +81,7 @@ export default function Staff_Details({ member, isOpen, onClose }) {
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Estado</p>
-              <span className={`text-[10px] px-2 py-1 rounded-lg border font-black uppercase ${member.active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
+              <span className={`text-[10px] px-2 py-1 rounded-lg border font-black uppercase ${member.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-400/10 text-rose-400 border-rose-400/20'}`}>
                 {member.active ? 'Activo' : 'Inactivo'}
               </span>
             </div>

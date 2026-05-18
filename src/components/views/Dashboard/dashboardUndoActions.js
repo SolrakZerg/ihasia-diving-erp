@@ -16,8 +16,8 @@ export const buildDashboardOpeningCashAction = (year, month, oldVal, newVal, fet
   return {
     view: 'dashboard',
     description: {
-      undo: `Deshecho: Caja Inicial cambiada de ${newNum.toLocaleString()} a ${oldNum.toLocaleString()}`,
-      redo: `Rehecho: Caja Inicial cambiada de ${oldNum.toLocaleString()} a ${newNum.toLocaleString()}`
+      undo: `Caja Inicial cambiada de ${newNum.toLocaleString()} a ${oldNum.toLocaleString()}`,
+      redo: `Caja Inicial cambiada de ${oldNum.toLocaleString()} a ${newNum.toLocaleString()}`
     },
     undo: async () => {
       const { error } = await supabase.from('monthly_reports').upsert({
@@ -60,8 +60,8 @@ export const buildDashboardPendingAction = (year, month, col, name, oldVal, newV
   return {
     view: 'dashboard',
     description: {
-      undo: `Deshecho: Pendiente de ${name} cambiado de ${formatValue(newVal)} a ${formatValue(oldVal)}`,
-      redo: `Rehecho: Pendiente de ${name} cambiado de ${formatValue(oldVal)} a ${formatValue(newVal)}`
+      undo: `Pendiente de ${name} cambiado de ${formatValue(newVal)} a ${formatValue(oldVal)}`,
+      redo: `Pendiente de ${name} cambiado de ${formatValue(oldVal)} a ${formatValue(newVal)}`
     },
     undo: async () => {
       const { error: rErr } = await supabase.from('monthly_reports').upsert({

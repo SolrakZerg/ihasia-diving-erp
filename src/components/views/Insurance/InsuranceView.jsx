@@ -173,7 +173,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
             <div className="flex justify-end gap-3 mt-8">
               <button 
                 onClick={() => setShowSettingsModal(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold text-text-muted hover:text-white hover:bg-surface-edge transition-colors"
+                className="btn-cancel"
               >
                 Cancelar
               </button>

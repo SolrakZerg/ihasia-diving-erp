@@ -309,7 +309,7 @@ export default function Staff_Table({
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase transition-all border ${
                         member.active
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white'
-                          : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white'
+                          : 'bg-rose-400/10 border-rose-400/30 text-rose-400 hover:bg-rose-500 hover:text-white'
                       }`}
                     >
                       <div className={`w-1.5 h-1.5 rounded-full ${member.active ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
@@ -319,7 +319,7 @@ export default function Staff_Table({
                   <td className="px-3 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => startEditing(member)} className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-brand hover:bg-brand/10 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => deleteStaff(member.id)} className="p-1.5 rounded-lg bg-surface-edge/30 text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => deleteStaff(member.id)} className="p-1.5 rounded-lg bg-rose-400/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </td>
                 </tr>

@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import SSIHeader from './SSIHeader';
-import SSITable from './SSITable';
-import SSISidebar from './SSISidebar';
-import SSIConfigModal from './SSIConfigModal';
+import { useUndo } from '../../../context/UndoContext';
+import { 
+  buildSsiAdjustmentAction, 
+  buildSsiAdelantoAction, 
+  buildSsiPaidAction 
+} from './ssiUndoActions';
+import SSIHeader from './SSI_Header';
+import SSITable from './SSI_Table';
+import SSISidebar from './SSI_Sidebar';
+import SSIConfigModal from './SSI_ConfigModal';
 
 export default function TestSSIView() {
+  const { pushAction, refreshTrigger } = useUndo();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [allActivities, setAllActivities] = useState([]);
@@ -42,6 +49,13 @@ export default function TestSSIView() {
   useEffect(() => {
     fetchData();
   }, [selectedMonth, selectedYear, allActivities]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("🔄 [SSI_View] Deshacer/Rehacer detectado. Recargando datos...");
+      fetchData(true);
+    }
+  }, [refreshTrigger]);
 
   // Recalcular el Total SSI cuando cambian los datos o los ajustes
   useEffect(() => {
@@ -189,7 +203,12 @@ export default function TestSSIView() {
 
   const handleManualAdjustmentChange = async (activityId, newValue) => {
     const val = parseInt(newValue) || 0;
-    
+    const activityItem = data.find(item => item.id === activityId);
+    const activityName = activityItem ? activityItem.name : 'Actividad';
+    const oldVal = activityItem ? activityItem.manual_adjustment : 0;
+
+    if (val === oldVal) return;
+
     // Optimistic update
     setData(prev => prev.map(item => {
       if (item.id === activityId) {
@@ -204,6 +223,9 @@ export default function TestSSIView() {
       return item;
     }));
 
+    // Registrar en la pila deshacer
+    pushAction(buildSsiAdjustmentAction(activityId, activityName, selectedYear, selectedMonth, oldVal, val, fetchData));
+
     // Guardar en la base de datos (ssi_monthly_breakdown)
     await supabase
       .from('ssi_monthly_breakdown')
@@ -217,6 +239,28 @@ export default function TestSSIView() {
     // El trigger en la BD actualizará el total en supplier_settlements
     // Recargamos los datos para estar seguros
     setTimeout(() => fetchData(true), 500);
+  };
+
+  const handleAdelantoChange = async (newValue) => {
+    const val = parseInt(newValue) || 0;
+    if (val === mesAnterior) return;
+
+    // Registrar en la pila deshacer
+    pushAction(buildSsiAdelantoAction(mesAnterior, val, setMesAnterior, saveSettlement, manualPaid));
+
+    setMesAnterior(val);
+    await saveSettlement(val, manualPaid);
+  };
+
+  const handlePaidChange = async (newValue) => {
+    const val = parseInt(newValue) || 0;
+    if (val === manualPaid) return;
+
+    // Registrar en la pila deshacer
+    pushAction(buildSsiPaidAction(manualPaid, val, setManualPaid, saveSettlement, mesAnterior));
+
+    setManualPaid(val);
+    await saveSettlement(mesAnterior, val);
   };
 
   const saveSettlement = async (next, manual) => {
@@ -344,9 +388,8 @@ export default function TestSSIView() {
             manualPaid={manualPaid}
             totalSsi={totalSsi}
             adjustmentsTotal={adjustmentsTotal}
-            setMesAnterior={setMesAnterior}
-            setManualPaid={setManualPaid}
-            saveSettlement={saveSettlement}
+            onAdelantoSave={handleAdelantoChange}
+            onPaidSave={handlePaidChange}
           />
         </div>
       </div>

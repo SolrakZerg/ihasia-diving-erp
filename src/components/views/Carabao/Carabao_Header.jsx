@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import Carabao_Table from './Carabao_Table';
 import Carabao_Invoice_View from './Carabao_Invoice_View';
 import Carabao_Sidebar from './Carabao_Sidebar';
+import { useUndo } from '../../../context/UndoContext';
 
 const noSpinnerStyle = `
   .no-spinner::-webkit-outer-spin-button,
@@ -31,6 +32,8 @@ export default function Carabao_Header() {
   const [showSettings, setShowSettings] = useState(false);
   const [carabao, setCarabao] = useState(null);
 
+  const { refreshTrigger } = useUndo();
+
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -46,7 +49,7 @@ export default function Carabao_Header() {
 
   useEffect(() => {
     fetchSettlement();
-  }, [month, year]);
+  }, [month, year, refreshTrigger]);
 
   const fetchInitialData = async () => {
     const { data: activitiesData } = await supabase.from('activities').select('*').order('name');

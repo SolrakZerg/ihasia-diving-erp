@@ -33,7 +33,7 @@ export default function Bote_ExpenseTable({
         <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
           <Package className="w-4 h-4 text-brand" /> Registro de Movimientos
         </h3>
-        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">
           {expenses.length} movimientos
         </span>
       </div>
@@ -46,12 +46,12 @@ export default function Bote_ExpenseTable({
           </div>
         ) : (
           <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-surface-soft z-10">
-              <tr className="border-b border-surface-edge">
-                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-left">Fecha</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-left">Concepto</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Categoría</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Cantidad</th>
+            <thead className="sticky top-0 z-20">
+              <tr className="border-b border-surface-edge bg-table-header/98 backdrop-blur-xl shadow-sm">
+                <th className="px-6 py-4 text-[10px] font-black text-text-header uppercase tracking-widest text-left">Fecha</th>
+                <th className="px-6 py-4 text-[10px] font-black text-text-header uppercase tracking-widest text-left">Concepto</th>
+                <th className="px-6 py-4 text-[10px] font-black text-text-header uppercase tracking-widest text-center">Categoría</th>
+                <th className="px-6 py-4 text-[10px] font-black text-text-header uppercase tracking-widest text-right">Cantidad</th>
                 <th className="px-6 py-4 w-16" />
               </tr>
             </thead>
@@ -115,7 +115,7 @@ export default function Bote_ExpenseTable({
                           </button>
                           <button
                             onClick={cancelInlineEdit}
-                            className="p-2 text-gray-500 hover:bg-white/10 rounded-lg transition-colors"
+                            className="p-2 text-text-muted hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -143,13 +143,13 @@ export default function Bote_ExpenseTable({
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => startInlineEdit(expense)}
-                            className="p-2 text-gray-600 hover:text-brand transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-2 text-text-dim hover:text-brand hover:bg-brand/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteExpense(expense.id)}
-                            className="p-2 text-gray-600 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-2 text-text-dim hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

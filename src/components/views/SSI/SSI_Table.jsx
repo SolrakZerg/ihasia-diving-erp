@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Loader2, Zap } from 'lucide-react';
+import EditableInput from '../../common/EditableInput';
 
 export default function SSITable({ 
   loading, 
@@ -46,7 +47,7 @@ export default function SSITable({
       <div className="flex-1 overflow-y-auto custom-scrollbar relative">
         <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 z-30">
-            <tr className="bg-[#1a1c2d]/98 backdrop-blur-xl border-b border-surface-edge/50 h-[40px]">
+            <tr className="bg-table-header/98 backdrop-blur-xl border-b border-surface-edge/50 h-[40px]">
               <th className={`${plFirstClass} pr-[10px] py-0 text-[10px] font-black text-text-header uppercase tracking-widest align-middle w-40`}>Acr.</th>
               <th className={`${pxClass} py-0 text-[10px] font-black text-text-header uppercase tracking-widest align-middle ${isNarrow ? 'hidden' : ''}`}>Curso</th>
               <th className={`${pxClass} py-0 text-[10px] font-black text-text-header uppercase tracking-widest text-center align-middle w-24`}>Cant. Sist.</th>
@@ -81,14 +82,12 @@ export default function SSITable({
                     </span>
                   </td>
                   <td className={`${pxClass} py-2.5 text-center`}>
-                    <input
+                    <EditableInput
                       type="number"
-                      value={act.manual_adjustment || ''}
+                      defaultValue={act.manual_adjustment || ''}
                       placeholder="0"
-                      onChange={(e) => handleManualAdjustmentChange(act.id, e.target.value)}
-                      className={`w-12 bg-surface-edge/60 text-center h-9 rounded-lg text-[16px] font-black border border-gray-300/30 shadow-sm font-mono focus:border-warning outline-none ${
-                        isNarrow ? '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''
-                      } ${
+                      onSave={(newValue) => handleManualAdjustmentChange(act.id, newValue)}
+                      className={`w-16 bg-surface-edge/60 text-center h-9 rounded-lg text-[16px] font-black border border-gray-300/30 shadow-sm font-mono focus:border-warning outline-none ${
                         Number(act.manual_adjustment || 0) > 0 
                           ? 'text-success' 
                           : Number(act.manual_adjustment || 0) < 0 

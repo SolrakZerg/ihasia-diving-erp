@@ -1,4 +1,7 @@
 import { Calculator, CheckCircle2, Loader2 } from 'lucide-react';
+import { useUndo } from '../../../context/UndoContext';
+import EditableInput from '../../common/EditableInput';
+import { buildBillingCashControlAction } from './billingUndoActions';
 
 export default function Billing_Header_Caja({
   bills50000, setBills50000,
@@ -11,7 +14,11 @@ export default function Billing_Header_Caja({
   expectedCash,
   diffCash,
   isSavingCash,
+  selectedMonth,
+  selectedYear,
 }) {
+  const { pushAction } = useUndo();
+
   const billRows = [
     { label: '50.000', value: 50000, state: bills50000, setState: setBills50000 },
     { label: '1.000',  value: 1000,  state: bills1000,  setState: setBills1000  },
@@ -20,6 +27,62 @@ export default function Billing_Header_Caja({
     { label: '50',     value: 50,    state: bills50,    setState: setBills50    },
     { label: '20',     value: 20,    state: bills20,    setState: setBills20    },
   ];
+
+  const handleSave = (label, newValue, oldValue, setState) => {
+    setState(newValue);
+
+    const cleanVal = (val) => {
+      if (val === '' || val === null || val === undefined) return 0;
+      const n = Number(val);
+      return isNaN(n) ? 0 : n;
+    };
+
+    const currentBills = {
+      '50.000': cleanVal(bills50000),
+      '1.000':  cleanVal(bills1000),
+      '500':    cleanVal(bills500),
+      '100':    cleanVal(bills100),
+      '50':     cleanVal(bills50),
+      '20':     cleanVal(bills20),
+    };
+
+    const oldBills = { ...currentBills };
+
+    const newBills = { ...currentBills };
+    newBills[label] = cleanVal(newValue);
+
+    const computeTotal = (bills) => {
+      return bills['50.000'] * 50000 +
+             bills['1.000'] * 1000 +
+             bills['500'] * 500 +
+             bills['100'] * 100 +
+             bills['50'] * 50 +
+             bills['20'] * 20;
+    };
+
+    const oldTotal = computeTotal(oldBills);
+    const newTotal = computeTotal(newBills);
+
+    pushAction(buildBillingCashControlAction({
+      selectedYear,
+      selectedMonth,
+      label,
+      oldVal: oldValue,
+      newVal: newValue,
+      oldBills,
+      newBills,
+      oldTotal,
+      newTotal,
+      setters: {
+        setBills50000,
+        setBills1000,
+        setBills500,
+        setBills100,
+        setBills50,
+        setBills20,
+      }
+    }));
+  };
 
   return (
     <div className="flex-none w-fit flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden min-w-[180px] shrink-0">
@@ -37,31 +100,39 @@ export default function Billing_Header_Caja({
       {/* Cuerpo */}
       <div className="flex-1 flex flex-col p-2 px-2.5">
         {/* Filas de billetes */}
-        <div className="space-y-[3px]">
+        <div 
+          className="space-y-[3px]"
+          onKeyDownCapture={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const targetId = e.target.id;
+              const match = targetId?.match(/bill-input-(\d+)/);
+              if (match) {
+                const index = parseInt(match[1], 10);
+                const nextInput = document.getElementById(`bill-input-${index + 1}`);
+                if (nextInput) {
+                  nextInput.focus();
+                  nextInput.select();
+                } else {
+                  e.target.blur();
+                }
+              }
+            }
+          }}
+        >
           {billRows.map((b, index) => (
             <div key={b.label} className="flex items-center justify-between gap-2 group">
               <div className="w-10 text-emerald-400/90 font-mono text-[12px] group-hover:text-emerald-400 transition-colors">
                 {b.label}
               </div>
-              <input
+              <EditableInput
                 id={`bill-input-${index}`}
                 type="number"
                 min="0"
                 max="999"
-                value={b.state}
-                onChange={e => b.setState(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const nextInput = document.getElementById(`bill-input-${index + 1}`);
-                    if (nextInput) {
-                      nextInput.focus();
-                      nextInput.select();
-                    } else {
-                      e.target.blur();
-                    }
-                  }
-                }}
+                defaultValue={b.state}
+                onSave={(newValue, oldValue) => handleSave(b.label, newValue, oldValue, b.setState)}
+                onFocus={(e) => e.target.select()}
                 className="w-10 h-[20px] bg-surface text-white border border-surface-edge hover:border-emerald-500/50 rounded text-center outline-none focus:border-emerald-500 py-0 text-xs font-bold transition-all shadow-inner"
               />
               <div className="w-16 text-right text-white/50 font-mono text-[12px]">

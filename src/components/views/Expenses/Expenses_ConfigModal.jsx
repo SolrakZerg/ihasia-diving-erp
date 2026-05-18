@@ -41,8 +41,11 @@ const Expenses_ConfigModal = ({
                         <tab.icon className="w-4 h-4" /> {tab.label}
                      </button>
                   ))}
-                  <button onClick={() => { cancelEditingCat(); setShowConfigModal(false); }} className="mt-auto flex items-center gap-3 px-4 py-3 rounded-2xl text-base font-black text-danger hover:bg-danger/10 transition-all">
-                     <X className="w-5 h-5" /> Cerrar
+                  <button 
+                     onClick={() => { cancelEditingCat(); setShowConfigModal(false); }} 
+                     className="mt-auto w-full flex items-center justify-center gap-2 btn-cancel"
+                  >
+                     <X className="w-4 h-4" /> Cerrar
                   </button>
                </div>
 

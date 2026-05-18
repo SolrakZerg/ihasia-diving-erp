@@ -9,7 +9,7 @@ import {
 } from './expensesUndoActions';
 
 export const useExpensesData = () => {
-  const { pushAction } = useUndo();
+  const { pushAction, refreshTrigger } = useUndo();
   const [expenses, setExpenses] = useState([]);
   const [commissions, setCommissions] = useState([]);
   const [oxygenTours, setOxygenTours] = useState([]);
@@ -108,6 +108,13 @@ export const useExpensesData = () => {
     }));
     fetchData();
   }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("🔄 [useExpensesData] Deshacer/Rehacer detectado. Recargando datos...");
+      fetchData(false);
+    }
+  }, [refreshTrigger]);
 
   const fetchData = async (showLoader = true) => {
     if (showLoader) setLoading(true);

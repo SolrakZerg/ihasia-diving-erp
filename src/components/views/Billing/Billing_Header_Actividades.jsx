@@ -4,7 +4,7 @@ import { Target } from 'lucide-react';
 const StatItem = ({ label, value, color = "text-white", noBorder = false, first = false }) => (
   <div className={`flex items-center justify-between gap-0.5 ${first ? 'pb-0.5 pt-0' : 'py-0.5'} w-full ${noBorder ? '' : 'border-b border-white/[0.04]'}`}>
     <span className={`text-[10px] font-bold tracking-tighter truncate ${value === 0 ? 'text-gray-400/60' : 'text-gray-300'}`}>{label}</span>
-    <span className={`text-[12px] font-black tabular-nums transition-colors ${value === 0 ? 'text-gray-500' : color}`}>{value}</span>
+    <span className={`text-[12px] font-black tabular-nums transition-colors ${value === 0 ? 'text-text-muted' : color}`}>{value}</span>
   </div>
 );
 

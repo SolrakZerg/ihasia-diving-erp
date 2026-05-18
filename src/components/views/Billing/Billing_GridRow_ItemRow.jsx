@@ -1,9 +1,9 @@
 import { ChevronDown, Coins, Trash2, LogOut } from 'lucide-react';
-import Billing_GridRow_DateCell             from './Billing_GridRow_DateCell';
-import Billing_GridRow_SmartActivitySelect  from './Billing_GridRow_SmartActivitySelect';
-import Billing_GridRow_CustomerSearchInput  from './Billing_GridRow_CustomerSearchInput';
-import Billing_GridRow_InstructorSelect    from './Billing_GridRow_InstructorSelect';
-import EditableInput                        from '../../common/EditableInput';
+import Billing_GridRow_DateCell from './Billing_GridRow_DateCell';
+import Billing_GridRow_SmartActivitySelect from './Billing_GridRow_SmartActivitySelect';
+import Billing_GridRow_CustomerSearchInput from './Billing_GridRow_CustomerSearchInput';
+import Billing_GridRow_InstructorSelect from './Billing_GridRow_InstructorSelect';
+import EditableInput from '../../common/EditableInput';
 
 // CSS class for the right-border accent driven by the parent row's CSS variable
 const rb = 'border-r-4 border-r-[var(--group-color)]';
@@ -46,8 +46,8 @@ export default function Billing_GridRow_ItemRow({
   // Needed for extract button visibility check
   itemsCount,
 }) {
-  const act           = activities.find(a => String(a.id) === String(item.activity_id));
-  const categoryData  = categories.find(c => c.name === act?.category);
+  const act = activities.find(a => String(a.id) === String(item.activity_id));
+  const categoryData = categories.find(c => c.name === act?.category);
   const isStaffDisabled = categoryData ? categoryData.requires_staff === false : false;
 
   return (
@@ -123,7 +123,7 @@ export default function Billing_GridRow_ItemRow({
 
       {/* 6. Email */}
       <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <span className="text-[12px] text-slate-500 truncate block">
+        <span className="text-[12px] text-slate-600 truncate block">
           {item.customers?.email || (item.temporary_name ? "-" : "")}
         </span>
       </td>
@@ -161,17 +161,16 @@ export default function Billing_GridRow_ItemRow({
           defaultValue={item.quantity ?? ''}
           onSave={(val) => handleItemUpdate(item, 'quantity', val)}
           aria-label="Cantidad"
-          className="bg-transparent text-gray-600 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
+          className="bg-transparent text-text-muted font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
         />
       </td>
 
       {/* 10. Total */}
       <td className={`px-1 py-0 text-right border-r border-gray-100 ${bLine}`}>
-        <div className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm font-black tracking-tight whitespace-nowrap ${
-          item.status === 'Paid'
-            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-            : 'bg-red-50 text-red-700 border-red-200'
-        }`}>
+        <div className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm font-black tracking-tight whitespace-nowrap ${item.status === 'Paid'
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+          : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
           {Number(item.total_thb ?? 0).toLocaleString()} ฿
         </div>
       </td>
@@ -188,11 +187,10 @@ export default function Billing_GridRow_ItemRow({
           <select
             value={item.status || 'Pending'}
             onChange={(e) => handleItemUpdate(item, 'status', e.target.value)}
-            className={`w-full h-6 py-0 px-1 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${
-              item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
-            }`}
+            className={`w-full h-6 py-0 px-1 rounded text-[12px] font-black border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand appearance-none cursor-pointer text-center ${item.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-700 border-red-200'
+              }`}
           >
-            <option value="Paid"    style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PAGADO</option>
+            <option value="Paid" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PAGADO</option>
             <option value="Pending" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>PENDIENTE</option>
           </select>
           <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none opacity-0 group-hover/status:opacity-100 transition-opacity">
@@ -207,26 +205,24 @@ export default function Billing_GridRow_ItemRow({
           <select
             value={item.payment_method || ''}
             onChange={(e) => handleItemUpdate(item, 'payment_method', e.target.value || null)}
-            className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full h-6 px-1 py-0 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
-              !item.payment_method ? 'text-transparent' : 'text-gray-800'
-            }`}
+            className={`appearance-none bg-transparent text-[12px] font-black uppercase text-center w-full h-6 px-1 py-0 rounded outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${!item.payment_method ? 'text-transparent' : 'text-gray-800'
+              }`}
           >
-            <option value=""        style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}></option>
+            <option value="" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}></option>
             <option value="WISE BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE BT</option>
             <option value="WISE CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>WISE CR</option>
-            <option value="EUR BT"  style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR BT</option>
-            <option value="EUR CR"  style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR CR</option>
+            <option value="EUR BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR BT</option>
+            <option value="EUR CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR CR</option>
           </select>
-          <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-gray-500 group-hover/select:text-gray-700">
+          <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-text-muted group-hover/select:text-text-primary">
             <ChevronDown className="w-3 h-3" strokeWidth={4} />
           </div>
         </div>
       </td>
 
       {/* 13. Instructor */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${
-        !item.instructor_id && !isStaffDisabled ? 'bg-red-500/10' : 'bg-white'
-      } ${bLine}`}>
+      <td className={`px-1 py-0 border-r border-gray-100 ${!item.instructor_id && !isStaffDisabled ? 'bg-red-500/10' : 'bg-white'
+        } ${bLine}`}>
         <Billing_GridRow_InstructorSelect
           item={item}
           staff={staff}
@@ -238,9 +234,8 @@ export default function Billing_GridRow_ItemRow({
 
       {/* 14. BIZUM */}
       <td
-        className={`px-1 py-0 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${
-          Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : 'bg-white'
-        } ${bLine}`}
+        className={`px-1 py-0 w-[60px] min-w-[60px] text-center border-r border-gray-100 cursor-pointer relative ${Number(item.bizum_deposit_eur || 0) > 0 ? 'bg-red-700' : 'bg-white'
+          } ${bLine}`}
         onDoubleClick={(e) => { e.preventDefault(); handleItemUpdate(item, 'bizum_deposit_eur', null); }}
         title="Doble clic para resetear a 0€"
       >
@@ -248,18 +243,16 @@ export default function Billing_GridRow_ItemRow({
           value={item.bizum_deposit_eur || ''}
           onChange={(e) => handleItemUpdate(item, 'bizum_deposit_eur', e.target.value ? Number(e.target.value) : null)}
           disabled={!item.customer_id}
-          className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-6 text-center pr-3 transition-colors cursor-pointer relative z-10 ${
-            !item.bizum_deposit_eur ? 'text-transparent' : 'text-white'
-          } disabled:opacity-30`}
+          className={`appearance-none bg-transparent border-none font-black !outline-none focus:!ring-0 focus:!ring-transparent focus-visible:!outline-none text-[12px] w-full h-6 text-center pr-3 transition-colors cursor-pointer relative z-10 ${!item.bizum_deposit_eur ? 'text-transparent' : 'text-white'
+            } disabled:opacity-30`}
         >
           <option value="" className="text-gray-900 bg-white"></option>
           {BIZUM_OPTIONS.map(val => (
             <option key={val} value={val} className="text-gray-900 bg-white">{val}€</option>
           ))}
         </select>
-        <div className={`absolute inset-y-0 right-1 flex items-center pointer-events-none transition-opacity z-20 ${
-          Number(item.bizum_deposit_eur || 0) === 0 ? 'opacity-0' : 'opacity-100'
-        }`}>
+        <div className={`absolute inset-y-0 right-1 flex items-center pointer-events-none transition-opacity z-20 ${Number(item.bizum_deposit_eur || 0) === 0 ? 'opacity-0' : 'opacity-100'
+          }`}>
           <ChevronDown className="w-3 h-3 text-white/90" />
         </div>
       </td>
@@ -272,13 +265,12 @@ export default function Billing_GridRow_ItemRow({
             <button
               disabled={isCommDisabled}
               onClick={() => handleItemUpdate(item, 'is_comm', !item.is_comm)}
-              className={`p-0.5 rounded-md transition-all border ${
-                !isCommDisabled
-                  ? item.is_comm
-                    ? 'bg-amber-500 text-white border-amber-600 shadow-inner'
-                    : 'bg-white text-gray-200 border-gray-100 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50'
-                  : 'opacity-10 cursor-not-allowed border-transparent'
-              }`}
+              className={`p-0.5 rounded-md transition-all border ${!isCommDisabled
+                ? item.is_comm
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-inner'
+                  : 'bg-white text-gray-200 border-gray-100 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50'
+                : 'opacity-10 cursor-not-allowed border-transparent'
+                }`}
               title={isCommDisabled ? "No disponible para esta actividad" : (item.is_comm ? "Comisionable" : "Marcar Comisión")}
             >
               <Coins className={`w-4 h-4 ${item.is_comm ? 'fill-current' : ''}`} />
@@ -289,11 +281,11 @@ export default function Billing_GridRow_ItemRow({
 
       {/* 16. Notas */}
       <td className={`px-1 py-0 overflow-hidden border-r border-gray-100 ${bLine}`}>
-        <input
+        <EditableInput
           type="text"
           placeholder="..."
           defaultValue={item.notes || ''}
-          onBlur={(e) => handleItemUpdate(item, 'notes', e.target.value)}
+          onSave={(newVal) => handleItemUpdate(item, 'notes', newVal)}
           className="bg-transparent text-gray-700 font-medium text-[12px] w-full h-6 outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm truncate py-0"
           title={item.notes || ''}
         />

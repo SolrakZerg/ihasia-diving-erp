@@ -24,7 +24,7 @@ export default function Staff_Header({
       {selectedIds.size > 0 && (
         <button
           onClick={handleBulkDelete}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rose-500/50 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-sm font-bold"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rose-400/50 bg-rose-400/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all text-sm font-bold"
         >
           <Trash2 className="w-4 h-4" /> Borrar ({selectedIds.size})
         </button>

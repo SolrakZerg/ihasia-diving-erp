@@ -12,8 +12,8 @@ import { supabase } from '../../../lib/supabaseClient';
 export const buildAssChangeAction = (day, value, oldAss, handleAssChange, fetchData) => ({
   view: 'nominas',
   description: {
-    undo: `Deshecho: Asistencias del día ${day} restauradas a ${oldAss || 0}`,
-    redo: `Rehecho: Asistencias del día ${day} cambiadas a ${value || 0}`
+    undo: `Asistencias del día ${day} restauradas a ${oldAss || 0}`,
+    redo: `Asistencias del día ${day} cambiadas a ${value || 0}`
   },
   undo: async () => {
     await handleAssChange(day, oldAss, true);
@@ -31,8 +31,8 @@ export const buildAssChangeAction = (day, value, oldAss, handleAssChange, fetchD
 export const buildAttendanceToggleAction = (day, next, current, handleAttendanceToggle, fetchData) => ({
   view: 'nominas',
   description: {
-    undo: `Deshecho: Asistencia del día ${day} restaurada a ${current}`,
-    redo: `Rehecho: Asistencia del día ${day} cambiada a ${next}`
+    undo: `Asistencia del día ${day} restaurada a ${current}`,
+    redo: `Asistencia del día ${day} cambiada a ${next}`
   },
   undo: async () => {
     await handleAttendanceToggle(day, current, true);
@@ -50,8 +50,8 @@ export const buildAttendanceToggleAction = (day, next, current, handleAttendance
 export const buildAddAdvanceAction = (newAdv, memberName, fetchData) => ({
   view: 'nominas',
   description: {
-    undo: `Deshecho: Anticipo de ${newAdv.amount} ฿ a ${memberName} eliminado`,
-    redo: `Rehecho: Anticipo de ${newAdv.amount} ฿ a ${memberName} vuelto a crear`
+    undo: `Anticipo de ${newAdv.amount} ฿ a ${memberName} eliminado`,
+    redo: `Anticipo de ${newAdv.amount} ฿ a ${memberName} vuelto a crear`
   },
   undo: async () => {
     await supabase.from('staff_advances').delete().eq('id', newAdv.id);
@@ -67,20 +67,20 @@ export const buildAddAdvanceAction = (newAdv, memberName, fetchData) => ({
  * Acción para actualizar cantidad o concepto de un anticipo de forma contextual.
  */
 export const buildUpdateAdvanceAction = (id, updates, oldAdvanceState, memberName, fetchData) => {
-  let undoDesc = `Deshecho: Anticipo de ${memberName} restaurado`;
-  let redoDesc = `Rehecho: Anticipo de ${memberName} actualizado`;
+  let undoDesc = `Anticipo de ${memberName} restaurado`;
+  let redoDesc = `Anticipo de ${memberName} actualizado`;
 
   const isAmountChange = updates.amount !== undefined && updates.amount !== oldAdvanceState.amount;
   const isConceptChange = updates.concept !== undefined && updates.concept !== oldAdvanceState.concept;
 
   if (isAmountChange) {
-    undoDesc = `Deshecho: Cantidad de anticipo de ${memberName} restaurada a ${oldAdvanceState.amount} ฿ (era ${updates.amount} ฿)`;
-    redoDesc = `Rehecho: Cantidad de anticipo de ${memberName} actualizada a ${updates.amount} ฿`;
+    undoDesc = `Cantidad de anticipo de ${memberName} restaurada a ${oldAdvanceState.amount} ฿ (era ${updates.amount} ฿)`;
+    redoDesc = `Cantidad de anticipo de ${memberName} actualizada a ${updates.amount} ฿`;
   } else if (isConceptChange) {
     const oldVal = oldAdvanceState.concept ? `"${oldAdvanceState.concept}"` : 'Sin concepto';
     const newVal = updates.concept ? `"${updates.concept}"` : 'Sin concepto';
-    undoDesc = `Deshecho: Concepto de anticipo de ${memberName} restaurado a ${oldVal} (era ${newVal})`;
-    redoDesc = `Rehecho: Concepto de anticipo de ${memberName} actualizado a ${newVal}`;
+    undoDesc = `Concepto de anticipo de ${memberName} restaurado a ${oldVal} (era ${newVal})`;
+    redoDesc = `Concepto de anticipo de ${memberName} actualizado a ${newVal}`;
   }
 
   return {
@@ -106,8 +106,8 @@ export const buildUpdateAdvanceAction = (id, updates, oldAdvanceState, memberNam
 export const buildRemoveAdvanceAction = (actualId, advanceItem, memberName, fetchData) => ({
   view: 'nominas',
   description: {
-    undo: `Deshecho: Anticipo de ${advanceItem.amount} ฿ restaurado para ${memberName}`,
-    redo: `Rehecho: Anticipo de ${advanceItem.amount} ฿ eliminado para ${memberName}`
+    undo: `Anticipo de ${advanceItem.amount} ฿ restaurado para ${memberName}`,
+    redo: `Anticipo de ${advanceItem.amount} ฿ eliminado para ${memberName}`
   },
   undo: async () => {
     await supabase.from('staff_advances').insert(advanceItem);
@@ -125,8 +125,8 @@ export const buildRemoveAdvanceAction = (actualId, advanceItem, memberName, fetc
 export const buildAdjUpdateAction = (day, newAmount, newConcept, oldAdj, handleAdjUpdate, fetchData) => ({
   view: 'nominas',
   description: {
-    undo: `Deshecho: Ajuste del día ${day} restaurado a '${oldAdj?.concept || ''}' (${oldAdj?.amount || 0} ฿)`,
-    redo: `Rehecho: Ajuste del día ${day} cambiado a '${newConcept}' (${newAmount} ฿)`
+    undo: `Ajuste del día ${day} restaurado a '${oldAdj?.concept || ''}' (${oldAdj?.amount || 0} ฿)`,
+    redo: `Ajuste del día ${day} cambiado a '${newConcept}' (${newAmount} ฿)`
   },
   undo: async () => {
     await handleAdjUpdate(day, oldAdj?.amount || 0, oldAdj?.concept || '', true);

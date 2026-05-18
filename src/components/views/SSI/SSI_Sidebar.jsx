@@ -1,4 +1,5 @@
 import { Settings, Zap, TrendingDown, CreditCard, AlertCircle, Receipt } from 'lucide-react';
+import EditableInput from '../../common/EditableInput';
 
 export default function SSISidebar({ 
   mesAnterior, 
@@ -6,9 +7,8 @@ export default function SSISidebar({
   manualPaid, 
   totalSsi, 
   adjustmentsTotal, 
-  setMesAnterior, 
-  setManualPaid, 
-  saveSettlement 
+  onAdelantoSave,
+  onPaidSave 
 }) {
   return (
     <div className="w-full lg:w-64 flex flex-col sm:flex-row lg:flex-col gap-4">
@@ -24,15 +24,11 @@ export default function SSISidebar({
                    <Zap className="w-4 h-4 text-indigo-400" /> ADELANTO (PRÓX. MES)
                 </span>
                 <div className="flex items-center gap-4 bg-surface-edge/20 p-3 rounded-[2rem] border border-surface-edge/30 shadow-inner">
-                  <input
+                  <EditableInput
                     type="number"
-                    value={mesAnterior || ''}
+                    defaultValue={mesAnterior || ''}
                     placeholder="0"
-                    onChange={(e) => {
-                       const val = parseInt(e.target.value) || 0;
-                       setMesAnterior(val);
-                       saveSettlement(val, manualPaid);
-                    }}
+                    onSave={onAdelantoSave}
                     className="w-full bg-transparent text-3xl font-black text-indigo-400 font-mono text-center tracking-tighter outline-none"
                   />
                 </div>
@@ -71,17 +67,13 @@ export default function SSISidebar({
                  </h4>
                  <div className="w-full bg-surface-edge/20 border-2 border-surface-edge/30 rounded-2xl py-3 px-2 focus-within:border-success/50 focus-within:bg-success/5 transition-all">
                     <div className="flex justify-center items-baseline gap-2">
-                       <input
-                         type="number"
-                         value={manualPaid || ''}
-                         placeholder="0"
-                         onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0;
-                            setManualPaid(val);
-                            saveSettlement(mesAnterior, val);
-                         }}
-                         className="bg-transparent border-none p-0 !outline-none !ring-0 text-2xl font-black text-success font-mono text-right w-24"
-                       />
+                        <EditableInput
+                          type="number"
+                          defaultValue={manualPaid || ''}
+                          placeholder="0"
+                          onSave={onPaidSave}
+                          className="bg-transparent border-none p-0 !outline-none !ring-0 text-2xl font-black text-success font-mono text-right w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                        <span className="text-success/50 font-black text-2xl font-mono w-4">฿</span>
                     </div>
                  </div>

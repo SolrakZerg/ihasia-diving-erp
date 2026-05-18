@@ -1,5 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import { useUndo } from '../../../context/UndoContext';
+import {
+  buildCRBTOfficeAssistAction,
+  buildCRBTAdjustmentAction,
+  buildCRBTDailyLogAction,
+  buildCRBTAddAdvanceAction,
+  buildCRBTDeleteAdvanceAction,
+  buildCRBTEditAdvanceAction
+} from './crbtUndoActions';
 
 const PARTNER_IDS = [
   '47ad3626-e74b-4b9b-bb56-4d50961e2711', // Carlos (CR)
@@ -16,6 +25,7 @@ export const LOG_OPTIONS = [
 ];
 
 export default function useCRBTData() {
+  const { pushAction, refreshTrigger } = useUndo();
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [crForm, setCrForm] = useState({ day: new Date().getDate(), amount: '', concept: '' });
@@ -48,9 +58,16 @@ export default function useCRBTData() {
     fetchPayoutRules();
   }, []);
 
+  const prevMonthRef = useRef(month);
+  const prevYearRef = useRef(year);
+
   useEffect(() => {
-    fetchData();
-  }, [month, year]);
+    const isPeriodChange = prevMonthRef.current !== month || prevYearRef.current !== year;
+    prevMonthRef.current = month;
+    prevYearRef.current = year;
+
+    fetchData(!isPeriodChange);
+  }, [month, year, refreshTrigger]);
 
   const fetchPayoutRules = async () => {
     const { data: rules } = await supabase.from('instructor_payouts').select('*, activities(name, category, id, acronym)');
@@ -59,8 +76,8 @@ export default function useCRBTData() {
     if (acts) setAllActivities(acts);
   };
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
@@ -127,6 +144,7 @@ export default function useCRBTData() {
     const dateStr = `${year}-${month.toString().padStart(2, '0')}-${form.day.toString().padStart(2, '0')}`;
     const { data: newAdv } = await supabase.from('partner_advances').insert({ year, month, partner_id: partner, amount: parseFloat(form.amount), concept: form.concept, date: dateStr }).select().single();
     if (newAdv) {
+      pushAction(buildCRBTAddAdvanceAction(newAdv));
       setAdvances([...advances, newAdv]);
       const reset = { day: new Date().getDate(), amount: '', concept: '' };
       if (partner === 'CR') setCrForm(reset); else setBtForm(reset);
@@ -136,35 +154,59 @@ export default function useCRBTData() {
   };
 
   const saveInlineEdit = async (id, partner, inlineForm) => {
+    const oldAdv = advances.find(a => a.id === id);
+    if (!oldAdv) return false;
     const dateStr = `${year}-${month.toString().padStart(2, '0')}-${inlineForm.day.toString().padStart(2, '0')}`;
+    const newAdv = { ...oldAdv, amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr };
+
+    if (oldAdv.amount === newAdv.amount && oldAdv.concept === newAdv.concept && oldAdv.date === newAdv.date) return true;
+
     const { error } = await supabase.from('partner_advances').update({ amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr }).eq('id', id);
     if (!error) {
-      setAdvances(advances.map(a => a.id === id ? { ...a, amount: parseFloat(inlineForm.amount), concept: inlineForm.concept, date: dateStr } : a));
+      pushAction(buildCRBTEditAdvanceAction(id, oldAdv, newAdv));
+      setAdvances(advances.map(a => a.id === id ? newAdv : a));
       return true;
     }
     return false;
   };
 
   const deleteAdvance = async (id) => {
+    const oldAdv = advances.find(a => a.id === id);
+    if (!oldAdv) return;
     const { error } = await supabase.from('partner_advances').delete().eq('id', id);
-    if (!error) setAdvances(advances.filter(a => a.id !== id));
+    if (!error) {
+      pushAction(buildCRBTDeleteAdvanceAction(oldAdv));
+      setAdvances(advances.filter(a => a.id !== id));
+    }
   };
 
   const updateAssist = async (day, val) => {
     const num = parseInt(val) || 0;
+    const oldVal = assists[day] || 0;
+    if (num === oldVal) return;
+
+    pushAction(buildCRBTOfficeAssistAction(year, month, day, oldVal, num));
     setAssists(prev => ({ ...prev, [day]: num }));
     await supabase.from('partner_daily_activity').upsert({ year, month, day, partner_id: 'CRBT', assists: num }, { onConflict: 'year, month, day, partner_id' });
   };
 
   const updateAdjustment = async (day, val) => {
     const num = parseFloat(val) || 0;
+    const oldVal = manualAdj[day] || 0;
+    if (num === oldVal) return;
+
+    pushAction(buildCRBTAdjustmentAction(year, month, day, oldVal, num));
     setManualAdj(prev => ({ ...prev, [day]: num }));
     await supabase.from('partner_adjustments').upsert({ year, month, day, partner_id: 'CRBT', amount: num }, { onConflict: 'year, month, day, partner_id' });
   };
 
   const updateLog = async (date, field, value) => {
     const current = dailyLog[date] || {};
+    const oldValue = current[field] || 'EMPTY';
+    if (value === oldValue) return;
+
     const updated = { ...current, [field]: value };
+    pushAction(buildCRBTDailyLogAction(date, field, oldValue, value));
     const { error } = await supabase.from('partner_daily_log').upsert({ date, office_id: updated.office || 'EMPTY', water_id: updated.water || 'EMPTY', theory_id: updated.theory || 'EMPTY', off_id: updated.off || 'EMPTY' }, { onConflict: 'date' });
     if (!error) setDailyLog({ ...dailyLog, [date]: updated });
   };
