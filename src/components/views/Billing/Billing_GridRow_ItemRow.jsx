@@ -161,7 +161,7 @@ export default function Billing_GridRow_ItemRow({
           defaultValue={item.quantity ?? ''}
           onSave={(val) => handleItemUpdate(item, 'quantity', val)}
           aria-label="Cantidad"
-          className="bg-transparent text-text-muted font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
+          className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
         />
       </td>
 
@@ -214,7 +214,7 @@ export default function Billing_GridRow_ItemRow({
             <option value="EUR BT" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR BT</option>
             <option value="EUR CR" style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}>EUR CR</option>
           </select>
-          <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-text-muted group-hover/select:text-text-primary">
+          <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none text-text-header group-hover/select:text-text-primary">
             <ChevronDown className="w-3 h-3" strokeWidth={4} />
           </div>
         </div>

@@ -21,7 +21,7 @@ const ResizeHandle = ({ onMouseDown }) => (
 // Thin header cell with resize handle — NO minWidth on th, colgroup is the sole width authority
 const RH = ({ children, colKey, startResize, className = '' }) => (
   <th
-    className={`relative px-1 py-2 text-[10px] font-bold text-text-muted uppercase tracking-wider select-none overflow-hidden ${className}`}
+    className={`relative px-1 py-2 text-[11px] font-bold text-text-header uppercase tracking-wider select-none overflow-hidden ${className}`}
   >
     {children}
     <ResizeHandle onMouseDown={(e) => startResize(e, colKey)} />

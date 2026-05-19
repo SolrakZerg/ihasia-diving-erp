@@ -17,7 +17,7 @@ export default function Billing_Header_Llegadas({
     <div className="flex-none w-full max-w-[380px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
       {/* Cabecera del widget */}
       <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
-        <span className="flex items-center gap-1.5 text-blue-400 text-xs font-bold whitespace-nowrap">
+        <span className="flex items-center gap-1.5 text-brand-light text-xs font-bold whitespace-nowrap">
           <Users className="w-3.5 h-3.5" /> Llegadas
         </span>
 
@@ -42,7 +42,7 @@ export default function Billing_Header_Llegadas({
               className="absolute w-0 h-0 opacity-0 border-0 p-0 m-0 pointer-events-none"
               style={{ visibility: 'hidden' }}
             />
-            <span className="text-[10px] text-brand font-black whitespace-nowrap uppercase">
+            <span className="text-[10px] text-brand-light font-black whitespace-nowrap uppercase">
               {new Date(arrivalsDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
             </span>
           </div>
@@ -90,7 +90,7 @@ export default function Billing_Header_Llegadas({
                   <td className="py-0.5 px-1.5 text-white font-medium truncate max-w-[180px]">
                     {c.first_name} {c.last_name}
                   </td>
-                  <td className="py-0.5 px-1.5 text-brand text-[10px] truncate max-w-[110px] font-bold opacity-80 pl-2">
+                  <td className="py-0.5 px-1.5 text-blue-300 text-[12px] truncate max-w-[110px] font-bold opacity-80 pl-2">
                     {c.booked_activity || 'Genérico'}
                   </td>
                 </tr>
@@ -105,7 +105,7 @@ export default function Billing_Header_Llegadas({
         <button
           onClick={handleAddArrivalsToTable}
           disabled={selectedArrivalIds.size === 0}
-          className="w-full py-0.5 bg-brand/10 text-brand hover:bg-brand hover:text-white disabled:opacity-50 border border-brand/30 rounded text-[13px] font-semibold transition-colors shadow-sm"
+          className="w-full py-0.5 bg-surface text-brand-light hover:bg-brand hover:text-white disabled:opacity-50 border border-brand/30 rounded text-[13px] font-semibold transition-colors shadow-sm"
         >
           AÑADIR A LA MESA {selectedArrivalIds.size > 0 && `(${selectedArrivalIds.size})`}
         </button>
