@@ -10,6 +10,7 @@ import Billing_Header_Finanzas      from './Billing_Header_Finanzas';
 import Billing_Header_Filtros       from './Billing_Header_Filtros';
 import Billing_Header_ConfigModal   from './Billing_Header_ConfigModal';
 import Billing_ThemeSettings              from './Billing_ThemeSettings';
+import MonthYearSelector            from '../../common/MonthYearSelector';
 
 export default function Billing_Header({
   // Llegadas
@@ -180,68 +181,14 @@ export default function Billing_Header({
 
         {/* ── SELECTOR MES / AÑO (esquina superior derecha) ── */}
         <div className="flex flex-col justify-start pt-1.5 items-end ml-auto pr-2 shrink-0 h-full">
-          <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner h-11">
-
-
-            {/* Mes anterior */}
-            <button
-              onClick={() => {
-                let nm = selectedMonth - 1, ny = selectedYear;
-                if (nm < 0) { nm = 11; ny--; }
-                setSelectedMonth(nm);
-                setSelectedYear(ny);
-                fetchInvoices(false, null, showOnlyUnpaid, nm, ny, selectedDay);
-              }}
-              className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {/* Selectores de mes y año */}
-            <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-              <select
-                value={selectedMonth}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setSelectedMonth(v);
-                  fetchInvoices(false, null, showOnlyUnpaid, v, selectedYear, selectedDay);
-                }}
-                className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
-              >
-                {['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'].map((m, i) => (
-                  <option key={i} value={i} className="bg-slate-900 text-white">{m}</option>
-                ))}
-              </select>
-              <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-              <select
-                value={selectedYear}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setSelectedYear(v);
-                  fetchInvoices(false, null, showOnlyUnpaid, selectedMonth, v, selectedDay);
-                }}
-                className="bg-transparent text-[11px] font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center"
-              >
-                {[2024, 2025, 2026, 2027].map(y => (
-                  <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Mes siguiente */}
-            <button
-              onClick={() => {
-                let nm = selectedMonth + 1, ny = selectedYear;
-                if (nm > 11) { nm = 0; ny++; }
-                setSelectedMonth(nm);
-                setSelectedYear(ny);
-                fetchInvoices(false, null, showOnlyUnpaid, nm, ny, selectedDay);
-              }}
-              className="p-2 hover:bg-surface-edge/30 rounded-xl text-gray-400 hover:text-white transition-all"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          <MonthYearSelector
+            month={selectedMonth}
+            setMonth={setSelectedMonth}
+            year={selectedYear}
+            setYear={setSelectedYear}
+            shortNames={true}
+            className="h-11"
+          />
         </div>
       </div>
 

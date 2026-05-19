@@ -24,7 +24,7 @@ export function useBillingState() {
   const [toast, setToast] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState({ show: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
   const [arrivalsDate, setArrivalsDate] = useState(new Date().toLocaleDateString('en-CA'));
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');

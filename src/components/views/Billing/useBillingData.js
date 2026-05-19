@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useUndo } from '../../../context/UndoContext';
 import { useBillingState } from './useBillingState';
@@ -87,6 +87,16 @@ export function useBillingData() {
     mutations.fetchCashControl();
   }, [state.selectedMonth, state.selectedYear]);
 
+  // Recargar facturas en segundo plano al cambiar de periodo para evitar parpadeos
+  const isMounted = useRef(false);
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    mutations.fetchInvoices(false);
+  }, [state.selectedMonth, state.selectedYear]);
+
   // Manejo de refreshTrigger desde la pila de Deshacer modularizada
   useEffect(() => {
     if (refreshTrigger > 0) {
@@ -137,13 +147,13 @@ export function useBillingData() {
     if (state.loadingInvoices || state.allMonthInvoices.length === 0) return;
 
     // PROTECCIÓN: No sincronizar meses bloqueados históricos
-    if (state.selectedYear === 2026 && state.selectedMonth < 3) return;
+    if (state.selectedYear === 2026 && state.selectedMonth <= 3) return;
     
     const syncReports = async () => {
       try {
         const { error: repError } = await supabase.from('monthly_reports').upsert({
           year: state.selectedYear,
-          month: state.selectedMonth + 1,
+          month: state.selectedMonth,
           facturado: stats.stats.facturado,
           pendiente: stats.stats.pendiente,
           cobrado: stats.stats.cobrado,

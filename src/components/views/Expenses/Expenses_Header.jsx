@@ -1,9 +1,8 @@
 import React from 'react';
-import { DollarSign, ChevronLeft, ChevronRight, Settings, TrendingDown, Users } from 'lucide-react';
+import { DollarSign, Settings, TrendingDown, Users } from 'lucide-react';
+import MonthYearSelector from '../../common/MonthYearSelector';
 
 const Expenses_Header = ({
-  handlePrevMonth,
-  handleNextMonth,
   selectedMonth,
   setSelectedMonth,
   selectedYear,
@@ -28,47 +27,15 @@ const Expenses_Header = ({
             </h1>
           </div>
 
-          {/* HYBRID DATE SELECTOR */}
+          {/* MONTH/YEAR SELECTOR */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
-              <button 
-                onClick={handlePrevMonth}
-                className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-                <select 
-                  value={selectedMonth} 
-                  onChange={e => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center uppercase tracking-tighter"
-                >
-                  {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map((m, i) => (
-                    <option key={m} value={i} className="bg-[#1a1c2d]">{m}</option>
-                  ))}
-                </select>
-                
-                <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-
-                <select 
-                  value={selectedYear} 
-                  onChange={e => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none transition-colors text-center"
-                >
-                  {[2024, 2025, 2026, 2027].map(y => (
-                    <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button 
-                onClick={handleNextMonth}
-                className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <MonthYearSelector
+              month={selectedMonth}
+              setMonth={setSelectedMonth}
+              year={selectedYear}
+              setYear={setSelectedYear}
+              shortNames
+            />
             
             <button 
               onClick={() => setShowConfigModal(true)} 

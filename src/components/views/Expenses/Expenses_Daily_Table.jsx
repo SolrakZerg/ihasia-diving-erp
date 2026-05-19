@@ -83,7 +83,7 @@ const Expenses_Daily_Table = ({
                             const d = parseInt(value);
                             if (!isNaN(d)) {
                               const validD = Math.min(31, Math.max(1, d));
-                              const mm = String(selectedMonth + 1).padStart(2, '0');
+                              const mm = String(selectedMonth).padStart(2, '0');
                               const newDate = `${selectedYear}-${mm}-${String(validD).padStart(2, '0')}`;
                               if (newDate !== e.date) handleExpenseUpdate(e.id, 'date', newDate);
                             }
@@ -179,7 +179,7 @@ const Expenses_Daily_Table = ({
                         <input type="number" min="1" max="31" value={newDataExp.date ? parseInt(newDataExp.date.split('-')[2], 10) : ''} onChange={e => {
                           const d = parseInt(e.target.value) || 1;
                           const validD = Math.min(31, Math.max(1, d));
-                          const mm = String(selectedMonth + 1).padStart(2, '0');
+                          const mm = String(selectedMonth).padStart(2, '0');
                           setNewDataExp({ ...newDataExp, date: `${selectedYear}-${mm}-${String(validD).padStart(2, '0')}` })
                         }} className="w-10 bg-surface border border-surface-edge rounded px-1 py-1 text-xs text-center text-white font-black outline-none focus:ring-1 focus:ring-danger/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                       </td>

@@ -24,11 +24,12 @@ const Expenses_View = () => {
     oxygenPending,
     oxygenTotal,
     selectedMonth,
+    setSelectedMonth,
     selectedYear,
+    setSelectedYear,
     dateFilter,
     setDateFilter,
-    handlePrevMonth,
-    handleNextMonth,
+
     isAddingExpense,
     setIsAddingExpense,
     newDataExp,
@@ -89,9 +90,9 @@ const Expenses_View = () => {
       {/* HEADER */}
       <Expenses_Header 
         selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
         selectedYear={selectedYear}
-        handlePrevMonth={handlePrevMonth}
-        handleNextMonth={handleNextMonth}
+        setSelectedYear={setSelectedYear}
         monthlyTotal={monthlyTotal}
         commissionsPaid={commissionsPaid}
         commissionsPending={commissionsPending}

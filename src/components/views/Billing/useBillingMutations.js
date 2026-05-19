@@ -109,7 +109,7 @@ export function useBillingMutations({
       const monthOnly = sorted.filter(inv => {
         const items = inv.invoice_items || [];
         if (!items.length) return true;
-        return items.some(it => { if (!it.date) return true; const [y, m] = it.date.split('-').map(Number); return y === eYear && (m - 1) === eMonth; });
+        return items.some(it => { if (!it.date) return true; const [y, m] = it.date.split('-').map(Number); return y === eYear && m === eMonth; });
       });
 
       setInvoices(sorted);
@@ -170,7 +170,7 @@ export function useBillingMutations({
         .from('cash_control_monthly')
         .select('*')
         .eq('year', selectedYear)
-        .eq('month', selectedMonth + 1)
+        .eq('month', selectedMonth)
         .maybeSingle();
       
       if (error && error.code !== 'PGRST116') throw error;
@@ -186,7 +186,7 @@ export function useBillingMutations({
         .from('monthly_reports')
         .select('deberia')
         .eq('year', selectedYear)
-        .eq('month', selectedMonth + 1)
+        .eq('month', selectedMonth)
         .maybeSingle();
       
       if (reportData) setDbExpectedCash(reportData.deberia || 0);
@@ -196,7 +196,7 @@ export function useBillingMutations({
   };
 
   const saveCashControl = async () => {
-    if (selectedYear === 2026 && selectedMonth < 3) {
+    if (selectedYear === 2026 && selectedMonth <= 3) {
       console.warn("[useBillingMutations] 🛡️ Bloqueada edición de Cash Control en mes protegido.");
       return;
     }
@@ -213,7 +213,7 @@ export function useBillingMutations({
       const [res1, res2] = await Promise.all([
         supabase.from('cash_control_monthly').upsert({
           year: selectedYear,
-          month: selectedMonth + 1,
+          month: selectedMonth,
           b_50000: b50000,
           b_1000: b1000,
           b_500: b500,
@@ -223,7 +223,7 @@ export function useBillingMutations({
         }, { onConflict: 'year, month' }),
         supabase.from('monthly_reports').upsert({
           year: selectedYear,
-          month: selectedMonth + 1,
+          month: selectedMonth,
           cash: total,
           updated_at: new Date().toISOString()
         }, { onConflict: 'year, month' })

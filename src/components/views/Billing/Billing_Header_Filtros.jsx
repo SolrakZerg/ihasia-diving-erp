@@ -16,20 +16,20 @@ export default function Billing_Header_Filtros({
 
   // Computar rango mínimo y máximo del mes actual para el input date
   const minDate = useMemo(() => {
-    const month = String(selectedMonth + 1).padStart(2, '0');
+    const month = String(selectedMonth).padStart(2, '0');
     return `${selectedYear}-${month}-01`;
   }, [selectedMonth, selectedYear]);
 
   const maxDate = useMemo(() => {
-    const month = String(selectedMonth + 1).padStart(2, '0');
-    const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const month = String(selectedMonth).padStart(2, '0');
+    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
     return `${selectedYear}-${month}-${lastDay}`;
   }, [selectedMonth, selectedYear]);
 
   // Formato para el value del input date oculto (si hay día seleccionado)
   const dateValue = useMemo(() => {
     if (!selectedDay) return '';
-    const m = String(selectedMonth + 1).padStart(2, '0');
+    const m = String(selectedMonth).padStart(2, '0');
     const d = String(selectedDay).padStart(2, '0');
     return `${selectedYear}-${m}-${d}`;
   }, [selectedDay, selectedMonth, selectedYear]);

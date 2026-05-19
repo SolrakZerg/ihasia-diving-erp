@@ -107,7 +107,7 @@ export default function Billing_Header_Llegadas({
           disabled={selectedArrivalIds.size === 0}
           className="w-full py-0.5 bg-surface text-brand-light hover:bg-brand hover:text-white disabled:opacity-50 border border-brand/30 rounded text-[13px] font-semibold transition-colors shadow-sm"
         >
-          AÑADIR A LA MESA {selectedArrivalIds.size > 0 && `(${selectedArrivalIds.size})`}
+          AÑADIR A LA TABLA {selectedArrivalIds.size > 0 && `(${selectedArrivalIds.size})`}
         </button>
       </div>
     </div>

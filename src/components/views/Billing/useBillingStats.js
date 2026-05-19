@@ -100,7 +100,7 @@ export function useBillingStats({
     const { data, error } = await supabase
       .from('monthly_activity_summary')
       .select('*')
-      .eq('month', m + 1) // +1 para coincidir con el formato 1-indexed de la BD
+      .eq('month', m) // m ya viene en formato 1-indexed (mes natural)
       .eq('year', y)
       .maybeSingle(); 
     
@@ -127,7 +127,7 @@ export function useBillingStats({
 
     const { error } = await supabase.rpc('sync_monthly_activity_logs', {
       p_year: selectedYear,
-      p_month: selectedMonth + 1,
+      p_month: selectedMonth,
       p_data: syncData
     });
 

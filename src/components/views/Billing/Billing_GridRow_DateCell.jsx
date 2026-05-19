@@ -16,18 +16,18 @@ export default function Billing_GridRow_DateCell({
   const isWrongMonth = useMemo(() => {
     if (!item.date) return false;
     const [y, m] = item.date.split('-').map(Number);
-    return y !== selectedYear || (m - 1) !== selectedMonth;
+    return y !== selectedYear || m !== selectedMonth;
   }, [item.date, selectedMonth, selectedYear]);
 
   // Rango permitido para el input date (bloqueo preventivo del navegador)
   const minDate = useMemo(() => {
-    const month = String(selectedMonth + 1).padStart(2, '0');
+    const month = String(selectedMonth).padStart(2, '0');
     return `${selectedYear}-${month}-01`;
   }, [selectedMonth, selectedYear]);
 
   const maxDate = useMemo(() => {
-    const month = String(selectedMonth + 1).padStart(2, '0');
-    const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const month = String(selectedMonth).padStart(2, '0');
+    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
     return `${selectedYear}-${month}-${lastDay}`;
   }, [selectedMonth, selectedYear]);
 
@@ -46,10 +46,10 @@ export default function Billing_GridRow_DateCell({
     }
 
     const [y, m] = newDate.split('-').map(Number);
-    if (y !== selectedYear || (m - 1) !== selectedMonth) {
+    if (y !== selectedYear || m !== selectedMonth) {
       if (setToast) {
         const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-        setToast(`⚠️ Solo puedes asignar fechas de ${monthNames[selectedMonth]} en este informe`);
+        setToast(`⚠️ Solo puedes asignar fechas de ${monthNames[selectedMonth - 1]} en este informe`);
       }
       return; // Bloquear actualización
     }

@@ -28,7 +28,7 @@ export const useExpensesData = () => {
   
   // Date states
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [dateFilter, setDateFilter] = useState(now.toISOString().split('T')[0]);
 
@@ -79,8 +79,8 @@ export const useExpensesData = () => {
   };
 
   const handlePrevMonth = () => {
-    if (selectedMonth === 0) {
-      setSelectedMonth(11);
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
       setSelectedYear(prev => prev - 1);
     } else {
       setSelectedMonth(prev => prev - 1);
@@ -88,8 +88,8 @@ export const useExpensesData = () => {
   };
 
   const handleNextMonth = () => {
-    if (selectedMonth === 11) {
-      setSelectedMonth(0);
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
       setSelectedYear(prev => prev + 1);
     } else {
       setSelectedMonth(prev => prev + 1);
@@ -97,8 +97,8 @@ export const useExpensesData = () => {
   };
 
   useEffect(() => {
-    const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
-    const mm = String(selectedMonth + 1).padStart(2, '0');
+    const isCurrentMonth = selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear();
+    const mm = String(selectedMonth).padStart(2, '0');
     const syncDate = isCurrentMonth ? now.toISOString().split('T')[0] : `${selectedYear}-${mm}-01`;
     
     setDateFilter(syncDate);
@@ -106,7 +106,7 @@ export const useExpensesData = () => {
       ...prev, 
       date: prev.date && prev.date.startsWith(`${selectedYear}-${mm}`) ? prev.date : syncDate 
     }));
-    fetchData();
+    fetchData(false);
   }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
@@ -119,13 +119,13 @@ export const useExpensesData = () => {
   const fetchData = async (showLoader = true) => {
     if (showLoader) setLoading(true);
     
-    const mm = String(selectedMonth + 1).padStart(2, '0');
+    const mm = String(selectedMonth).padStart(2, '0');
     const firstDay = `${selectedYear}-${mm}-01`;
-    const lastDayNum = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const lastDayNum = new Date(selectedYear, selectedMonth, 0).getDate();
     const lastDay = `${selectedYear}-${mm}-${String(lastDayNum).padStart(2, '0')}`;
 
     const now = new Date();
-    const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+    const isCurrentMonth = selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear();
     const syncDate = isCurrentMonth ? now.toISOString().split('T')[0] : `${selectedYear}-${mm}-01`;
 
     const [expRes, commRes, oxyRes, staffRes, promoRes, actRes, setRes, metricsRes] = await Promise.all([
@@ -146,7 +146,7 @@ export const useExpensesData = () => {
       supabase.from('external_promoters').select('*').order('name'),
       supabase.from('activities').select('*').order('name'),
       supabase.from('expense_categories').select('*').order('sort_order', { ascending: true }),
-      supabase.from('monthly_expenses').select('*').eq('year', selectedYear).eq('month', selectedMonth + 1).maybeSingle()
+      supabase.from('monthly_expenses').select('*').eq('year', selectedYear).eq('month', selectedMonth).maybeSingle()
     ]);
 
     if (expRes.data) setExpenses(expRes.data);

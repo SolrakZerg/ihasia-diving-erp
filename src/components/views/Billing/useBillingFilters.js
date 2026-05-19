@@ -26,13 +26,13 @@ export function useBillingFilters({
         const isThisMonth = items.some(it => {
           if (!it.date) return true;
           const [y, m] = it.date.split('-').map(Number);
-          return y === selectedYear && (m - 1) === selectedMonth;
+          return y === selectedYear && m === selectedMonth;
         });
         if (!isThisMonth) return false;
 
         // Filtrado por día específico
         if (selectedDay) {
-          const targetDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+          const targetDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
           if (!items.some(it => it.date === targetDate)) return false;
         }
 

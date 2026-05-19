@@ -210,7 +210,7 @@ export const buildBillingCashControlAction = ({
   undo: async () => {
     const { error: err1 } = await supabase.from('cash_control_monthly').upsert({
       year: selectedYear,
-      month: selectedMonth + 1,
+      month: selectedMonth,
       b_50000: oldBills['50.000'],
       b_1000: oldBills['1.000'],
       b_500: oldBills['500'],
@@ -222,7 +222,7 @@ export const buildBillingCashControlAction = ({
 
     const { error: err2 } = await supabase.from('monthly_reports').upsert({
       year: selectedYear,
-      month: selectedMonth + 1,
+      month: selectedMonth,
       cash: oldTotal,
       updated_at: new Date().toISOString()
     }, { onConflict: 'year, month' });
@@ -238,7 +238,7 @@ export const buildBillingCashControlAction = ({
   redo: async () => {
     const { error: err1 } = await supabase.from('cash_control_monthly').upsert({
       year: selectedYear,
-      month: selectedMonth + 1,
+      month: selectedMonth,
       b_50000: newBills['50.000'],
       b_1000: newBills['1.000'],
       b_500: newBills['500'],
@@ -250,7 +250,7 @@ export const buildBillingCashControlAction = ({
 
     const { error: err2 } = await supabase.from('monthly_reports').upsert({
       year: selectedYear,
-      month: selectedMonth + 1,
+      month: selectedMonth,
       cash: newTotal,
       updated_at: new Date().toISOString()
     }, { onConflict: 'year, month' });
