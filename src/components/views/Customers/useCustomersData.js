@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { addCustomersToBilling } from '../../common/billingHelpers';
 import { ACTIVITY_COLORS, getActivityColor, shortenLastDive, normalizeLevel } from './Customers_Utils';
+import { useUndo } from '../../../context/UndoContext';
+import { buildAddArrivalsAction } from '../Billing/billingUndoActions';
 
 const PAGE_SIZE = 50;
 
@@ -12,6 +14,8 @@ export { ACTIVITY_COLORS, getActivityColor, shortenLastDive, normalizeLevel } fr
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export default function useCustomersData() {
+  const { pushAction } = useUndo();
+
   // --- Estado de datos ---
   const [customers, setCustomers]       = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -250,7 +254,22 @@ export default function useCustomersData() {
       if (fetchErr) throw fetchErr;
       if (!selectedCustomers) return;
 
-      await addCustomersToBilling(selectedCustomers);
+      const { insertedInvoices, insertedInvoiceItems } = await addCustomersToBilling(selectedCustomers);
+
+      if (insertedInvoiceItems && insertedInvoiceItems.length > 0) {
+        const newInvoiceIds = insertedInvoices.map(inv => inv.id);
+        const newInvoiceItemIds = insertedInvoiceItems.map(item => item.id);
+        const customerNamesDesc = selectedCustomers.map(c => `${c.first_name} ${c.last_name}`).join(', ');
+
+        pushAction(buildAddArrivalsAction(
+          newInvoiceIds,
+          newInvoiceItemIds,
+          insertedInvoices,
+          insertedInvoiceItems,
+          customerNamesDesc,
+          () => {} // Callback vacío ya que el cambio de vista recargará el componente al montarse
+        ));
+      }
 
       setToastMsg(`${selectedIds.size} buceadores enviados a facturación.`);
       setShowToast(true);

@@ -10,6 +10,9 @@ import { supabase } from '../../lib/supabaseClient';
  * @returns {Promise<void>}
  */
 export async function addCustomersToBilling(customers) {
+  const insertedInvoices = [];
+  const insertedInvoiceItems = [];
+
   for (const cust of customers) {
     if (!cust || !cust.id) continue;
     
@@ -63,22 +66,32 @@ export async function addCustomersToBilling(customers) {
         throw createInvErr;
       }
       invoiceId = newInv.id;
+      insertedInvoices.push(newInv);
     }
 
     // 4. Create the new invoice item with NULL date and quantity
-    const { error: createItemErr } = await supabase.from('invoice_items').insert({
-      invoice_id: invoiceId,
-      customer_id: cust.id,
-      date: null, // Forces manual validation in the UI
-      quantity: null, // Default to null for manual entry/validation
-      unit_price_thb: 0,
-      total_thb: 0,
-      status: 'Pending'
-    });
+    const { data: newItemData, error: createItemErr } = await supabase
+      .from('invoice_items')
+      .insert({
+        invoice_id: invoiceId,
+        customer_id: cust.id,
+        date: null, // Forces manual validation in the UI
+        quantity: null, // Default to null for manual entry/validation
+        unit_price_thb: 0,
+        total_thb: 0,
+        status: 'Pending'
+      })
+      .select()
+      .single();
 
     if (createItemErr) {
       console.error('Error creating invoice item:', createItemErr);
       throw createItemErr;
     }
+    if (newItemData) {
+      insertedInvoiceItems.push(newItemData);
+    }
   }
+
+  return { insertedInvoices, insertedInvoiceItems };
 }

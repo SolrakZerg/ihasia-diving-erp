@@ -1,7 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient';
 import { addCustomersToBilling } from '../../common/billingHelpers';
 import { useUndo } from '../../../context/UndoContext';
-import { buildDeleteItemsAction, buildDeleteInvoiceAction } from './billingUndoActions';
+import { buildDeleteItemsAction, buildDeleteInvoiceAction, buildAddArrivalsAction } from './billingUndoActions';
 
 export function useBillingMutations({
   invoices,
@@ -68,12 +68,20 @@ export function useBillingMutations({
       const eMonth = overrideMonth !== null ? overrideMonth : selectedMonth;
       const eYear = overrideYear !== null ? overrideYear : selectedYear;
 
+      // Calcular rango de fechas para el mes y año seleccionados
+      const lastDay = new Date(eYear, eMonth, 0).getDate();
+      const startDate = `${eYear}-${String(eMonth).padStart(2, '0')}-01`;
+      const endDate = `${eYear}-${String(eMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+      // Filtrar facturas que tengan items en el periodo seleccionado o sin fecha asignada (date is null)
       const { data, error } = await supabase.from('invoices').select(`
         *, customers!invoices_customer_id_fkey(first_name, last_name, email),
-        invoice_items(id, invoice_id, quantity, total_thb, unit_price_thb, date, status, payment_method, notes, activity_id, instructor_id, bizum_deposit_eur, customer_id, temporary_name, is_comm,
+        invoice_items!inner(id, invoice_id, quantity, total_thb, unit_price_thb, date, status, payment_method, notes, activity_id, instructor_id, bizum_deposit_eur, customer_id, temporary_name, is_comm,
           activities(name, category, color, acronym), staff(first_name, initials),
           customers!invoice_items_customer_id_fkey(first_name, last_name, email))
-      `).order('created_at', { ascending: false });
+      `)
+      .or(`date.is.null,and(date.gte.${startDate},date.lte.${endDate})`, { foreignTable: 'invoice_items' })
+      .order('created_at', { ascending: false });
       if (error) throw error;
 
       const sorted = (data || []).map(inv => ({
@@ -504,7 +512,22 @@ export function useBillingMutations({
         if (cust) customersToAdd.push(cust);
       }
       
-      await addCustomersToBilling(customersToAdd);
+      const { insertedInvoices, insertedInvoiceItems } = await addCustomersToBilling(customersToAdd);
+      
+      if (insertedInvoiceItems.length > 0) {
+        const newInvoiceIds = insertedInvoices.map(inv => inv.id);
+        const newInvoiceItemIds = insertedInvoiceItems.map(item => item.id);
+        const customerNamesDesc = customersToAdd.map(c => `${c.first_name} ${c.last_name}`).join(', ');
+        
+        pushAction(buildAddArrivalsAction(
+          newInvoiceIds,
+          newInvoiceItemIds,
+          insertedInvoices,
+          insertedInvoiceItems,
+          customerNamesDesc,
+          () => fetchInvoices(false)
+        ));
+      }
       
       setToast(`Se han añadido ${selectedArrivalIds.size} clientes a la mesa.`);
       sessionStorage.setItem('shouldScrollToBottom', 'true');

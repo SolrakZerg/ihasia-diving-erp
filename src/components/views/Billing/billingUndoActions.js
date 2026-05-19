@@ -261,8 +261,61 @@ export const buildBillingCashControlAction = ({
     setBills500(newBills['500']);
     setBills100(newBills['100']);
     setBills50(newBills['50']);
-    setBills20(newBills['20']);
   }
 };
 };
+
+/**
+ * Acción para revertir/rehacer el añadido de clientes de llegadas a la tabla de facturación.
+ */
+export const buildAddArrivalsAction = (
+  newInvoiceIds,
+  newInvoiceItemIds,
+  newlyCreatedInvoicesBackup,
+  newlyCreatedInvoiceItemsBackup,
+  customerNamesDesc,
+  fetchData
+) => ({
+  view: 'billing',
+  description: {
+    undo: `Adición de llegadas (${customerNamesDesc}) deshecha`,
+    redo: `Adición de llegadas (${customerNamesDesc}) rehacha`
+  },
+  undo: async () => {
+    // 1. Eliminar primero los elementos de factura
+    if (newInvoiceItemIds.length > 0) {
+      const { error: delItemsErr } = await supabase
+        .from('invoice_items')
+        .delete()
+        .in('id', newInvoiceItemIds);
+      if (delItemsErr) throw delItemsErr;
+    }
+    // 2. Eliminar las facturas vacías creadas
+    if (newInvoiceIds.length > 0) {
+      const { error: delInvErr } = await supabase
+        .from('invoices')
+        .delete()
+        .in('id', newInvoiceIds);
+      if (delInvErr) throw delInvErr;
+    }
+    fetchData(false);
+  },
+  redo: async () => {
+    // 1. Re-insertar facturas
+    if (newlyCreatedInvoicesBackup.length > 0) {
+      const { error: insInvErr } = await supabase
+        .from('invoices')
+        .insert(newlyCreatedInvoicesBackup);
+      if (insInvErr) throw insInvErr;
+    }
+    // 2. Re-insertar elementos de factura
+    if (newlyCreatedInvoiceItemsBackup.length > 0) {
+      const { error: insItemsErr } = await supabase
+        .from('invoice_items')
+        .insert(newlyCreatedInvoiceItemsBackup);
+      if (insItemsErr) throw insItemsErr;
+    }
+    fetchData(false);
+  }
+});
 
