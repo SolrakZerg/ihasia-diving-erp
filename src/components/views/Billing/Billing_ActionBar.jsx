@@ -53,8 +53,8 @@ export default function BillingActionBar({
               id="bulk-date-input"
               type="date"
               className="absolute w-0 h-0 opacity-0 pointer-events-none"
-              min={`${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`}
-              max={`${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`}
+              min={`${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`}
+              max={`${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${new Date(selectedYear, selectedMonth, 0).getDate()}`}
               onChange={(e) => {
                 const newDate = e.target.value;
                 if (!newDate) {
@@ -62,10 +62,10 @@ export default function BillingActionBar({
                   return;
                 }
                 const [y, m] = newDate.split('-').map(Number);
-                if (y !== selectedYear || (m - 1) !== selectedMonth) {
+                if (y !== selectedYear || m !== selectedMonth) {
                   if (setToast) {
                     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-                    setToast(`⚠️ Solo puedes asignar fechas de ${monthNames[selectedMonth]} en este informe`);
+                    setToast(`⚠️ Solo puedes asignar fechas de ${monthNames[selectedMonth - 1]} en este informe`);
                   }
                   return;
                 }
