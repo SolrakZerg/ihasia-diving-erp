@@ -47,7 +47,7 @@ const Expenses_Commissions_Table = ({
         <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 z-30">
             <tr className="bg-table-header/98 backdrop-blur-xl border-b border-surface-edge/50 h-[45px]">
-               <th className="px-3 py-0 text-[11px] font-black text-text-header uppercase tracking-widest w-[80px] align-middle">Fecha</th>
+               <th className="px-3 py-0 text-[11px] font-black text-text-header uppercase tracking-widest w-[60px] align-middle">Día</th>
                <th className="px-3 py-0 text-[11px] font-black text-text-header uppercase tracking-widest align-middle">
                   <div className="flex flex-row flex-wrap gap-4">
                      <span className="w-[200px] shrink-0">Cliente</span>
@@ -65,36 +65,37 @@ const Expenses_Commissions_Table = ({
             ) : (
               commissions.map(c => (
                 <tr key={c.id} className="hover:bg-brand/5 transition-colors group">
-                  <td className="px-3 py-1.5">
-                     <span className="text-xs font-black text-white bg-surface-edge/20 px-2 py-1.5 rounded border border-surface-edge/30 whitespace-nowrap">
-                       {c.date ? new Date(c.date).toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'}) : 'Sin fecha'}
+                  <td className="px-3 py-1">
+                     <span className="text-xs font-black text-white bg-surface-edge/20 px-2.5 py-0.5 rounded border border-surface-edge/30 whitespace-nowrap">
+                       {c.date ? c.date.split('-')[2] : '—'}
                      </span>
                   </td>
-                   <td className="px-3 py-1.5">
+                   <td className="px-3 py-1">
                       <div className="flex flex-row flex-wrap items-center gap-x-4 gap-y-0.5">
                          <div className="w-[200px] shrink-0">
-                            <span className="text-sm font-black text-white whitespace-nowrap truncate block">
-                              {c.customers ? `${c.customers.first_name || ''} ${c.customers.last_name || ''}` : 'Sin cliente'}
+                            <span className="text-sm font-black text-[#d9d9d9] whitespace-nowrap truncate block">
+                              {c.customers ? `${c.customers.first_name || ''} ${c.customers.last_name || ''}` : (c.temporary_name || 'Sin cliente')}
                             </span>
                          </div>
                          <div className="w-[160px] shrink-0">
                             <div className="flex items-center gap-2">
                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.activities?.color || '#4f4f4f' }} />
-                               <span className="text-sm font-bold text-text-header truncate">
+                               <span className="text-sm font-bold truncate" style={{ color: c.activities?.color || 'var(--text-header)' }}>
                                  {c.activities?.name}
                                </span>
                             </div>
                          </div>
                       </div>
                    </td>
-                  <td className="px-3 py-1.5 w-[200px]">
+                  <td className="px-3 py-1 w-[200px]">
                      <SmartSelect 
                         options={recipientOptions} 
                         value={c.comm_recipient_id} 
                         onChange={o => updateItem(c.id, 'comm_recipient_id', o.id)} 
+                        triggerClassName="!py-0.5"
                      />
                   </td>
-                  <td className="px-3 py-1.5 text-right w-[120px]">
+                  <td className="px-3 py-1 text-right w-[120px]">
                      <div className="flex flex-col items-end">
                         <EditableInput
                           key={`${c.id}-${c.comm_amount_thb}-${refreshKey}`}
@@ -105,17 +106,17 @@ const Expenses_Commissions_Table = ({
                              await updateItem(c.id, 'comm_amount_thb', isNaN(numVal) ? null : numVal);
                              setRefreshKey(prev => prev + 1);
                           }}
-                          className={`bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded text-right text-base font-bold outline-none px-1 py-0.5 transition-colors w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${c.comm_amount_thb != null ? 'text-brand' : (c.is_comm_paid ? 'text-success' : 'text-warning')}`}
+                          className={`bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded text-right text-sm font-bold outline-none px-1 py-0 transition-colors w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${c.comm_amount_thb != null ? 'text-brand' : (c.is_comm_paid ? 'text-success' : 'text-warning')}`}
                         />
-                        <span className="text-[10px] text-text-header font-bold tracking-widest uppercase mt-0.5">Base: {c.activities?.price_thb?.toLocaleString()}</span>
+                        <span className="text-[9px] text-text-header font-bold tracking-widest uppercase mt-0.5">Base: {c.activities?.price_thb?.toLocaleString()}</span>
                      </div>
                   </td>
-                  <td className="px-3 py-1.5 text-center">
+                  <td className="px-3 py-1 text-center">
                      <button 
                        onClick={() => updateItem(c.id, 'is_comm_paid', !c.is_comm_paid)}
-                       className={`w-9 h-9 mx-auto rounded-2xl flex items-center justify-center border transition-all ${c.is_comm_paid ? 'bg-success border-success text-[#1a1c2d] shadow-lg shadow-success/20' : 'bg-surface-edge/20 border-surface-edge/30 text-text-header hover:border-warning hover:bg-warning/5'}`}
+                       className={`w-7 h-7 mx-auto rounded-xl flex items-center justify-center border transition-all ${c.is_comm_paid ? 'bg-success border-success text-[#1a1c2d] shadow-lg shadow-success/20' : 'bg-surface-edge/20 border-surface-edge/30 text-text-header hover:border-warning hover:bg-warning/5'}`}
                      >
-                       <Check className={`w-5 h-5 ${c.is_comm_paid ? 'stroke-[4]' : 'opacity-40'}`} />
+                       <Check className={`w-4 h-4 ${c.is_comm_paid ? 'stroke-[4]' : 'opacity-40'}`} />
                      </button>
                   </td>
                 </tr>

@@ -1,4 +1,4 @@
-import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch } from 'lucide-react';
+import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch, UserPlus } from 'lucide-react';
 
 export default function Customers_Header({
   totalCount,
@@ -15,6 +15,7 @@ export default function Customers_Header({
   showDuplicates,
   handleDateFilterChange,
   toggleDuplicates,
+  onAddClick,
 }) {
   return (
     <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -31,6 +32,15 @@ export default function Customers_Header({
 
       {/* Controls */}
       <div className="flex gap-3 relative">
+
+        {/* Add Customer Button */}
+        <button
+          onClick={onAddClick}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold transition-all transform active:scale-95 shadow-lg shadow-brand/20 text-xs uppercase tracking-wider cursor-pointer"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span className="hidden sm:inline">Nuevo Cliente</span>
+        </button>
 
         {/* Search */}
         <div className="relative group flex-1 md:flex-initial">

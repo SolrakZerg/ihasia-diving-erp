@@ -58,14 +58,14 @@ const Expenses_Oxygen_Table = ({
                     <td className="px-3 py-1.5">
                        <div className="flex flex-row flex-wrap items-center gap-x-4 gap-y-0.5">
                           <div className="w-[200px] shrink-0">
-                             <span className="text-sm font-black text-white truncate block">
-                               {o.customers?.first_name || 'Sin nombre'}
+                             <span className="text-sm font-black text-[#d9d9d9] truncate block">
+                               {o.customers ? `${o.customers.first_name || ''} ${o.customers.last_name || ''}` : (o.temporary_name || 'Sin cliente')}
                              </span>
                           </div>
                           <div className="w-[160px] shrink-0">
                              <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: o.activities?.color || '#4f4f4f' }} />
-                                <span className="text-sm font-bold text-text-header truncate">
+                                <span className="text-sm font-bold truncate" style={{ color: o.activities?.color || 'var(--text-header)' }}>
                                   {o.activities?.name}
                                 </span>
                              </div>

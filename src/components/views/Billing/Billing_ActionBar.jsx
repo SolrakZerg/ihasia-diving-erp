@@ -34,7 +34,7 @@ export default function BillingActionBar({
 
         <div className="flex items-center gap-2 pr-1 ml-2">
           {/* Group / Ungroup */}
-          <div className="flex items-center bg-slate-400/80 border border-slate-300/50 rounded-xl p-1 gap-1">
+          <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-1 gap-1">
             <button onClick={() => setBulkGroupAction(bulkGroupAction === 'group' ? null : 'group')} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all font-black text-xs uppercase tracking-tight cursor-pointer ${bulkGroupAction === 'group' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 hover:scale-[1.05] active:scale-95' : 'bg-white border border-slate-200/50 text-blue-600 hover:bg-blue-500 hover:text-white hover:scale-105 active:scale-95 shadow-sm'}`}>
               <Link className="w-3.5 h-3.5" />Agrupar
             </button>
@@ -45,8 +45,8 @@ export default function BillingActionBar({
 
           {/* Bulk Date */}
           <div className="relative h-10">
-            <button className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all font-black text-xs group border h-full cursor-pointer ${bulkDate ? 'bg-blue-700 border-blue-600 text-white hover:bg-blue-800 hover:scale-[1.07] active:scale-95 shadow-lg shadow-blue-500/30 scale-[1.02]' : 'bg-blue-500 border-blue-400 text-white hover:bg-blue-600 hover:scale-105 active:scale-95 shadow-md shadow-blue-500/20'}`} onClick={() => document.getElementById('bulk-date-input').showPicker()}>
-              <Calendar className="w-4 h-4 text-white" />
+            <button className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all font-black text-xs group border h-full cursor-pointer ${bulkDate ? 'bg-slate-600 border-slate-500 text-white hover:bg-slate-700 hover:scale-[1.07] active:scale-95 shadow-md shadow-slate-700/20 scale-[1.02]' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200 hover:text-slate-700 hover:scale-105 active:scale-95'}`} onClick={() => document.getElementById('bulk-date-input').showPicker()}>
+              <Calendar className={`w-4 h-4 ${bulkDate ? 'text-slate-300' : 'text-slate-400'}`} />
               {bulkDate ? bulkDate.split('-')[2] : 'FECHA?'}
             </button>
             <input
@@ -75,6 +75,7 @@ export default function BillingActionBar({
           </div>
 
           {/* Bulk Activity */}
+          <div className="relative h-10 flex items-stretch">
           <SmartSelect
             value={bulkActivity}
             options={activities.filter(a => a.acronym && a.acronym.trim() !== '')}
@@ -98,11 +99,11 @@ export default function BillingActionBar({
                   type="button"
                   onClick={() => setIsOpen(!isOpen)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all h-full text-xs font-black uppercase tracking-wider cursor-pointer ${bulkActivity
-                    ? 'bg-indigo-700 border-indigo-600 text-white hover:bg-indigo-800 hover:scale-[1.07] active:scale-95 shadow-lg shadow-indigo-500/30 scale-[1.02]'
-                    : 'bg-indigo-500 border-indigo-400 text-white hover:bg-indigo-600 hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20'
+                    ? 'bg-slate-600 border-slate-500 text-white hover:bg-slate-700 hover:scale-[1.07] active:scale-95 shadow-md shadow-slate-700/20 scale-[1.02]'
+                    : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200 hover:text-slate-700 hover:scale-105 active:scale-95'
                   }`}
                 >
-                  <Compass className="w-4 h-4 text-white" />
+                  <Compass className={`w-4 h-4 ${bulkActivity ? 'text-slate-300' : 'text-slate-400'}`} />
                   <span>{displayedLabel}</span>
                   {bulkActivity && (
                     <span
@@ -110,7 +111,7 @@ export default function BillingActionBar({
                         e.stopPropagation();
                         setBulkActivity('');
                       }}
-                      className="ml-0.5 text-indigo-200 hover:text-white p-0.5 rounded transition-colors"
+                      className="ml-0.5 text-slate-300 hover:text-white p-0.5 rounded transition-colors cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </span>
@@ -132,6 +133,7 @@ export default function BillingActionBar({
             showClear={true}
             clearLabel="--"
           />
+          </div>
 
           {/* Bulk Instructor */}
           {isStaffDisabled ? (
@@ -140,6 +142,7 @@ export default function BillingActionBar({
               <span className="text-slate-400 text-xs font-black uppercase tracking-wider">—</span>
             </div>
           ) : (
+            <div className="relative h-10 flex items-stretch">
             <SmartSelect
               value={bulkInstructor}
               options={staff.filter(s => s.active)}
@@ -162,11 +165,11 @@ export default function BillingActionBar({
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all h-full text-xs font-black uppercase tracking-wider cursor-pointer ${bulkInstructor
-                      ? 'bg-amber-600 border-amber-600 text-white hover:bg-amber-600/80 hover:scale-[1.07] active:scale-95 shadow-lg shadow-amber-500/30 scale-[1.02]'
-                      : 'bg-amber-500 border-amber-400 text-white hover:bg-amber-600/80 hover:scale-105 active:scale-95 shadow-md shadow-amber-500/20'
+                      ? 'bg-slate-600 border-slate-500 text-white hover:bg-slate-700 hover:scale-[1.07] active:scale-95 shadow-md shadow-slate-700/20 scale-[1.02]'
+                      : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200 hover:text-slate-700 hover:scale-105 active:scale-95'
                     }`}
                   >
-                    <Briefcase className="w-4 h-4 text-white" />
+                    <Briefcase className={`w-4 h-4 ${bulkInstructor ? 'text-slate-300' : 'text-slate-400'}`} />
                     <span>{displayedLabel}</span>
                     {bulkInstructor && (
                       <span
@@ -174,7 +177,7 @@ export default function BillingActionBar({
                           e.stopPropagation();
                           setBulkInstructor('');
                         }}
-                        className="ml-0.5 text-amber-200 hover:text-white p-0.5 rounded transition-colors"
+                        className="ml-0.5 text-slate-300 hover:text-white p-0.5 rounded transition-colors cursor-pointer"
                       >
                         <X className="w-3 h-3" />
                       </span>
@@ -190,6 +193,7 @@ export default function BillingActionBar({
               showClear={true}
               clearLabel="--"
             />
+            </div>
           )}
 
           <div className="w-px h-6 bg-slate-200 mx-1" />

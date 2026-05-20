@@ -186,14 +186,20 @@ export default function Customers_Table({
                       </div>
                       {/* Fecha de reserva en móvil */}
                       {!isExtendedView && (
-                        <div className="flex md:hidden items-center gap-1 text-[11px] font-bold text-text-dim mt-0.5">
-                          <Calendar className="w-3 h-3 text-brand" />
-                          <span>
-                            {customer.booking_date
-                              ? new Date(customer.booking_date).toLocaleDateString('es-ES', {
-                                day: '2-digit', month: 'short', year: '2-digit',
-                              }).replace('.', '')
-                              : '---'}
+                        <div className="flex md:hidden mt-1">
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg border text-[10px] font-black tracking-wide ${
+                            customer.booking_date
+                              ? 'bg-amber-500/10 border-amber-500/20'
+                              : 'bg-surface-edge/20 border-transparent text-text-dim'
+                          }`}>
+                            <Calendar className={`w-3 h-3 ${customer.booking_date ? 'text-brand' : ''}`} />
+                            <span className={customer.booking_date ? 'text-white' : ''}>
+                              {customer.booking_date
+                                ? new Date(customer.booking_date).toLocaleDateString('es-ES', {
+                                  day: '2-digit', month: 'short', year: '2-digit',
+                                }).replace('.', '').toUpperCase()
+                                : '---'}
+                            </span>
                           </span>
                         </div>
                       )}
@@ -202,17 +208,21 @@ export default function Customers_Table({
 
                   {/* Fecha de reserva */}
                   <td className={`${isExtendedView ? 'px-1' : 'px-2 md:px-6 hidden md:table-cell'} py-2 whitespace-nowrap text-center`}>
-                    <div className="flex flex-col items-center text-text-muted">
-                      <div className={`flex items-center gap-1 font-bold text-white ${isExtendedView ? 'text-xs' : 'text-sm'}`}>
-                        <Calendar className={`${isExtendedView ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-brand`} />
-                        <span>
+                    <div className="flex justify-center">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[12px] font-black tracking-wide ${
+                        customer.booking_date
+                          ? 'bg-amber-500/30 border-amber-500/25'
+                          : 'bg-surface-edge/20 border-transparent text-text-dim'
+                      }`}>
+                        <Calendar className={`w-3.5 h-3.5 ${customer.booking_date ? 'text-blue-400' : ''}`} />
+                        <span className={customer.booking_date ? 'text-white' : ''}>
                           {customer.booking_date
                             ? new Date(customer.booking_date).toLocaleDateString('es-ES', {
                               day: '2-digit', month: 'short', year: '2-digit',
-                            }).replace('.', '')
+                            }).replace('.', '').toUpperCase()
                             : '---'}
                         </span>
-                      </div>
+                      </span>
                     </div>
                   </td>
 

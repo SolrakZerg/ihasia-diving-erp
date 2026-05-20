@@ -233,6 +233,12 @@ export default function useCustomersData() {
     setIsEditModalOpen(true);
   };
 
+  const handleAdd = () => {
+    setEditingCustomer(null);
+    setIsEditModalOpen(true);
+  };
+
+
   const handleRowClick = (customer) => {
     setSelectedCustomer(customer);
     setIsDrawerOpen(true);
@@ -352,6 +358,8 @@ export default function useCustomersData() {
     isEditModalOpen,
     setIsEditModalOpen,
     handleEdit,
+    handleAdd,
+
 
     // Selección múltiple
     selectedIds,

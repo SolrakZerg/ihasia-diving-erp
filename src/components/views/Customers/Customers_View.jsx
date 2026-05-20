@@ -53,6 +53,7 @@ export default function Customers_View({ onNavigate }) {
     isEditModalOpen,
     setIsEditModalOpen,
     handleEdit,
+    handleAdd,
 
     // Selección múltiple
     selectedIds,
@@ -106,6 +107,7 @@ export default function Customers_View({ onNavigate }) {
         showDuplicates={showDuplicates}
         handleDateFilterChange={handleDateFilterChange}
         toggleDuplicates={toggleDuplicates}
+        onAddClick={handleAdd}
       />
 
       {/* ── Tabla + Paginación ── */}

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, Calendar, Award, Shield, MapPin, Hash, MessageSquare } from 'lucide-react';
+import { X, Save, User, Mail, Phone, Calendar, Award, Shield, MapPin, Hash, MessageSquare, UserPlus } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 
 export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const isEditMode = !!(customer && customer.id);
 
   useEffect(() => {
     if (customer) {
@@ -28,10 +30,19 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
     setError(null);
 
     try {
-      const { error: submitError } = await supabase
-        .from('customers')
-        .update(formData)
-        .eq('id', customer.id);
+      let submitError;
+      if (isEditMode) {
+        const { error } = await supabase
+          .from('customers')
+          .update(formData)
+          .eq('id', customer.id);
+        submitError = error;
+      } else {
+        const { error } = await supabase
+          .from('customers')
+          .insert([formData]);
+        submitError = error;
+      }
 
       if (submitError) throw submitError;
       
@@ -58,11 +69,15 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
         <div className="p-6 border-b border-surface-edge bg-surface-soft/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-brand/20 flex items-center justify-center text-brand">
-              <User className="w-5 h-5" />
+              {isEditMode ? <User className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Editar Buceador</h2>
-              <p className="text-xs text-gray-500 font-medium">Actualiza la información del perfil</p>
+              <h2 className="text-xl font-bold text-white">
+                {isEditMode ? 'Editar Buceador' : 'Nuevo Buceador'}
+              </h2>
+              <p className="text-xs text-gray-500 font-medium">
+                {isEditMode ? 'Actualiza la información del perfil' : 'Introduce la información del nuevo perfil'}
+              </p>
             </div>
           </div>
           <button 
@@ -130,14 +145,14 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
           <button 
             onClick={handleSubmit}
             disabled={loading}
-            className="px-8 py-2.5 rounded-xl bg-brand text-white text-sm font-black shadow-lg shadow-brand/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
+            className="px-8 py-2.5 rounded-xl bg-brand text-white text-sm font-black shadow-lg shadow-brand/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:hover:scale-100 cursor-pointer"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <Save className="w-4 h-4" />
             )}
-            GUARDAR CAMBIOS
+            {isEditMode ? 'GUARDAR CAMBIOS' : 'CREAR BUCEADOR'}
           </button>
         </div>
       </div>
