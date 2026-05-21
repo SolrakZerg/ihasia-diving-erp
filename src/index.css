@@ -356,3 +356,32 @@ input[type="date"] {
 }
 
 
+
+/* Responsive Sidebar overrides for Mobile Landscape */
+@media (max-height: 500px) and (max-width: 1000px) {
+  /* Force sidebar to be fixed and hidden to the left */
+  aside {
+    position: fixed !important;
+    transform: translateX(-100%) !important;
+  }
+  
+  /* If the mobile sidebar is active/open, translate it into view */
+  aside.translate-x-0 {
+    transform: translateX(0) !important;
+  }
+  
+  /* Force the mobile menu trigger button to be visible */
+  .mobile-toggle {
+    display: flex !important;
+  }
+  
+  /* Force backdrop visibility when mobile menu is open */
+  .mobile-backdrop {
+    display: block !important;
+  }
+  
+  /* Hide the desktop collapse button (chevron icon) on mobile landscape */
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+}

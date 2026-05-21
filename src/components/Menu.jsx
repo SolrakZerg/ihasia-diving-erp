@@ -67,7 +67,7 @@ export default function Dashboard({ user }) {
       {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div 
-          className="sm:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          className="sm:hidden mobile-backdrop fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -95,7 +95,7 @@ export default function Dashboard({ user }) {
       {!isMobileOpen && (
         <button 
           onClick={() => setIsMobileOpen(true)}
-          className="sm:hidden fixed top-4 left-0 z-[100] p-2 bg-brand rounded-r-lg text-white shadow-lg border border-l-0 border-surface-edge"
+          className="sm:hidden mobile-toggle fixed top-4 left-0 z-[100] p-2 bg-brand rounded-r-lg text-white shadow-lg border border-l-0 border-surface-edge"
         >
           <ChevronRight className="w-5 h-5" />
         </button>

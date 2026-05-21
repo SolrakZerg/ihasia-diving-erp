@@ -130,7 +130,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
         <button
           onClick={onToggleCollapse}
           aria-label={isCollapsed ? "Expandir menú lateral" : "Colapsar menú lateral"}
-          className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-edge border border-surface-edge items-center justify-center text-gray-300 hover:text-white hover:scale-110 transition-all z-50 shadow-lg focus-visible:ring-2 focus-visible:ring-brand"
+          className="hidden sm:flex sidebar-collapse-btn absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-edge border border-surface-edge items-center justify-center text-gray-300 hover:text-white hover:scale-110 transition-all z-50 shadow-lg focus-visible:ring-2 focus-visible:ring-brand"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

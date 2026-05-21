@@ -21,7 +21,7 @@ export default function Nominas_Table({
           <table className="min-w-full text-left border-collapse table-fixed">
             <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
               <tr className="border-b border-surface-edge">
-                <th className="p-2 text-[10px] font-black text-text-muted uppercase tracking-widest text-center w-12 bg-table-header/98 backdrop-blur-xl">Día</th>
+                <th className="sticky left-0 z-40 p-2 text-[10px] font-black text-text-muted uppercase tracking-widest text-center w-12 bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">Día</th>
                 {fixedColumns.map(col => (
                   <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 transition-colors hover:text-white w-[35px] min-w-[35px] h-[70px]">
                     <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
@@ -40,7 +40,7 @@ export default function Nominas_Table({
                 <th style={{ textAlign: 'center' }} className="p-2 text-[16px] font-black text-white uppercase tracking-widest bg-table-header/98 backdrop-blur-xl w-24 lg:w-auto">Total</th>
               </tr>
               <tr className="border-b border-surface-edge/50 bg-surface-edge/5 h-8">
-                <td className="p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl">TOT</td>
+                <td className="sticky left-0 z-40 p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">TOT</td>
                 {fixedColumns.map(col => (
                   <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[13px] font-black text-brand italic">
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
@@ -71,7 +71,7 @@ export default function Nominas_Table({
             <tbody className="divide-y divide-surface-edge/40">
               {Object.keys(matrixData).map(day => (
                 <tr key={day} className="group hover:bg-white/5 transition-colors h-[34px]">
-                  <td className="p-0 text-center font-black text-text-muted text-sm bg-table-header/98 backdrop-blur-xl">{day}</td>
+                  <td className="sticky left-0 z-20 p-0 text-center font-black text-text-muted text-sm bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">{day}</td>
                   {fixedColumns.map(col => {
                      const count = matrixData[day].items[col.key] || 0;
                      return (<td key={col.key} className="p-0 border-l border-surface-edge/10 text-center w-[35px] min-w-[35px]"><span className={`text-base font-black ${count > 0 ? 'text-white' : 'text-gray-800'}`}>{count || ''}</span></td>);
@@ -117,7 +117,7 @@ export default function Nominas_Table({
             </tbody>
             <tfoot className="sticky bottom-0 z-30 bg-table-header/98 backdrop-blur-xl border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
               <tr className="h-9 font-black">
-                <td className="p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest">TOTAL</td>
+                <td className="sticky left-0 z-40 p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">TOTAL</td>
                 {fixedColumns.map(col => (
                   <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[11px] text-gray-400">
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[col.key] || 0), 0).toLocaleString()}

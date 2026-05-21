@@ -51,7 +51,7 @@ export default function SSITable({
               <th className={`${plFirstClass} pr-[10px] py-0 text-[10px] font-black text-text-header uppercase tracking-widest align-middle w-40`}>Acr.</th>
               <th className={`${pxClass} py-0 text-[10px] font-black text-text-header uppercase tracking-widest align-middle ${isNarrow ? 'hidden' : ''}`}>Curso</th>
               <th className={`${pxClass} py-0 text-[10px] font-black text-text-header uppercase tracking-widest text-center align-middle w-24`}>Cant. Sist.</th>
-              <th className={`${pxClass} py-0 text-[10px] font-black text-text-header uppercase tracking-widest text-center align-middle w-16`}>Aj.</th>
+              <th className={`${pxClass} py-0 text-[10px] font-black text-text-header uppercase tracking-widest text-center align-middle w-12`}>Aj.</th>
               <th className={`${pxClass} py-0 text-[10px] font-black text-warning uppercase tracking-widest text-center align-middle w-24`}>Und. Reales</th>
               <th className={`${pxClass} py-0 text-[11px] font-black text-white/70 uppercase tracking-[0.2em] text-right align-middle w-24`}>P. Unit.</th>
               <th className={`${isNarrow ? 'pl-[4px]' : 'pl-[10px]'} ${prLastClass} py-0 text-[11px] font-black text-white/70 uppercase tracking-[0.2em] text-right align-middle w-32`}>Total ฿</th>
@@ -87,7 +87,7 @@ export default function SSITable({
                       defaultValue={act.manual_adjustment || ''}
                       placeholder="0"
                       onSave={(newValue) => handleManualAdjustmentChange(act.id, newValue)}
-                      className={`w-16 bg-surface-edge/60 text-center h-9 rounded-lg text-[16px] font-black border border-gray-300/30 shadow-sm font-mono focus:border-warning outline-none ${
+                      className={`w-[34px] bg-surface-edge/60 text-center h-9 rounded-lg text-[16px] font-black border border-gray-300/30 shadow-sm font-mono focus:border-warning outline-none px-0 ${
                         Number(act.manual_adjustment || 0) > 0 
                           ? 'text-success' 
                           : Number(act.manual_adjustment || 0) < 0 
