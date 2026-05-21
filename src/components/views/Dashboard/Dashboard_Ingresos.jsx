@@ -15,9 +15,9 @@ export default function Dashboard_Ingresos({ incomeData }) {
                            label === 'CASH REAL' ? 'bg-white/10 text-emerald-400 border border-emerald-500/20' :
                               label === 'FALTA O SOBRA' ? `bg-surface-edge/20 ${diffColor} font-bold` :
                                  label === 'DEBERÍA' ? 'bg-surface-edge/10 text-text-muted italic' : 'bg-surface-edge/10 text-text-muted'
-                     }`}>
+                     }`}
                      <span className="text-[12px] font-black uppercase tracking-wider">{label}</span>
-                     <span className="text-sm font-black font-mono">{Math.round(value).toLocaleString()}</span>
+                     <span className="text-base font-black font-mono">{Math.round(value).toLocaleString()}</span>
                   </div>
                );
             })}
