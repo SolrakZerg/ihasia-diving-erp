@@ -95,7 +95,7 @@ export default function Dashboard({ user }) {
       {!isMobileOpen && (
         <button 
           onClick={() => setIsMobileOpen(true)}
-          className="sm:hidden mobile-toggle fixed top-4 left-0 z-[100] p-2 bg-brand rounded-r-lg text-white shadow-lg border border-l-0 border-surface-edge"
+          className="sm:hidden mobile-toggle fixed top-4 left-0 z-[100] p-2 bg-surface-soft/80 hover:bg-brand/20 backdrop-blur-md rounded-r-xl text-brand-light hover:text-white shadow-lg border border-l-0 border-surface-edge/50 transition-all duration-300"
         >
           <ChevronRight className="w-5 h-5" />
         </button>

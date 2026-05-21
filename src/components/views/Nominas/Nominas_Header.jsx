@@ -10,10 +10,11 @@ export default function Nominas_Header({
   selectedStaffId, setSelectedStaffId
 }) {
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="flex-shrink-0 bg-surface-soft/50 border-b border-surface-edge/50 z-[50] md:sticky top-0 py-5 px-3 sm:px-6 lg:px-8">
-      <div className="max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+    <div className={`flex-shrink-0 bg-surface-soft/50 border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-5 px-3 sm:px-6 lg:px-8 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+      <div className="header-full-content max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         
         {/* Left Side: Title and Month/Year Selector */}
         <div className="flex flex-col gap-4 w-full md:w-auto items-center md:items-start shrink-0">
@@ -90,6 +91,32 @@ export default function Nominas_Header({
         </div>
 
       </div>
+
+      {/* Compact Summary Content for Mobile Landscape */}
+      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto">
+        <div className="flex items-center gap-2">
+          <Handshake className="w-5 h-5 text-brand" />
+          <span className="text-sm font-black text-white">Sueldos:</span>
+          <span className="text-xs font-black text-gray-300">
+            {selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Ninguno'}
+          </span>
+          <span className="text-[10px] px-2 py-0.5 bg-surface-edge text-gray-400 font-bold rounded-lg uppercase tracking-widest shrink-0">
+            {selectedMember?.initials || '??'}
+          </span>
+        </div>
+        <div className="text-xs font-black text-brand uppercase tracking-wider mr-10">
+          {month}/{year}
+        </div>
+      </div>
+
+      {/* Floating Toggle Button for Mobile Landscape */}
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+        aria-label={isExpanded ? "Colapsar cabecera" : "Expandir cabecera"}
+      >
+        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
     </div>
   );
 }

@@ -384,4 +384,44 @@ input[type="date"] {
   .sidebar-collapse-btn {
     display: none !important;
   }
+
+  /* --- Nominas Header (Collapsible) --- */
+  
+  /* Force toggle button to show */
+  .header-toggle-btn {
+    display: flex !important;
+  }
+  
+  /* When collapsed: force max height and hide standard header content, show summary */
+  .header-collapsed {
+    max-height: 52px !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    overflow: hidden;
+  }
+  .header-collapsed .header-full-content {
+    display: none !important;
+  }
+  .header-collapsed .header-summary-content {
+    display: flex !important;
+  }
+  
+  /* When expanded: grow normally, hide summary and make sure standard content behaves well in landscape */
+  .header-expanded {
+    max-height: 100vh !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    overflow-y: auto;
+  }
+  .header-expanded .header-full-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 1.5rem !important;
+    align-items: center !important;
+  }
+  .header-expanded .header-summary-content {
+    display: none !important;
+  }
 }
+
