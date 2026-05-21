@@ -53,7 +53,7 @@ export default function Staff_Table({
   return (
     <div
       className={`bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 ${isNested ? 'mx-2 mb-8' : ''}`}
-      style={{ height: isNested ? 'calc(100vh - 350px)' : 'calc(100vh - 200px)', minHeight: '500px' }}
+      style={{ minHeight: '400px' }}
     >
       <div className="overflow-auto flex-1 relative">
         <table className="w-full text-left border-collapse whitespace-nowrap">

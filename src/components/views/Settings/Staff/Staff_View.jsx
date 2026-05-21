@@ -69,7 +69,7 @@ export default function Staff_View({ isNested = false }) {
 
   // ── Vista principal (listado) ─────────────────────────────────────────────
   return (
-    <div className={`${isNested ? 'p-0' : 'p-6 lg:p-10'} mx-auto w-full flex flex-col h-full overflow-hidden transition-all duration-500 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'}`}>
+    <div className={`${isNested ? 'p-0' : 'p-6 lg:p-10'} mx-auto w-full flex flex-col min-h-full transition-all duration-500 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'}`}>
 
       <Staff_Header
         isNested={isNested}

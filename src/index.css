@@ -355,6 +355,15 @@ input[type="date"] {
   transform: none;
 }
 
+/* Carabao content area always scrollable vertically */
+.carabao-content-area {
+  overflow-y: auto;
+  min-height: 0;
+}
+.carabao-grid-scroll {
+  overflow-y: auto;
+  overflow-x: auto;
+}
 
 
 /* Responsive Sidebar overrides for Mobile Landscape */
@@ -423,6 +432,31 @@ input[type="date"] {
   }
   .header-expanded .header-summary-content {
     display: none !important;
+  }
+
+  /* Table Height specifically for Mobile Landscape */
+  .expenses-daily-table-container {
+    height: 350px !important;
+  }
+
+  /* Customers Header specifically for Mobile Landscape */
+  .customers-header-container {
+    position: sticky !important;
+    top: 0 !important;
+    background-color: rgba(15, 17, 26, 0.8) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 1.5rem !important;
+    z-index: 50 !important;
+    border-radius: 0.75rem !important;
+  }
+
+  /* Carabao main container for Mobile Landscape */
+  .carabao-main-container {
+    height: 100dvh !important;
+    overflow: hidden !important;
   }
 }
 

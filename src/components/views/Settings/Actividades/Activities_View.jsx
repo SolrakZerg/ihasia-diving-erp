@@ -34,7 +34,7 @@ export default function Activities_View({ isNested = false }) {
   }
 
   return (
-    <div className={`${isNested ? 'p-0' : 'p-6 lg:p-10'} mx-auto w-full flex flex-col h-full overflow-hidden transition-all duration-500 max-w-7xl`}>
+    <div className={`${isNested ? 'p-0' : 'p-6 lg:p-10'} mx-auto w-full flex flex-col min-h-full transition-all duration-500 max-w-7xl`}>
       {!isNested && (
         <Activities_Header 
           isEditingRate={data.isEditingRate}

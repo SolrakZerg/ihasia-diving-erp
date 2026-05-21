@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Settings, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, Settings, TrendingUp, TrendingDown, ChevronDown } from 'lucide-react';
 
 export default function SSIHeader({ 
   selectedMonth, 
@@ -11,9 +12,11 @@ export default function SSIHeader({
   setSelectedMonth,
   setSelectedYear
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-6">
-      <div className="max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
+    <div className={`flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-6 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+      <div className="header-full-content max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
         
         <div className="flex flex-col gap-4 shrink-0 items-center">
           <div className="flex items-center justify-center gap-10">
@@ -109,6 +112,40 @@ export default function SSIHeader({
              </div>
         </div>
       </div>
+
+      {/* Compact Summary Content for Mobile Landscape */}
+      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          <img 
+            src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png" 
+            alt="SSI Branding" 
+            className="h-6 w-auto object-contain" 
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-warning font-bold rounded-lg uppercase tracking-widest shrink-0">
+              Total: {totalSsi.toLocaleString()} ฿
+            </span>
+            <span className="text-[10px] px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-success font-bold rounded-lg uppercase tracking-widest shrink-0">
+              Pagado: {manualPaid.toLocaleString()} ฿
+            </span>
+            <span className="text-[10px] px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-danger font-bold rounded-lg uppercase tracking-widest shrink-0">
+              Por pagar: {(totalSsi - manualPaid).toLocaleString()} ฿
+            </span>
+          </div>
+        </div>
+        <div className="text-xs font-black text-brand uppercase tracking-wider mr-10">
+          {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][selectedMonth]}/{selectedYear}
+        </div>
+      </div>
+
+      {/* Floating Toggle Button for Mobile Landscape */}
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+        aria-label={isExpanded ? "Colapsar cabecera" : "Expandir cabecera"}
+      >
+        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
     </div>
   );
 }

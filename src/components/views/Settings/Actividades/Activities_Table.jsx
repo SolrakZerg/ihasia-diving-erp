@@ -75,7 +75,7 @@ export default function Activities_Table({
   return (
     <div 
       className={`bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 ${isNested ? 'mx-8 mb-8' : ''}`}
-      style={{ height: isNested ? 'calc(100vh - 400px)' : 'calc(100vh - 260px)', minHeight: '500px' }}
+      style={{ minHeight: '400px' }}
     >
       {/* INNER TOOLBAR (Visible when nested or as secondary search) */}
       <div className="flex-none p-4 border-b border-surface-edge/50 flex items-center justify-between bg-surface-soft/50">

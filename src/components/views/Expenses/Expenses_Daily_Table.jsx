@@ -39,7 +39,7 @@ const Expenses_Daily_Table = ({
   }, []);
 
   return (
-    <div className="lg:col-span-4 flex flex-col h-[350px] lg:h-[calc(100vh-260px)]">
+    <div className="lg:col-span-4 flex flex-col h-[calc(100vh-260px)] expenses-daily-table-container">
       <div className="bg-surface-soft border border-surface-edge rounded-2xl shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className={`py-1.5 border-b border-surface-edge bg-surface-soft/50 flex-none flex gap-2 ${isHeaderNarrow ? 'flex-col items-center px-2' : 'flex-row items-center justify-between px-4'}`}>
           <h3 className={`text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ${isNarrow ? 'text-center' : 'text-left'}`}>Gastos</h3>

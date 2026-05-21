@@ -1,4 +1,5 @@
-import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch, UserPlus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch, UserPlus, ChevronDown } from 'lucide-react';
 
 export default function Customers_Header({
   totalCount,
@@ -17,8 +18,11 @@ export default function Customers_Header({
   toggleDuplicates,
   onAddClick,
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className={`customers-header-container mb-8 transition-all duration-300 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+      <div className="header-full-content flex flex-col md:flex-row md:items-center justify-between gap-6">
       {/* Title + Subtitle */}
       <div className="text-center md:text-left">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
@@ -142,6 +146,38 @@ export default function Customers_Header({
         </div>
 
       </div>
+
+      </div>{/* end header-full-content */}
+
+      {/* Compact Summary Content for Mobile Landscape */}
+      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto">
+        <div className="flex items-center gap-4">
+          <UserRoundSearch className="w-5 h-5 text-brand" />
+          <span className="text-sm font-black text-white">Clientes</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand font-bold rounded-lg uppercase tracking-widest shrink-0">
+              {totalCount.toLocaleString('es-ES')} Reg.
+            </span>
+            <span className="text-[10px] px-2 py-0.5 bg-surface-edge/30 border border-surface-edge/50 text-text-header font-bold rounded-lg uppercase tracking-widest shrink-0">
+              Pág. {currentPage + 1}/{totalPages || 1}
+            </span>
+            {searchTerm && (
+              <span className="text-[10px] px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold rounded-lg truncate max-w-[120px] shrink-0">
+                🔍 {searchTerm}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Toggle Button for Mobile Landscape */}
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+        aria-label={isExpanded ? "Colapsar cabecera" : "Expandir cabecera"}
+      >
+        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
     </div>
   );
 }

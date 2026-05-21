@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, FileText, Settings as SettingsIcon, Printer } from 'lucide-react';
+import { LayoutGrid, FileText, Settings as SettingsIcon, Printer, ChevronDown } from 'lucide-react';
 import MonthYearSelector from '../../common/MonthYearSelector';
 import { supabase } from '../../../lib/supabaseClient';
 import Carabao_Table from './Carabao_Table';
@@ -20,6 +20,7 @@ const noSpinnerStyle = `
 
 export default function Carabao_Header() {
   const [activeTab, setActiveTab] = useState('grid');
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
@@ -103,12 +104,12 @@ export default function Carabao_Header() {
   };
 
   return (
-    <div className="flex flex-col h-auto md:h-full bg-surface animate-in fade-in duration-700 md:overflow-hidden text-text-muted">
+    <div className="carabao-main-container flex flex-col h-auto md:h-full bg-surface animate-in fade-in duration-700 md:overflow-hidden text-text-muted">
       <style>{noSpinnerStyle}</style>
 
       {/* Top Header */}
-      <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-4 sm:py-6 no-print print:hidden">
-        <div className="max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shrink-0">
+      <div className={`flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-4 sm:py-6 no-print print:hidden relative transition-all duration-300 ${isHeaderExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+        <div className="header-full-content max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shrink-0">
 
           {/* Left: Logo and Name/Date Column */}
           <div className="flex flex-col md:flex-row items-center gap-5 shrink-0">
@@ -174,18 +175,50 @@ export default function Carabao_Header() {
             </button>
           </div>
         </div>
+
+        {/* Compact Summary Content for Mobile Landscape */}
+        <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <img
+              src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png"
+              alt="Carabao Logo"
+              className="w-7 h-7 object-contain"
+            />
+            <span className="text-sm font-black text-white uppercase tracking-tight">Carabao</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] px-2 py-0.5 bg-surface-edge/30 border border-surface-edge/50 text-text-header font-bold rounded-lg uppercase tracking-widest shrink-0">
+                {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][month - 1]} {year}
+              </span>
+              <button
+                onClick={() => setActiveTab(activeTab === 'grid' ? 'invoice' : 'grid')}
+                className="text-[10px] px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand font-bold rounded-lg uppercase tracking-widest shrink-0"
+              >
+                {activeTab === 'grid' ? 'Resumen' : 'Factura'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Toggle Button for Mobile Landscape */}
+        <button
+          onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
+          className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+          aria-label={isHeaderExpanded ? 'Colapsar cabecera' : 'Expandir cabecera'}
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isHeaderExpanded ? 'rotate-180' : ''}`} />
+        </button>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col md:overflow-hidden relative min-h-0">
+      <div className="carabao-content-area flex-1 flex flex-col md:overflow-hidden relative min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden">
           {loading ? (
             <div className="flex h-full items-center justify-center bg-surface">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand"></div>
             </div>
           ) : activeTab === 'grid' ? (
-            <div className="flex-1 overflow-x-auto md:overflow-y-hidden custom-scrollbar px-3 sm:px-6 py-4 md:py-2">
-              <div className="flex flex-col lg:flex-row gap-6 justify-center items-center lg:items-start h-full px-2 sm:px-4">
+            <div className="carabao-grid-scroll flex-1 overflow-x-auto md:overflow-y-hidden custom-scrollbar px-3 sm:px-6 py-4 md:py-2">
+              <div className="flex flex-col lg:flex-row gap-6 justify-start lg:justify-center items-center lg:items-start px-2 sm:px-4 lg:h-full">
                 <Carabao_Table
                   invoiceItems={invoiceItems}
                   month={month}
