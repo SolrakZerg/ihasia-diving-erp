@@ -1,5 +1,5 @@
-import React from 'react';
-import { DollarSign, Settings, TrendingDown, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { DollarSign, Settings, TrendingDown, Users, ChevronDown } from 'lucide-react';
 import MonthYearSelector from '../../common/MonthYearSelector';
 
 const Expenses_Header = ({
@@ -15,9 +15,11 @@ const Expenses_Header = ({
   oxygenPending,
   pendingByRecipient
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-6 px-3 sm:px-6 lg:px-8">
-      <div className="max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
+    <div className={`flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-6 px-3 sm:px-6 lg:px-8 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+      <div className="header-full-content max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
         
         <div className="flex flex-col gap-4 shrink-0">
           <div className="flex items-center gap-4">
@@ -110,6 +112,34 @@ const Expenses_Header = ({
           {/* Espacio libre a la derecha */}
         </div>
       </div>
+
+      {/* Compact Summary Content for Mobile Landscape */}
+      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto">
+        <div className="flex items-center gap-4">
+          <DollarSign className="w-5 h-5 text-brand" />
+          <span className="text-sm font-black text-white">Gastos</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-danger font-bold rounded-lg uppercase tracking-widest shrink-0">
+              Gasto: -{(monthlyTotal + commissionsPaid + commissionsPending + oxygenTotal).toLocaleString()} ฿
+            </span>
+            <span className="text-[10px] px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-warning font-bold rounded-lg uppercase tracking-widest shrink-0">
+              Pendiente: {(commissionsPending + oxygenPending).toLocaleString()} ฿
+            </span>
+          </div>
+        </div>
+        <div className="text-xs font-black text-brand uppercase tracking-wider mr-10">
+          {selectedMonth}/{selectedYear}
+        </div>
+      </div>
+
+      {/* Floating Toggle Button for Mobile Landscape */}
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+        aria-label={isExpanded ? "Colapsar cabecera" : "Expandir cabecera"}
+      >
+        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
     </div>
   );
 };
