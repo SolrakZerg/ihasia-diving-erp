@@ -103,7 +103,7 @@ const Expenses_View = () => {
       />
 
       {/* MAIN CONTENT GRID */}
-      <div className="flex-1 md:overflow-auto overflow-visible custom-scrollbar p-5">
+      <div className="flex-1 md:overflow-auto overflow-visible custom-scrollbar p-2 sm:p-6 lg:p-8">
         <div className="max-w-[1700px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           {/* TABLA DE GASTOS (COL-4) */}

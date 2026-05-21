@@ -22,7 +22,7 @@ export default function Nominas_Sidebar({
   const isSaving = useRef(false);
 
   return (
-    <div className="w-[380px] bg-surface-soft border-l border-surface-edge flex flex-col p-8 space-y-10 overflow-auto shadow-2xl z-10">
+    <div className="w-full lg:w-[380px] bg-surface-soft border-t lg:border-t-0 lg:border-l border-surface-edge flex flex-col p-6 lg:p-8 space-y-8 lg:space-y-10 overflow-visible lg:overflow-auto shadow-2xl z-10">
       <div className="bg-emerald-600 rounded-[32px] p-8 shadow-xl shadow-emerald-900/20 relative overflow-hidden group border border-emerald-400/20">
         <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
         <div className="flex justify-between items-start relative z-10">

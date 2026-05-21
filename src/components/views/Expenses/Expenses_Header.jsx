@@ -16,8 +16,8 @@ const Expenses_Header = ({
   pendingByRecipient
 }) => {
   return (
-    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-6">
-      <div className="max-w-[1700px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
+    <div className="flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 py-6 px-3 sm:px-6 lg:px-8">
+      <div className="max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
         
         <div className="flex flex-col gap-4 shrink-0">
           <div className="flex items-center gap-4">

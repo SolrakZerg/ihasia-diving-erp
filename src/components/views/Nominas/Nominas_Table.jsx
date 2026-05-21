@@ -15,29 +15,29 @@ export default function Nominas_Table({
   totalAdj
 }) {
   return (
-    <div className="flex-1 px-6 py-2 min-h-0 flex flex-col">
-      <div className="h-fit max-h-full bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden max-w-[850px] flex flex-col mx-auto">
+    <div className="flex-1 px-0 lg:px-6 py-0 lg:py-2 min-h-0 flex flex-col">
+      <div className="h-fit max-h-full w-full bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden max-w-[850px] flex flex-col mx-auto">
         <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse table-fixed">
+          <table className="min-w-full text-left border-collapse table-fixed">
             <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
               <tr className="border-b border-surface-edge">
                 <th className="p-2 text-[10px] font-black text-text-muted uppercase tracking-widest text-center w-12 bg-table-header/98 backdrop-blur-xl">Día</th>
                 {fixedColumns.map(col => (
-                  <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 transition-colors hover:text-white w-[35px] h-[70px]">
+                  <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 transition-colors hover:text-white w-[35px] min-w-[35px] h-[70px]">
                     <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
                   </th>
                 ))}
                 {dynamicActivities.map(act => (
-                  <th key={act.id} className="p-0 text-[16px] font-black text-amber-500/80 uppercase tracking-tighter text-center border-l border-surface-edge/30 bg-amber-500/5 w-[35px] h-[70px]">
+                  <th key={act.id} className="p-0 text-[16px] font-black text-amber-500/80 uppercase tracking-tighter text-center border-l border-surface-edge/30 bg-amber-500/5 w-[35px] min-w-[35px] h-[70px]">
                     <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{(act.acronym || act.name).split('').slice(0, 8).map((char, i) => <span key={i}>{char}</span>)}</div>
                   </th>
                 ))}
-                <th className="p-0 text-[16px] font-black text-cyan-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-[35px] bg-cyan-500/5 h-[70px]">
+                <th className="p-0 text-[16px] font-black text-cyan-400 uppercase tracking-widest text-center border-l border-surface-edge/30 w-[35px] min-w-[35px] bg-cyan-500/5 h-[70px]">
                   <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{'ASS'.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
                 </th>
                 <th className="p-1 text-[16px] font-black text-brand uppercase tracking-widest text-center border-l border-surface-edge/30 w-16 bg-brand/5 min-w-[64px]">Extra</th>
                 <th className="p-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest text-center w-12 border-l border-surface-edge/30 bg-indigo-500/5 min-w-[48px]">OFF</th>
-                <th className="p-2 text-[16px] font-black text-white uppercase tracking-widest text-right bg-table-header/98 backdrop-blur-xl w-auto">Total</th>
+                <th style={{ textAlign: 'center' }} className="p-2 text-[16px] font-black text-white uppercase tracking-widest bg-table-header/98 backdrop-blur-xl w-24 lg:w-auto">Total</th>
               </tr>
               <tr className="border-b border-surface-edge/50 bg-surface-edge/5 h-8">
                 <td className="p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl">TOT</td>
@@ -51,7 +51,7 @@ export default function Nominas_Table({
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}
                   </td>
                 ))}
-                <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 font-black text-[13px] bg-cyan-500/5">
+                <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 font-black text-[13px] bg-cyan-500/5 w-[35px] min-w-[35px]">
                   {Object.values(assists).reduce((acc, val) => acc + val, 0)}
                 </td>
                 <td className="p-0 text-center border-l border-surface-edge/10 text-brand font-black text-[11px] bg-brand/5">
@@ -63,8 +63,8 @@ export default function Nominas_Table({
                     <span className="text-[10px] font-black text-amber-400">{attendanceData.summary.halfOff}H</span>
                   </div>
                 </td>
-                <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 font-black text-sm bg-table-header/98 backdrop-blur-xl pr-4">
-                  {(totalComm + totalAssists + totalAdj).toLocaleString()} ฿
+                <td style={{ textAlign: 'center' }} className="p-1 border-l border-surface-edge/20 text-emerald-400 font-black text-sm bg-table-header/98 backdrop-blur-xl">
+                  {(totalComm + totalAssists + totalAdj).toLocaleString()}
                 </td>
               </tr>
             </thead>
@@ -80,7 +80,7 @@ export default function Nominas_Table({
                       const count = matrixData[day].items[`dyn_${act.id}`] || 0;
                       return (<td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]"><span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>{count || ''}</span></td>);
                    })}
-                  <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5"><input type="number" value={assists[day] || ''} onChange={(e) => handleAssChange(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0" /></td>
+                  <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5 w-[35px] min-w-[35px]"><input type="number" value={assists[day] || ''} onChange={(e) => handleAssChange(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0" /></td>
                   <td 
                     className="p-0 border-x border-brand/10 bg-slate-500/30 relative cursor-pointer hover:bg-brand/20 transition-all group/adj shadow-[inset_0_0_10px_rgba(59,130,246,0.05)]"
                     onClick={() => setAdjModal({ 
@@ -111,7 +111,7 @@ export default function Nominas_Table({
                   <td className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => handleAttendanceToggle(day)}>
                     <span className={`text-[11px] font-black ${attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-blue-400/90'}`}>{attendanceData.grid[day] === 'OFF' ? 'OFF' : attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}</span>
                   </td>
-                  <td className="p-0 text-right border-l border-surface-edge/10 bg-surface-edge/5 pr-4"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000)).toLocaleString()} ฿</span></td>
+                  <td style={{ textAlign: 'center' }} className="p-0 border-l border-surface-edge/10 bg-surface-edge/5"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000)).toLocaleString()}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -128,15 +128,15 @@ export default function Nominas_Table({
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[`dyn_${act.id}`] || 0), 0).toLocaleString()}
                   </td>
                 ))}
-                <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-[11px] bg-cyan-500/5">
+                <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-[11px] bg-cyan-500/5 w-[35px] min-w-[35px]">
                   {totalAssists.toLocaleString()}
                 </td>
                 <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-[11px] bg-brand/5">
                   {totalAdj.toLocaleString()}
                 </td>
                 <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5"></td>
-                <td className="p-1 text-right border-l border-surface-edge/20 text-emerald-400 text-lg bg-table-header/98 backdrop-blur-xl pr-4">
-                  {(totalComm + totalAssists + totalAdj).toLocaleString()} ฿
+                <td style={{ textAlign: 'center' }} className="p-1 border-l border-surface-edge/20 text-emerald-400 text-lg bg-table-header/98 backdrop-blur-xl">
+                  {(totalComm + totalAssists + totalAdj).toLocaleString()}
                 </td>
               </tr>
             </tfoot>

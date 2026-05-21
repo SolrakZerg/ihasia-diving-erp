@@ -23,17 +23,15 @@ const Expenses_Daily_Table = ({
 }) => {
   const tableRef = useRef(null);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [isHeaderNarrow, setIsHeaderNarrow] = useState(false);
 
   useEffect(() => {
     if (!tableRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (let entry of entries) {
-        // Si el ancho de la tabla es menor a 420px, se considera estrecha
-        if (entry.contentRect.width < 420) {
-          setIsNarrow(true);
-        } else {
-          setIsNarrow(false);
-        }
+        const w = entry.contentRect.width;
+        setIsNarrow(w < 420);
+        setIsHeaderNarrow(w < 240);
       }
     });
     observer.observe(tableRef.current);
@@ -43,9 +41,9 @@ const Expenses_Daily_Table = ({
   return (
     <div className="lg:col-span-4 flex flex-col h-[calc(100vh-260px)]">
       <div className="bg-surface-soft border border-surface-edge rounded-2xl shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="py-2 px-4 border-b border-surface-edge flex items-center justify-between bg-surface-soft/50 flex-none h-[58px] gap-4">
-          <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">Gastos</h3>
-          <div className="flex items-center gap-3">
+        <div className={`py-1.5 border-b border-surface-edge bg-surface-soft/50 flex-none flex gap-2 ${isHeaderNarrow ? 'flex-col items-center px-2' : 'flex-row items-center justify-between px-4'}`}>
+          <h3 className={`text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ${isNarrow ? 'text-center' : 'text-left'}`}>Gastos</h3>
+          <div className={`flex flex-wrap gap-3 ${isNarrow ? 'justify-center' : 'justify-end'}`}>
             <div className="bg-danger/10 border border-danger/20 px-4 py-2 rounded-xl flex items-center gap-3 shrink-0">
               <span className="text-xs font-black text-danger uppercase tracking-widest">Total:</span>
               <span className="text-xl font-black text-white leading-none tracking-tighter">
