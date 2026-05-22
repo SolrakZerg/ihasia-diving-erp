@@ -198,6 +198,10 @@ export function useBillingGridRow({
         const up = Number(updates.unit_price_thb) || 0;
         const q  = Number(item.quantity) || 0;
         updates.total_thb = q * up;
+      } else if (updates.total_thb !== undefined) {
+        const rawVal = updates.total_thb;
+        const total = (rawVal === '' || rawVal === null) ? 0 : Number(rawVal);
+        updates.total_thb = isNaN(total) ? 0 : total;
       }
 
       // Optimización visual instantánea (Optimistic Update)
@@ -298,6 +302,11 @@ export function useBillingGridRow({
           actionDesc = {
             undo: `Notas de ${customerName} restauradas a '${oldVal || 'vacío'}' (eran '${newVal || 'vacío'}')`,
             redo: `Notas de ${customerName} cambiadas a '${newVal || 'vacío'}' (eran '${oldVal || 'vacío'}')`
+          };
+        } else if (field === 'total_thb') {
+          actionDesc = {
+            undo: `Total de factura de ${customerName} restaurado a ${oldVal || 0} ฿ (era ${newVal || 0} ฿)`,
+            redo: `Total de factura de ${customerName} cambiado a ${newVal || 0} ฿ (era ${oldVal || 0} ฿)`
           };
         } else {
           actionDesc = {

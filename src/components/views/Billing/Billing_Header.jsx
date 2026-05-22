@@ -193,7 +193,7 @@ export default function Billing_Header({
       </div>
 
       {/* ── BOTÓN FLOTANTE: AÑADIR FILA (abajo izquierda) ── */}
-      <div className={`fixed bottom-6 transition-all duration-300 z-[100] ${isSidebarCollapsed ? 'left-[calc(5rem+1.5rem)]' : 'left-[calc(16rem+1.5rem)]'}`}>
+      <div className={`billing-float-btn fixed bottom-6 transition-all duration-300 z-[100] ${isSidebarCollapsed ? 'left-[calc(5rem+1.5rem)]' : 'left-[calc(16rem+1.5rem)]'}`}>
         <button
           onClick={handleAddRow}
           className="group flex items-center gap-2 px-5 bg-brand hover:bg-brand-light text-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-brand/40 transition-all active:scale-95 border border-white/10 h-11 uppercase"

@@ -155,24 +155,48 @@ export default function Billing_GridRow_ItemRow({
       </td>
 
       {/* 9. Q */}
-      <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
+      <td 
+        className={`px-1 py-0 border-r border-gray-100 ${bLine}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            const targetInput = e.target;
+            const isShift = e.shiftKey;
+            
+            setTimeout(() => {
+              const inputs = Array.from(document.querySelectorAll('.quantity-input'));
+              const index = inputs.indexOf(targetInput);
+              if (index !== -1) {
+                const nextIndex = isShift ? index - 1 : index + 1;
+                if (nextIndex >= 0 && nextIndex < inputs.length) {
+                  inputs[nextIndex].focus();
+                  inputs[nextIndex].select();
+                }
+              }
+            }, 50);
+          }
+        }}
+      >
         <EditableInput
           type="number"
           defaultValue={item.quantity ?? ''}
           onSave={(val) => handleItemUpdate(item, 'quantity', val)}
           aria-label="Cantidad"
-          className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner"
+          className="bg-transparent text-gray-900 font-black text-sm w-full h-6 text-center outline-none focus-visible:ring-1 focus-visible:ring-brand rounded-sm py-0 no-spinner quantity-input"
         />
       </td>
 
       {/* 10. Total */}
       <td className={`px-1 py-0 text-right border-r border-gray-100 ${bLine}`}>
-        <div className={`px-1 h-6 flex items-center justify-end rounded border-2 text-sm font-black tracking-tight whitespace-nowrap ${item.status === 'Paid'
-          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-          : 'bg-red-50 text-red-700 border-red-200'
-          }`}>
-          {Number(item.total_thb ?? 0).toLocaleString()} ฿
-        </div>
+        <EditableInput
+          type="number"
+          defaultValue={item.total_thb ?? 0}
+          onSave={(val) => handleItemUpdate(item, 'total_thb', val)}
+          aria-label="Total"
+          className={`w-full h-6 px-1 rounded border-2 text-sm font-black tracking-tight text-right outline-none focus-visible:ring-1 focus-visible:ring-brand no-spinner ${item.status === 'Paid'
+            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+            : 'bg-red-50 text-red-700 border-red-200'
+          }`}
+        />
       </td>
 
       {/* 11. Estado */}

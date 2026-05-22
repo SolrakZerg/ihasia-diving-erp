@@ -372,6 +372,7 @@ input[type="date"] {
   aside {
     position: fixed !important;
     transform: translateX(-100%) !important;
+    width: 16rem !important; /* Force full width (w-64) */
   }
   
   /* If the mobile sidebar is active/open, translate it into view */
@@ -392,6 +393,58 @@ input[type="date"] {
   /* Hide the desktop collapse button (chevron icon) on mobile landscape */
   .sidebar-collapse-btn {
     display: none !important;
+  }
+
+  /* Compact Logo Header height (80px / 5rem) */
+  aside div.border-b {
+    height: 5rem !important;
+    padding: 0.5rem 1rem !important;
+  }
+  
+  /* Hide the primary skull logo image */
+  aside img[alt="Ihasia Logo"] {
+    display: none !important;
+  }
+
+  /* Force expanded navigation links & icons */
+  aside nav button {
+    justify-content: space-between !important;
+  }
+  aside nav button svg {
+    width: 1.25rem !important; /* w-5 */
+    height: 1.25rem !important; /* h-5 */
+  }
+  aside nav button span {
+    display: inline-block !important;
+  }
+  aside nav button svg.w-4.h-4 {
+    display: block !important;
+  }
+
+  /* Hide Tooltips */
+  aside nav button div.absolute {
+    display: none !important;
+  }
+
+  /* Force Expanded User Info Footer & Logout Text */
+  aside .sidebar-user-small {
+    display: none !important;
+  }
+  aside .sidebar-user-full {
+    display: block !important;
+  }
+  aside .border-t > div {
+    display: block !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  aside .border-t button {
+    justify-content: flex-start !important;
+    gap: 0.75rem !important;
+  }
+  aside .sidebar-logout-text {
+    display: inline-block !important;
   }
 
   /* --- Nominas Header (Collapsible) --- */
@@ -433,12 +486,6 @@ input[type="date"] {
   .header-expanded .header-summary-content {
     display: none !important;
   }
-
-  /* Table Height specifically for Mobile Landscape */
-  .expenses-daily-table-container {
-    height: 350px !important;
-  }
-
   /* Customers Header specifically for Mobile Landscape */
   .customers-header-container {
     position: sticky !important;
@@ -457,6 +504,13 @@ input[type="date"] {
   .carabao-main-container {
     height: 100dvh !important;
     overflow: hidden !important;
+  }
+}
+
+/* Float button positioning for mobile viewports (both vertical and horizontal landscape) */
+@media (max-width: 639px), (max-height: 500px) and (max-width: 1000px) {
+  .billing-float-btn {
+    left: 1.5rem !important;
   }
 }
 
