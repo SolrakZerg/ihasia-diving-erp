@@ -367,7 +367,7 @@ input[type="date"] {
 
 
 /* Responsive Sidebar overrides for Mobile Landscape */
-@media (max-height: 500px) and (max-width: 1000px) {
+@media (max-height: 600px) and (max-width: 1024px) {
   /* Force sidebar to be fixed and hidden to the left */
   aside {
     position: fixed !important;
@@ -492,10 +492,18 @@ input[type="date"] {
     height: 100dvh !important;
     overflow: hidden !important;
   }
+
+  /* Soporte para cabeceras compactas en Clientes */
+  .mobile-landscape-hidden {
+    display: none !important;
+  }
+  .mobile-landscape-square {
+    padding: 0.625rem !important; /* Equivale a p-2.5 (10px) */
+  }
 }
 
 /* Float button positioning for mobile viewports (both vertical and horizontal landscape) */
-@media (max-width: 639px), (max-height: 500px) and (max-width: 1000px) {
+@media (max-width: 639px), (max-height: 600px) and (max-width: 1024px) {
   .billing-float-btn {
     left: 1.5rem !important;
   }

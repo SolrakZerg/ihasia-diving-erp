@@ -40,10 +40,10 @@ export default function Customers_Header({
           {/* Add Customer Button */}
           <button
             onClick={onAddClick}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold transition-all transform active:scale-95 shadow-lg shadow-brand/20 text-xs uppercase tracking-wider cursor-pointer"
+            className="flex items-center gap-2 p-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold transition-all transform active:scale-95 shadow-lg shadow-brand/20 text-xs uppercase tracking-wider cursor-pointer mobile-landscape-square"
           >
             <UserPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo Cliente</span>
+            <span className="hidden sm:inline mobile-landscape-hidden">Nuevo Cliente</span>
           </button>
 
           {/* Search */}
@@ -71,7 +71,7 @@ export default function Customers_Header({
             title={isExtendedView ? 'Vista Compacta' : 'Vista Extendida'}
           >
             {isExtendedView ? <LayoutList className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
-            <span className="hidden md:inline text-[10px] font-black uppercase tracking-wider">
+            <span className="hidden md:inline text-[10px] font-black uppercase tracking-wider mobile-landscape-hidden">
               {isExtendedView ? 'Compacto' : 'Extendido'}
             </span>
           </button>
@@ -86,7 +86,7 @@ export default function Customers_Header({
                 }`}
             >
               <Filter className="w-5 h-5" />
-              <span className="hidden md:inline text-xs font-bold uppercase tracking-wider">Filtros</span>
+              <span className="hidden md:inline text-xs font-bold uppercase tracking-wider mobile-landscape-hidden">Filtros</span>
               {activeDateFilter !== 'all' && (
                 <span className="flex w-2 h-2 rounded-full bg-brand animate-pulse" />
               )}
