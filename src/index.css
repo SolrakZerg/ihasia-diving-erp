@@ -365,6 +365,12 @@ input[type="date"] {
   overflow-x: auto;
 }
 
+/* Altura de tabla exclusiva para PC / Desktop (evita superposición con botones flotantes) */
+@media (min-width: 1025px) {
+  .billing-grid-container {
+    height: calc(100vh - 380px) !important;
+  }
+}
 
 /* Responsive Sidebar overrides for Mobile Landscape */
 @media (max-height: 600px) and (max-width: 1024px) {

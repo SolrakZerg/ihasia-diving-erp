@@ -14,7 +14,17 @@
 -- Esta es el buscador avanzado de clientes que permite usar fragmentos de texto y tildes.
 -- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.search_customers_v3(query_text text)
- RETURNS TABLE(id uuid, first_name text, last_name text, email text, booking_date date, booked_activity text, passport_number text, created_at timestamp with time zone)
+ RETURNS TABLE(
+   id uuid, 
+   first_name text, 
+   last_name text, 
+   email text, 
+   booking_date date, 
+   booked_activity text, 
+   passport_number text, 
+   created_at timestamp with time zone,
+   phone text
+ )
  LANGUAGE plpgsql
  SET search_path TO 'public'
 AS $function$
@@ -32,7 +42,8 @@ BEGIN
     c.booking_date, 
     c.booked_activity,
     c.passport_number,
-    c.created_at
+    c.created_at,
+    c.phone
   FROM customers c
   WHERE (
     SELECT bool_and(

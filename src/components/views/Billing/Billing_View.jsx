@@ -121,7 +121,7 @@ export default function Billing_View({ isSidebarCollapsed }) {
               sessionStorage.setItem('billingScrollPos', e.target.scrollTop);
             }
           }}
-          className="h-full bg-surface border border-surface-edge rounded-lg shadow-2xl custom-scrollbar"
+          className="billing-grid-container h-full bg-surface border border-surface-edge rounded-lg shadow-2xl custom-scrollbar"
           style={{
             overflow: 'auto',
             width: 'fit-content',

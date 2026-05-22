@@ -10,9 +10,15 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
   const isEditMode = !!(customer && customer.id);
 
   useEffect(() => {
-    if (customer) {
-      setFormData({ ...customer });
-    } else {
+    if (isOpen && customer) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
+      setFormData(prev => {
+        if (prev && prev.id === customer.id) {
+          return { ...customer, ...prev };
+        }
+        return { ...customer };
+      });
+    } else if (!isOpen) {
       setFormData({});
     }
   }, [customer, isOpen]);
@@ -30,17 +36,47 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
     setError(null);
 
     try {
+      // 1. Validación: No permitir dejar fechas vacías si ya tenían un valor previo
+      const dateFields = ['booking_date', 'birth_date', 'insurance_expiry'];
+      const fieldLabels = {
+        booking_date: 'Fecha Reserva',
+        birth_date: 'Fecha de Nacimiento',
+        insurance_expiry: 'Vencimiento Seguro'
+      };
+
+      for (const field of dateFields) {
+        const originalValue = customer?.[field];
+        const newValue = formData[field];
+
+        // Si originalmente tenía un valor y ahora se intenta borrar / dejar vacío
+        if (originalValue && (!newValue || newValue.toString().trim() === '')) {
+          throw new Error(`El campo "${fieldLabels[field]}" no puede dejarse vacío si ya contenía un valor.`);
+        }
+      }
+
+      // 2. Clonamos el estado y excluimos campos de sólo lectura/generados
+      const updateData = { ...formData };
+      delete updateData.id;
+      delete updateData.created_at;
+
+      // 3. Sanitizamos campos de fecha vacíos opcionales convirtiéndolos a null
+      dateFields.forEach(field => {
+        if (updateData[field] === '') {
+          updateData[field] = null;
+        }
+      });
+
       let submitError;
       if (isEditMode) {
         const { error } = await supabase
           .from('customers')
-          .update(formData)
+          .update(updateData)
           .eq('id', customer.id);
         submitError = error;
       } else {
         const { error } = await supabase
           .from('customers')
-          .insert([formData]);
+          .insert([updateData]);
         submitError = error;
       }
 

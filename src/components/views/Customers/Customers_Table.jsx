@@ -235,16 +235,25 @@ export default function Customers_Table({
 
                   {/* WhatsApp */}
                   <td className={`${isExtendedView ? 'px-2' : 'px-2 md:px-4'} py-2 text-center`}>
-                    <a
-                      href={`https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all border border-[#25D366]/20 shadow-sm"
-                      title="Abrir WhatsApp"
-                    >
-                      <Phone className="w-4 h-4" />
-                    </a>
+                    {customer.phone ? (
+                      <a
+                        href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all border border-[#25D366]/20 shadow-sm"
+                        title="Abrir WhatsApp"
+                      >
+                        <Phone className="w-4 h-4" />
+                      </a>
+                    ) : (
+                      <span
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-edge/10 text-gray-600 border border-surface-edge/20 cursor-not-allowed opacity-50"
+                        title="Sin teléfono"
+                      >
+                        <Phone className="w-4 h-4" />
+                      </span>
+                    )}
                   </td>
 
                   {/* Columnas extendidas */}

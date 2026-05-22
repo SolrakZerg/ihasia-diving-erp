@@ -227,10 +227,26 @@ export default function useCustomersData() {
     });
   };
 
-  const handleEdit = (e, customer) => {
+  const handleEdit = async (e, customer) => {
     e.stopPropagation();
     setEditingCustomer(customer);
     setIsEditModalOpen(true);
+
+    if (!customer || 'address' in customer) {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customer.id)
+        .single();
+      if (error) throw error;
+      setEditingCustomer(data);
+    } catch (err) {
+      console.error('Error fetching full customer for edit:', err.message);
+    }
   };
 
   const handleAdd = () => {
@@ -239,9 +255,25 @@ export default function useCustomersData() {
   };
 
 
-  const handleRowClick = (customer) => {
+  const handleRowClick = async (customer) => {
     setSelectedCustomer(customer);
     setIsDrawerOpen(true);
+
+    if (!customer || 'address' in customer) {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customer.id)
+        .single();
+      if (error) throw error;
+      setSelectedCustomer(data);
+    } catch (err) {
+      console.error('Error fetching full customer details:', err.message);
+    }
   };
 
   const dismissConfirm = () => setConfirmConfig(prev => ({ ...prev, show: false }));

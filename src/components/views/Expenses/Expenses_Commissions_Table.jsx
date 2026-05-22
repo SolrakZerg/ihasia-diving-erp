@@ -100,7 +100,19 @@ const Expenses_Commissions_Table = ({
                                  options={recipientOptions}
                                  value={c.comm_recipient_id}
                                  onChange={o => updateItem(c.id, 'comm_recipient_id', o.id)}
-                                 triggerClassName="!py-0.5"
+                                 triggerClassName="!py-0.5 !text-sm"
+                                 renderOption={(o) => (
+                                    <>
+                                       <span className="text-sm font-bold text-white">
+                                          {o.name || o.initials || `${o.first_name || ''} ${o.last_name || ''}`.trim()}
+                                       </span>
+                                       {o.subtext && (
+                                          <span className="text-[11px] text-gray-500 uppercase font-black tracking-widest mt-0.5">
+                                             {o.subtext}
+                                          </span>
+                                       )}
+                                    </>
+                                 )}
                               />
                            </td>
                            <td className="px-3 py-1 text-right w-[120px]">
