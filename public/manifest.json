@@ -1,0 +1,18 @@
+{
+  "short_name": "Ihasia ERP",
+  "name": "Ihasia Diving ERP",
+  "description": "Sistema de gestión integral para centros de buceo Ihasia",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#376fcd",
+  "display": "standalone",
+  "orientation": "any"
+}
