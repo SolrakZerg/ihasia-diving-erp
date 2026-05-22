@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Palette, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Palette, Settings, ChevronDown } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useUndo } from '../../../context/UndoContext';
 
@@ -63,6 +63,7 @@ export default function Billing_Header({
   // Estado local: solo afecta a los modales de configuración
   const [showConfig, setShowConfig]               = useState(false);
   const [showThemeSettings, setShowThemeSettings] = useState(false);
+  const [isHeaderExpanded, setIsHeaderExpanded]   = useState(false);
 
   // Handler: crear nueva fila en blanco
   const handleAddRow = async () => {
@@ -128,10 +129,13 @@ export default function Billing_Header({
     }
   };
 
+  const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
   return (
     <>
       {/* ── BARRA DE WIDGETS ── */}
-      <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-surface-edge py-1.5 px-4 shadow-xl flex gap-4 items-stretch h-[290px] overflow-x-auto custom-scrollbar">
+      <div className={`sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-surface-edge shadow-xl relative transition-all duration-300 ${isHeaderExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+        <div className="header-full-content py-1.5 px-4 flex gap-4 items-stretch h-[290px] overflow-x-auto custom-scrollbar">
 
         <Billing_Header_Llegadas
           arrivalsDate={arrivalsDate}
@@ -190,10 +194,38 @@ export default function Billing_Header({
             className="h-11"
           />
         </div>
+        </div>{/* end header-full-content */}
+
+        {/* ── RESUMEN COMPACTO (solo visible en landscape colapsado) ── */}
+        <div className="header-summary-content hidden items-center justify-center gap-4 px-4 py-2">
+          <span className="text-[10px] px-2 py-0.5 bg-surface-edge/30 border border-surface-edge/50 text-text-header font-bold rounded-lg uppercase tracking-widest shrink-0">
+            {monthNames[selectedMonth - 1]} {selectedYear}
+          </span>
+          {stats && (
+            <span className="text-[10px] px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand font-bold rounded-lg shrink-0">
+              {stats.totalInvoices || 0} reg. · {(stats.totalThb || 0).toLocaleString('es-ES')} ฿
+            </span>
+          )}
+          <button
+            onClick={handleAddRow}
+            className="flex items-center gap-1.5 px-3 py-1 bg-brand hover:bg-brand-light text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shrink-0"
+          >
+            <Plus className="w-3 h-3" /> Fila
+          </button>
+        </div>
+
+        {/* ── BOTÓN TOGGLE CHEVRON (solo visible en landscape) ── */}
+        <button
+          onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
+          className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+          aria-label={isHeaderExpanded ? 'Colapsar cabecera' : 'Expandir cabecera'}
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isHeaderExpanded ? 'rotate-180' : ''}`} />
+        </button>
       </div>
 
       {/* ── BOTÓN FLOTANTE: AÑADIR FILA (abajo izquierda) ── */}
-      <div className={`billing-float-btn fixed bottom-6 transition-all duration-300 z-[100] ${isSidebarCollapsed ? 'left-[calc(5rem+1.5rem)]' : 'left-[calc(16rem+1.5rem)]'}`}>
+      <div className={`billing-add-row-btn fixed bottom-6 transition-all duration-300 z-[100] ${isSidebarCollapsed ? 'left-[calc(5rem+1.5rem)]' : 'left-[calc(16rem+1.5rem)]'}`}>
         <button
           onClick={handleAddRow}
           className="group flex items-center gap-2 px-5 bg-brand hover:bg-brand-light text-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-brand/40 transition-all active:scale-95 border border-white/10 h-11 uppercase"
@@ -203,8 +235,8 @@ export default function Billing_Header({
         </button>
       </div>
 
-      {/* ── BOTONES FLOTANTES: CONFIGURACIÓN (abajo derecha) ── */}
-      <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3">
+      {/* ── BOTONES FLOTANTES: CONFIGURACIÓN (abajo derecha) — solo PC ── */}
+      <div className="hidden md:flex fixed bottom-6 right-6 z-[100] items-center gap-3">
         <button
           onClick={() => setShowThemeSettings(true)}
           className="flex items-center justify-center w-12 h-12 bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl text-gray-400 hover:text-brand hover:border-brand/50 transition-all shadow-2xl group"
