@@ -177,7 +177,7 @@ export default function Carabao_Header() {
         </div>
 
         {/* Compact Summary Content for Mobile Landscape */}
-        <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="header-summary-content hidden items-center justify-center max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <img
               src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png"

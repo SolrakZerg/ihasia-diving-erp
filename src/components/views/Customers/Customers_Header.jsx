@@ -21,8 +21,8 @@ export default function Customers_Header({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className={`customers-header-container mb-8 transition-all duration-300 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
-      <div className="header-full-content flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className={`flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-6 px-3 sm:px-6 lg:px-8 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+      <div className="header-full-content max-w-[1700px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
         {/* Title + Subtitle */}
         <div className="text-center md:text-left">
           <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
@@ -148,7 +148,7 @@ export default function Customers_Header({
       </div>{/* end header-full-content */}
 
       {/* Compact Summary Content for Mobile Landscape */}
-      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto">
+      <div className="header-summary-content hidden items-center justify-center max-w-[1700px] mx-auto">
         <div className="flex items-center gap-4">
           <UserRoundSearch className="w-5 h-5 text-brand" />
           <span className="text-sm font-black text-white">Clientes</span>

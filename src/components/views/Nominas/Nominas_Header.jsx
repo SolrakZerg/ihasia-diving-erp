@@ -93,7 +93,7 @@ export default function Nominas_Header({
       </div>
 
       {/* Compact Summary Content for Mobile Landscape */}
-      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto">
+      <div className="header-summary-content hidden items-center justify-center gap-6 max-w-[1700px] mx-auto">
         <div className="flex items-center gap-2">
           <Handshake className="w-5 h-5 text-brand" />
           <span className="text-sm font-black text-white">Sueldos:</span>
@@ -104,7 +104,7 @@ export default function Nominas_Header({
             {selectedMember?.initials || '??'}
           </span>
         </div>
-        <div className="text-xs font-black text-brand uppercase tracking-wider mr-10">
+        <div className="text-xs font-black text-brand uppercase tracking-wider">
           {month}/{year}
         </div>
       </div>

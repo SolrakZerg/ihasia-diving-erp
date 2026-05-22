@@ -89,7 +89,7 @@ export default function Customers_View({ onNavigate }) {
   }
 
   return (
-    <div className={`p-2 sm:p-6 lg:p-8 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full transition-all duration-500`}>
+    <div className="h-full flex flex-col bg-surface lg:overflow-hidden overflow-auto relative">
 
       {/* ── Cabecera ── */}
       <Customers_Header
@@ -110,26 +110,29 @@ export default function Customers_View({ onNavigate }) {
         onAddClick={handleAdd}
       />
 
-      {/* ── Tabla + Paginación ── */}
-      <Customers_Table
-        customers={customers}
-        loading={loading && !isSearching}
-        totalCount={totalCount}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        PAGE_SIZE={PAGE_SIZE}
-        sortConfig={sortConfig}
-        handleSort={handleSort}
-        isExtendedView={isExtendedView}
-        selectedIds={selectedIds}
-        toggleSelectAll={toggleSelectAll}
-        toggleSelectOne={toggleSelectOne}
-        handleEdit={handleEdit}
-        handleDelete={handleDelete}
-        handleRowClick={handleRowClick}
-        goToPage={goToPage}
-        getPageNumbers={getPageNumbers}
-      />
+      {/* Main Content Area */}
+      <div className={`flex-1 lg:overflow-hidden p-2 sm:p-6 lg:p-8 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full transition-all duration-500`}>
+        {/* ── Tabla + Paginación ── */}
+        <Customers_Table
+          customers={customers}
+          loading={loading && !isSearching}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          PAGE_SIZE={PAGE_SIZE}
+          sortConfig={sortConfig}
+          handleSort={handleSort}
+          isExtendedView={isExtendedView}
+          selectedIds={selectedIds}
+          toggleSelectAll={toggleSelectAll}
+          toggleSelectOne={toggleSelectOne}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+          handleRowClick={handleRowClick}
+          goToPage={goToPage}
+          getPageNumbers={getPageNumbers}
+        />
+      </div>
 
       {/* ── Barra de acciones masivas ── */}
       <Customers_ActionBar

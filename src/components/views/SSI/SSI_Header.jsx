@@ -114,7 +114,7 @@ export default function SSIHeader({
       </div>
 
       {/* Compact Summary Content for Mobile Landscape */}
-      <div className="header-summary-content hidden items-center justify-between max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
+      <div className="header-summary-content hidden items-center justify-center gap-6 max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <img 
             src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png" 
@@ -133,7 +133,7 @@ export default function SSIHeader({
             </span>
           </div>
         </div>
-        <div className="text-xs font-black text-brand uppercase tracking-wider mr-10">
+        <div className="text-xs font-black text-brand uppercase tracking-wider">
           {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][selectedMonth]}/{selectedYear}
         </div>
       </div>
