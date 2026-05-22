@@ -41,7 +41,7 @@ export default function CRBT_Header({ month, setMonth, year, setYear }) {
       {/* Floating Toggle Button for Mobile Landscape */}
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="header-toggle-btn hidden absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60]"
+        className={`header-toggle-btn hidden absolute right-4 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60] ${isExpanded ? 'bottom-2 top-auto translate-y-0' : 'top-1/2 -translate-y-1/2'}`}
         aria-label={isExpanded ? "Colapsar cabecera" : "Expandir cabecera"}
       >
         <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
