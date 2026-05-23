@@ -50,17 +50,17 @@ export default function Billing_View({ isSidebarCollapsed }) {
 
   const handleZoomOut = () => {
     if (isLandscape) {
-      setZoomLandscape(z => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
+      setZoomLandscape(0.7);
     } else {
-      setZoomPortrait(z => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
+      setZoomPortrait(0.7);
     }
   };
 
   const handleZoomIn = () => {
     if (isLandscape) {
-      setZoomLandscape(z => Math.min(1.0, Math.round((z + 0.1) * 10) / 10));
+      setZoomLandscape(1.0);
     } else {
-      setZoomPortrait(z => Math.min(1.0, Math.round((z + 0.1) * 10) / 10));
+      setZoomPortrait(1.0);
     }
   };
 

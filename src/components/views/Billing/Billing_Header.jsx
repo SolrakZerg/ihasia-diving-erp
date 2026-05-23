@@ -220,7 +220,7 @@ export default function Billing_Header({
           <div className="lg:hidden flex items-center gap-1 border-l border-slate-600/30 pl-3">
             <button
               onClick={handleZoomOut}
-              disabled={tableZoom <= 0.5}
+              disabled={tableZoom <= 0.7}
               className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-700/40 hover:bg-slate-600/60 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
               title="Reducir zoom"
             >
