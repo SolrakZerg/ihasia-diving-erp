@@ -13,13 +13,37 @@ export default function Billing_Header_Llegadas({
 }) {
   const dateInputRef = useRef(null);
 
+  const allSelected = todayArrivals.length > 0 && todayArrivals.every(c => selectedArrivalIds.has(c.id));
+
+  const handleToggleSelectAll = (e) => {
+    e.stopPropagation();
+    const s = new Set(selectedArrivalIds);
+    if (allSelected) {
+      todayArrivals.forEach(c => s.delete(c.id));
+    } else {
+      todayArrivals.forEach(c => s.add(c.id));
+    }
+    setSelectedArrivalIds(s);
+  };
+
   return (
     <div className="flex-none w-full max-w-[380px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
       {/* Cabecera del widget */}
       <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
-        <span className="flex items-center gap-1.5 text-brand-light text-xs font-bold whitespace-nowrap">
-          <Users className="w-3.5 h-3.5" /> Llegadas
-        </span>
+        <div className="flex items-center gap-2">
+          {!loadingArrivals && todayArrivals.length > 0 && (
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={handleToggleSelectAll}
+              className="w-3.5 h-3.5 rounded text-brand bg-surface border-surface-edge cursor-pointer"
+              title="Seleccionar / deseleccionar todas"
+            />
+          )}
+          <span className="flex items-center gap-1.5 text-brand-light text-xs font-bold whitespace-nowrap">
+            <Users className="w-3.5 h-3.5" /> Llegadas
+          </span>
+        </div>
 
         {/* Selector de fecha con flechas */}
         <div className="flex-none ml-auto flex items-center bg-surface-soft/50 rounded-2xl border border-surface-edge/30 overflow-hidden h-[21px] p-0.5">
