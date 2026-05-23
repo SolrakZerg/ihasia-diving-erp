@@ -135,6 +135,7 @@ export const useExpensesData = () => {
         .eq('is_comm', true)
         .gte('date', firstDay).lte('date', lastDay)
         .order('date', { ascending: true })
+        .order('comm_recipient_id', { ascending: true })
         .order('id', { ascending: true }),
       supabase.from('invoice_items')
         .select(`*, customers(id, first_name, last_name, email), activities!inner(id, name, color, category, ssi_cost_thb)`)
@@ -335,7 +336,8 @@ export const useExpensesData = () => {
     return Object.entries(map).map(([id, amount]) => ({
       id,
       name: getRecipientName(id),
-      amount
+      amount,
+      type: getRecipientType(id)
     })).sort((a, b) => b.amount - a.amount);
   }, [commissions, recipientOptions]);
 

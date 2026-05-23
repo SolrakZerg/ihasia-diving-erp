@@ -20,7 +20,7 @@ export const buildSsiAdjustmentAction = (activityId, activityName, selectedYear,
       .from('ssi_monthly_breakdown')
       .upsert({
         year: selectedYear,
-        month: selectedMonth + 1,
+        month: selectedMonth,
         activity_id: activityId,
         manual_adjustment: oldValue
       }, { onConflict: 'year,month,activity_id' });
@@ -32,7 +32,7 @@ export const buildSsiAdjustmentAction = (activityId, activityName, selectedYear,
       .from('ssi_monthly_breakdown')
       .upsert({
         year: selectedYear,
-        month: selectedMonth + 1,
+        month: selectedMonth,
         activity_id: activityId,
         manual_adjustment: newValue
       }, { onConflict: 'year,month,activity_id' });

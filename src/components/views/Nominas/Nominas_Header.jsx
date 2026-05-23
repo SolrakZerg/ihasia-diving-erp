@@ -26,7 +26,7 @@ export default function Nominas_Header({
           </div>
 
           {/* MONTH/YEAR SELECTOR */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <MonthYearSelector
               month={month}
               setMonth={setMonth}
@@ -92,9 +92,8 @@ export default function Nominas_Header({
 
       </div>
 
-      {/* Compact Summary Content for Mobile Landscape */}
-      <div className="header-summary-content hidden items-center justify-center gap-6 max-w-[1700px] mx-auto">
-        <div className="flex items-center gap-2">
+      <div className="header-summary-content hidden flex-wrap items-center justify-center gap-3 max-w-[1700px] mx-auto py-1 portrait:px-12">
+        <div className="flex flex-wrap items-center justify-center gap-2 portrait:w-full portrait:justify-center">
           <Handshake className="w-5 h-5 text-brand" />
           <span className="text-sm font-black text-white">Sueldos:</span>
           <span className="text-xs font-black text-gray-300">
@@ -104,8 +103,8 @@ export default function Nominas_Header({
             {selectedMember?.initials || '??'}
           </span>
         </div>
-        <div className="text-xs font-black text-brand uppercase tracking-wider">
-          {month}/{year}
+        <div className="text-xs font-black text-brand uppercase tracking-wider portrait:w-full portrait:text-center">
+          {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][month - 1]}/{year}
         </div>
       </div>
 

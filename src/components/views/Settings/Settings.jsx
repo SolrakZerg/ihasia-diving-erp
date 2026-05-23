@@ -47,7 +47,7 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="settings-main-container flex flex-col h-auto md:h-full md:overflow-hidden overflow-y-auto relative">
       {/* Header Container */}
       <div className={`flex-shrink-0 bg-surface-soft/30 border-b border-surface-edge relative transition-all duration-300 ${isHeaderExpanded ? 'header-expanded' : 'header-collapsed'}`}>
 
@@ -83,7 +83,7 @@ export default function SettingsView() {
 
         {/* Compact Summary for Mobile Landscape */}
         <div className="header-summary-content hidden items-center justify-center px-4 py-2">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <SettingsIcon className="w-4 h-4 text-brand" />
             <span className="text-xs font-black text-text-muted uppercase tracking-widest">Config</span>
             <div className="flex items-center gap-1 bg-surface-soft/50 rounded-xl border border-surface-edge/30 p-1">
@@ -104,7 +104,7 @@ export default function SettingsView() {
         {/* Toggle Button for Mobile Landscape */}
         <button
           onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
-          className={`header-toggle-btn hidden absolute right-4 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60] ${isHeaderExpanded ? 'bottom-2 top-auto translate-y-0' : 'top-1/2 -translate-y-1/2'}`}
+          className={`header-toggle-btn settings-toggle-btn hidden absolute right-4 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60] ${isHeaderExpanded ? 'bottom-2 top-auto translate-y-0' : 'top-1/2 -translate-y-1/2'}`}
           aria-label={isHeaderExpanded ? 'Colapsar cabecera' : 'Expandir cabecera'}
         >
           <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isHeaderExpanded ? 'rotate-180' : ''}`} />
@@ -112,7 +112,7 @@ export default function SettingsView() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto bg-surface">
+      <div className="flex-1 md:overflow-auto overflow-visible bg-surface">
         <div className="w-full h-full">
           {activeTab === 'general' && <General_View />}
           {activeTab === 'fixed_expenses' && <GastosFijos_View />}

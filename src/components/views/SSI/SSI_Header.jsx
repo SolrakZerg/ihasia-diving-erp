@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Settings, TrendingUp, TrendingDown, ChevronDown } from 'lucide-react';
+import { Settings, TrendingUp, TrendingDown, ChevronDown } from 'lucide-react';
+import MonthYearSelector from '../../common/MonthYearSelector';
 
 export default function SSIHeader({ 
   selectedMonth, 
   selectedYear, 
   totalSsi, 
   manualPaid, 
-  handlePrevMonth, 
-  handleNextMonth, 
   setShowConfigModal,
   setSelectedMonth,
   setSelectedYear
@@ -16,7 +15,7 @@ export default function SSIHeader({
 
   return (
     <div className={`flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-6 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
-      <div className="header-full-content max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-x-auto custom-scrollbar">
+      <div className="header-full-content max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row flex-wrap items-center justify-between gap-8 md:overflow-x-auto overflow-visible">
         
         <div className="flex flex-col gap-4 shrink-0 items-center">
           <div className="flex items-center justify-center gap-10">
@@ -30,38 +29,14 @@ export default function SSIHeader({
           </div>
 
           {/* DATE SELECTOR */}
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex items-center bg-surface-soft/50 p-1 rounded-2xl border border-surface-edge/30 w-fit shadow-inner">
-              <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex items-center px-2 gap-1 border-x border-surface-edge/30">
-                <select 
-                  value={selectedMonth} 
-                  onChange={e => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center uppercase tracking-tighter"
-                >
-                  {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map((m, i) => (
-                    <option key={m} value={i} className="bg-[#1a1c2d]">{m}</option>
-                  ))}
-                </select>
-                
-                <div className="w-px h-4 bg-surface-edge/30 mx-1" />
-
-                <select 
-                  value={selectedYear} 
-                  onChange={e => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-transparent text-sm font-black text-white outline-none px-2 py-1 cursor-pointer appearance-none hover:opacity-70 transition-opacity text-center"
-                >
-                  {[2024, 2025, 2026, 2027].map(y => (
-                    <option key={y} value={y} className="bg-[#1a1c2d]">{y}</option>
-                  ))}
-                </select>
-              </div>
-              <button onClick={handleNextMonth} className="p-2 hover:bg-surface-edge/30 rounded-xl text-text-header hover:text-white transition-all">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <MonthYearSelector
+              month={selectedMonth}
+              setMonth={setSelectedMonth}
+              year={selectedYear}
+              setYear={setSelectedYear}
+              shortNames={true}
+            />
 
             <button 
               onClick={() => setShowConfigModal(true)} 
@@ -114,14 +89,14 @@ export default function SSIHeader({
       </div>
 
       {/* Compact Summary Content for Mobile Landscape */}
-      <div className="header-summary-content hidden items-center justify-center gap-6 max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
+      <div className="header-summary-content hidden flex-wrap items-center justify-center gap-4 max-w-[1700px] mx-auto px-3 py-2 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <img 
             src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/ssi-logo.png" 
             alt="SSI Branding" 
             className="h-6 w-auto object-contain" 
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-[10px] px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-warning font-bold rounded-lg uppercase tracking-widest shrink-0">
               Total: {totalSsi.toLocaleString()} ฿
             </span>
@@ -134,7 +109,7 @@ export default function SSIHeader({
           </div>
         </div>
         <div className="text-xs font-black text-brand uppercase tracking-wider">
-          {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][selectedMonth]}/{selectedYear}
+          {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][selectedMonth - 1]}/{selectedYear}
         </div>
       </div>
 

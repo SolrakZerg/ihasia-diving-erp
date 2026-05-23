@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Palette, Settings, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Palette, Settings, ChevronDown, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useUndo } from '../../../context/UndoContext';
 
@@ -54,6 +54,9 @@ export default function Billing_Header({
 
   // Tema
   uiConfig, setUiConfig, updateUIConfig,
+
+  // Zoom de tabla (solo móvil)
+  tableZoom, handleZoomIn, handleZoomOut,
 
   // Layout
   isSidebarCollapsed,
@@ -134,8 +137,8 @@ export default function Billing_Header({
   return (
     <>
       {/* ── BARRA DE WIDGETS ── */}
-      <div className={`sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-surface-edge shadow-xl relative transition-all duration-300 ${isHeaderExpanded ? 'header-expanded' : 'header-collapsed'}`}>
-        <div className="header-full-content py-1.5 px-4 flex gap-4 items-stretch h-[290px] overflow-x-auto custom-scrollbar">
+      <div className={`billing-header-container md:sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-surface-edge shadow-xl relative transition-all duration-300 ${isHeaderExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+        <div className="header-full-content custom-scrollbar py-1.5 px-4 flex flex-row flex-nowrap gap-4 items-stretch h-auto overflow-x-auto overflow-y-hidden">
 
         <Billing_Header_Llegadas
           arrivalsDate={arrivalsDate}
@@ -184,7 +187,7 @@ export default function Billing_Header({
         />
 
         {/* ── SELECTOR MES / AÑO (esquina superior derecha) ── */}
-        <div className="flex flex-col justify-start pt-1.5 items-end ml-auto pr-2 shrink-0 h-full">
+        <div className="flex flex-col justify-start pt-1.5 items-center md:items-end md:ml-auto pr-2 shrink-0 h-full">
           <MonthYearSelector
             month={selectedMonth}
             setMonth={setSelectedMonth}
@@ -198,9 +201,9 @@ export default function Billing_Header({
 
         {/* ── RESUMEN COMPACTO (solo visible en landscape colapsado) ── */}
         <div className="header-summary-content hidden items-center justify-center gap-4 px-4 py-2">
-          <span className="text-[10px] px-2 py-0.5 bg-surface-edge/30 border border-surface-edge/50 text-text-header font-bold rounded-lg uppercase tracking-widest shrink-0">
-            {monthNames[selectedMonth - 1]} {selectedYear}
-          </span>
+          <div className="text-xs font-black text-brand uppercase tracking-wider">
+            {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][selectedMonth - 1]}/{selectedYear}
+          </div>
           {stats && (
             <span className="text-[10px] px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand font-bold rounded-lg shrink-0">
               {stats.totalInvoices || 0} reg. · {(stats.totalThb || 0).toLocaleString('es-ES')} ฿
@@ -212,6 +215,31 @@ export default function Billing_Header({
           >
             <Plus className="w-3 h-3" /> Fila
           </button>
+
+          {/* Zoom controls — solo móvil (ocultos en md+) */}
+          <div className="lg:hidden flex items-center gap-1 border-l border-slate-600/30 pl-3">
+            <button
+              onClick={handleZoomOut}
+              disabled={tableZoom <= 0.5}
+              className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-700/40 hover:bg-slate-600/60 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
+              title="Reducir zoom"
+            >
+              <ZoomOut className="w-3 h-3" />
+            </button>
+            {tableZoom < 1.0 && (
+              <span className="text-[9px] font-black text-slate-400 w-6 text-center tabular-nums">
+                {Math.round(tableZoom * 100)}%
+              </span>
+            )}
+            <button
+              onClick={handleZoomIn}
+              disabled={tableZoom >= 1.0}
+              className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-700/40 hover:bg-slate-600/60 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
+              title="Aumentar zoom"
+            >
+              <ZoomIn className="w-3 h-3" />
+            </button>
+          </div>
         </div>
 
         {/* ── BOTÓN TOGGLE CHEVRON (solo visible en landscape) ── */}

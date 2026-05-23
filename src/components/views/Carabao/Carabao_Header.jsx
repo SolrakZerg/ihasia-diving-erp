@@ -113,7 +113,7 @@ export default function Carabao_Header() {
 
           {/* Left: Logo and Name/Date Column */}
           <div className="flex flex-col md:flex-row items-center gap-5 shrink-0">
-            <div className="flex items-center gap-5">
+            <div className="flex flex-col md:flex-row items-center gap-5">
             <img
               src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png"
               alt="Carabao Logo"
@@ -123,7 +123,7 @@ export default function Carabao_Header() {
             <div className="flex flex-col gap-1 items-center">
               <h1 className="text-2xl font-black text-white tracking-tight uppercase leading-none">Carabao</h1>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 {/* Date Selector */}
                 <MonthYearSelector
                   month={month}
@@ -176,19 +176,15 @@ export default function Carabao_Header() {
           </div>
         </div>
 
-        {/* Compact Summary Content for Mobile Landscape */}
-        <div className="header-summary-content hidden items-center justify-center max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+        <div className="header-summary-content hidden flex-wrap items-center justify-center gap-3 max-w-[1700px] mx-auto px-3 py-1 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <img
               src="https://mowoxxyusicasgxouhxv.supabase.co/storage/v1/object/public/business-assets/logo_carabao.png"
               alt="Carabao Logo"
               className="w-7 h-7 object-contain"
             />
             <span className="text-sm font-black text-white uppercase tracking-tight">Carabao</span>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] px-2 py-0.5 bg-surface-edge/30 border border-surface-edge/50 text-text-header font-bold rounded-lg uppercase tracking-widest shrink-0">
-                {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][month - 1]} {year}
-              </span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 onClick={() => setActiveTab(activeTab === 'grid' ? 'invoice' : 'grid')}
                 className="text-[10px] px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand font-bold rounded-lg uppercase tracking-widest shrink-0"
@@ -196,6 +192,9 @@ export default function Carabao_Header() {
                 {activeTab === 'grid' ? 'Resumen' : 'Factura'}
               </button>
             </div>
+          </div>
+          <div className="text-xs font-black text-brand uppercase tracking-wider">
+            {["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][month - 1]}/{year}
           </div>
         </div>
 

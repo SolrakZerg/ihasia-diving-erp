@@ -22,7 +22,7 @@ export default function Nominas_View() {
   } = useNominasData();
 
   return (
-    <div className="h-full flex flex-col bg-surface lg:overflow-hidden overflow-auto relative animate-in fade-in duration-700">
+    <div className="nominas-main-container h-auto md:h-full flex flex-col bg-surface md:overflow-hidden overflow-y-auto relative animate-in fade-in duration-700">
       <Nominas_Header 
         month={month} setMonth={setMonth}
         year={year} setYear={setYear}
@@ -31,7 +31,7 @@ export default function Nominas_View() {
         selectedStaffId={selectedStaffId} setSelectedStaffId={setSelectedStaffId}
       />
 
-      <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden overflow-visible gap-6 p-2 sm:p-6 lg:p-8">
+      <div className="flex-1 flex flex-col lg:flex-row md:overflow-hidden overflow-visible gap-6 p-2 sm:p-6 lg:p-8">
         <Nominas_Table 
           matrixData={matrixData}
           fixedColumns={fixedColumns}

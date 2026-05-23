@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search, CheckCircle2, X, Loader2, Calendar, RotateCcw } from 'lucide-react';
 import { useBillingData } from './useBillingData';
 import Billing_Header from './Billing_Header';
@@ -32,6 +32,37 @@ export default function Billing_View({ isSidebarCollapsed }) {
   const billing = useBillingData();
   const { widths, startResize, resetWidths } = useColumnResize();
   const scrollRef = useRef(null);
+  const [zoomPortrait, setZoomPortrait] = useState(1.0);
+  const [zoomLandscape, setZoomLandscape] = useState(1.0);
+  const [isLandscape, setIsLandscape] = useState(
+    typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const tableZoom = isLandscape ? zoomLandscape : zoomPortrait;
+
+  const handleZoomOut = () => {
+    if (isLandscape) {
+      setZoomLandscape(z => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
+    } else {
+      setZoomPortrait(z => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
+    }
+  };
+
+  const handleZoomIn = () => {
+    if (isLandscape) {
+      setZoomLandscape(z => Math.min(1.0, Math.round((z + 0.1) * 10) / 10));
+    } else {
+      setZoomPortrait(z => Math.min(1.0, Math.round((z + 0.1) * 10) / 10));
+    }
+  };
 
   useEffect(() => {
     if (!billing.loadingInvoices && scrollRef.current) {
@@ -69,7 +100,7 @@ export default function Billing_View({ isSidebarCollapsed }) {
   } = billing;
 
   return (
-    <div className="h-full flex flex-col animate-in fade-in duration-500 bg-surface">
+    <div className="billing-main-container h-full flex flex-col animate-in fade-in duration-500 bg-surface overflow-hidden relative">
 
       <Billing_Header
         isSidebarCollapsed={isSidebarCollapsed}
@@ -110,10 +141,13 @@ export default function Billing_View({ isSidebarCollapsed }) {
         uiConfig={billing.uiConfig}
         setUiConfig={billing.setUiConfig}
         updateUIConfig={billing.updateUIConfig}
+        tableZoom={tableZoom}
+        handleZoomIn={handleZoomIn}
+        handleZoomOut={handleZoomOut}
       />
 
       {/* GRID PRINCIPAL - single scroll container */}
-      <div className="flex-1 px-5 py-1 min-h-0">
+      <div className="billing-grid-wrapper flex-1 px-1 lg:px-5 py-1 min-h-0">
         <div
           ref={scrollRef}
           onScroll={(e) => {
@@ -121,7 +155,7 @@ export default function Billing_View({ isSidebarCollapsed }) {
               sessionStorage.setItem('billingScrollPos', e.target.scrollTop);
             }
           }}
-          className="billing-grid-container h-full bg-surface border border-surface-edge rounded-lg shadow-2xl custom-scrollbar"
+          className="billing-grid-container h-auto md:h-full bg-surface border border-surface-edge rounded-lg shadow-2xl custom-scrollbar"
           style={{
             overflow: 'auto',
             width: 'fit-content',
@@ -139,7 +173,8 @@ export default function Billing_View({ isSidebarCollapsed }) {
               className="table-fixed border-separate border-spacing-0 [&_td]:min-w-0 [&_td]:overflow-visible [&_th]:min-w-0 [&_th]:overflow-visible"
               style={{
                 width: Object.values(widths).reduce((a, b) => a + b, 0),
-                minWidth: Object.values(MIN_WIDTHS).reduce((a, b) => a + b, 0)
+                minWidth: Object.values(MIN_WIDTHS).reduce((a, b) => a + b, 0),
+                zoom: tableZoom,
               }}
             >
               <colgroup>

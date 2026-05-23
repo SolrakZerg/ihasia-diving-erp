@@ -21,7 +21,7 @@ export default function TestSSIView() {
   
   // Date states
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   const [manualPaid, setManualPaid] = useState(0);
@@ -82,7 +82,7 @@ export default function TestSSIView() {
 
   const fetchData = async (isUpdate = false) => {
     if (!isUpdate) setLoading(true);
-    const mm = selectedMonth + 1;
+    const mm = selectedMonth;
     const yy = selectedYear;
 
     try {
@@ -106,7 +106,7 @@ export default function TestSSIView() {
       }
 
       // 2. Cargar Adelanto (mes_anterior de la fila del MES SIGUIENTE)
-      const nextDate = new Date(yy, selectedMonth + 1, 1);
+      const nextDate = new Date(yy, selectedMonth, 1);
       const { data: nextSettlement } = await supabase
         .from('supplier_settlements')
         .select('mes_anterior')
@@ -231,7 +231,7 @@ export default function TestSSIView() {
       .from('ssi_monthly_breakdown')
       .upsert({
         year: selectedYear,
-        month: selectedMonth + 1,
+        month: selectedMonth,
         activity_id: activityId,
         manual_adjustment: val,
         unit_cost: activityItem ? activityItem.unit_cost : 0
@@ -269,7 +269,7 @@ export default function TestSSIView() {
     const currentPayload = {
       supplier_name: 'SSI',
       year: selectedYear,
-      month: selectedMonth + 1,
+      month: selectedMonth,
       paid_amount: manual,
       updated_at: new Date().toISOString()
     };
@@ -282,7 +282,7 @@ export default function TestSSIView() {
     }
 
     // 2. Guardar Adelanto (mes_anterior) en el MES SIGUIENTE
-    const nextDate = new Date(selectedYear, selectedMonth + 1, 1);
+    const nextDate = new Date(selectedYear, selectedMonth, 1);
     const nextPayload = {
       supplier_name: 'SSI',
       year: nextDate.getFullYear(),
@@ -310,7 +310,7 @@ export default function TestSSIView() {
     
     // Forzar recuento del mes actual para que aplique el nuevo total_amount
     setTimeout(() => {
-      supabase.rpc('func_recount_ssi_month', { p_year: selectedYear, p_month: selectedMonth + 1 });
+      supabase.rpc('func_recount_ssi_month', { p_year: selectedYear, p_month: selectedMonth });
       fetchData(true);
     }, 500);
   };
@@ -341,33 +341,13 @@ export default function TestSSIView() {
     setActiveActivityIds(orderedActivities.filter(a => a.isSelected).map(a => a.id));
   };
 
-  const handlePrevMonth = () => {
-    if (selectedMonth === 0) {
-      setSelectedMonth(11);
-      setSelectedYear(prev => prev - 1);
-    } else {
-      setSelectedMonth(prev => prev - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (selectedMonth === 11) {
-      setSelectedMonth(0);
-      setSelectedYear(prev => prev + 1);
-    } else {
-      setSelectedMonth(prev => prev + 1);
-    }
-  };
-
   return (
-    <div className="h-full flex flex-col bg-surface lg:overflow-hidden overflow-auto relative">
+    <div className="ssi-main-container h-full flex flex-col bg-surface lg:overflow-hidden overflow-auto relative">
       <SSIHeader 
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
         totalSsi={totalSsi}
         manualPaid={manualPaid}
-        handlePrevMonth={handlePrevMonth}
-        handleNextMonth={handleNextMonth}
         setShowConfigModal={setShowConfigModal}
         setSelectedMonth={setSelectedMonth}
         setSelectedYear={setSelectedYear}

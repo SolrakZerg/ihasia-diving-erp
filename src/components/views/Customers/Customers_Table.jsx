@@ -26,8 +26,7 @@ export default function Customers_Table({
 }) {
   return (
     <div
-      className="bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500"
-      style={{ height: 'calc(100vh - 200px)', minHeight: '500px' }}
+      className="bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 md:h-[calc(100vh-200px)] h-auto md:min-h-[500px] min-h-0"
     >
       {/* Scrollable table area */}
       <div className="overflow-auto flex-1 relative">

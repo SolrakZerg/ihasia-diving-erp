@@ -35,7 +35,7 @@ export default function Customers_Header({
         </div>
 
         {/* Controls */}
-        <div className="flex gap-3 relative">
+        <div className="flex flex-wrap items-center justify-center gap-3 relative">
 
           {/* Add Customer Button */}
           <button
@@ -147,12 +147,11 @@ export default function Customers_Header({
 
       </div>{/* end header-full-content */}
 
-      {/* Compact Summary Content for Mobile Landscape */}
-      <div className="header-summary-content hidden items-center justify-center max-w-[1700px] mx-auto">
-        <div className="flex items-center gap-4">
+      <div className="header-summary-content hidden flex-wrap items-center justify-center gap-3 max-w-[1700px] mx-auto py-1">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <UserRoundSearch className="w-5 h-5 text-brand" />
           <span className="text-sm font-black text-white">Clientes</span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-[10px] px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand font-bold rounded-lg uppercase tracking-widest shrink-0">
               {totalCount.toLocaleString('es-ES')} Reg.
             </span>
@@ -171,7 +170,7 @@ export default function Customers_Header({
       {/* Floating Toggle Button for Mobile Landscape */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`header-toggle-btn hidden absolute right-4 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60] ${isExpanded ? 'bottom-2 top-auto translate-y-0' : 'top-1/2 -translate-y-1/2'}`}
+        className={`header-toggle-btn customers-toggle-btn hidden absolute right-4 w-8 h-8 rounded-xl bg-surface-edge hover:bg-brand text-gray-300 hover:text-white items-center justify-center transition-all z-[60] ${isExpanded ? 'bottom-2 top-auto translate-y-0' : 'top-1/2 -translate-y-1/2'}`}
         aria-label={isExpanded ? "Colapsar cabecera" : "Expandir cabecera"}
       >
         <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />

@@ -89,7 +89,7 @@ export default function Customers_View({ onNavigate }) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-surface lg:overflow-hidden overflow-auto relative">
+    <div className="customers-main-container h-auto md:h-full flex flex-col bg-surface md:overflow-hidden overflow-y-auto relative">
 
       {/* ── Cabecera ── */}
       <Customers_Header
@@ -111,7 +111,7 @@ export default function Customers_View({ onNavigate }) {
       />
 
       {/* Main Content Area */}
-      <div className={`flex-1 lg:overflow-hidden p-2 sm:p-6 lg:p-8 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full transition-all duration-500`}>
+      <div className={`flex-1 md:overflow-hidden p-2 sm:p-6 lg:p-8 ${isExtendedView ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full transition-all duration-500`}>
         {/* ── Tabla + Paginación ── */}
         <Customers_Table
           customers={customers}
