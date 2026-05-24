@@ -154,7 +154,7 @@ export default function Estadisticas_Chart({
       </div>
 
       {/* Gráfico */}
-      <div className="h-[280px] md:h-[400px] w-full px-2 md:px-8">
+      <div className="h-[280px] md:h-[380px] lg:h-[400px] w-full px-2 md:px-8">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 15, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
