@@ -44,7 +44,7 @@ export default function Staff_fee_View() {
 
   // ── Vista: Listado ────────────────────────────────────────────────────────
   return (
-    <div className="p-8 max-w-3xl mx-auto w-full flex flex-col h-full animate-in fade-in duration-500">
+    <div className="px-1 py-8 md:p-8 max-w-3xl mx-auto w-full flex flex-col h-full animate-in fade-in duration-500">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

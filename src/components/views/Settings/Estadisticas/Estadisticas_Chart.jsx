@@ -98,29 +98,29 @@ export default function Estadisticas_Chart({
   const isComparison = activeMetric === 'comparativa';
 
   return (
-    <div className="bg-surface-soft border border-surface-edge rounded-[2.5rem] py-4 shadow-2xl">
+    <div className="bg-surface-soft border border-surface-edge rounded-2xl md:rounded-[2.5rem] py-4 shadow-2xl">
       {/* Header */}
-      <div className="flex items-center mb-2 px-8">
+      <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-0 mb-6 lg:mb-2 px-4 md:px-8">
         {/* Logo izquierda */}
-        <div className="w-1/4 flex justify-start">
+        <div className="w-full lg:w-1/4 flex justify-center lg:justify-start">
           <Estadisticas_MetricLogo activeMetric={activeMetric} />
         </div>
 
         {/* Título centro */}
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <TrendingUp className="w-7 h-7" style={getMetricStyle(activeMetric, 'text')} />
+        <div className="w-full lg:flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-center">
+          <h2 className="text-lg md:text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2 md:gap-3">
+            <TrendingUp className="w-5 h-5 md:w-7 md:h-7" style={getMetricStyle(activeMetric, 'text')} />
             {isComparison
               ? `Comparativa Anual ${selectedComparisonYear}`
               : `Evolución: ${getMetricLabel(activeMetric)}`}
           </h2>
-          <span className="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] translate-y-[3px]">
+          <span className="text-[9px] md:text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] translate-y-0 sm:translate-y-[3px]">
             {isComparison ? '(Categorías)' : `(${chartYears[0]} - ${chartYears[chartYears.length - 1]})`}
           </span>
         </div>
 
         {/* Leyenda / filtros derecha */}
-        <div className="w-1/4 flex justify-end gap-4">
+        <div className="w-full lg:w-1/4 flex flex-wrap justify-center lg:justify-end gap-2 sm:gap-3 lg:gap-4">
           {isComparison
             ? ['ihasia', 'carabao', 'sueldos', 'ssi', 'crbt', 'facturado'].map(catId => {
                 const isHidden = hiddenMetrics.includes(catId);
@@ -129,10 +129,10 @@ export default function Estadisticas_Chart({
                   <button
                     key={catId}
                     onClick={() => toggleMetric(catId)}
-                    className={`flex items-center gap-2 transition-all duration-300 ${isHidden ? 'opacity-30 grayscale' : 'opacity-100 hover:scale-105'}`}
+                    className={`flex items-center gap-1.5 md:gap-2 transition-all duration-300 ${isHidden ? 'opacity-30 grayscale' : 'opacity-100 hover:scale-105'}`}
                   >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COMPARISON_COLORS[catId] }} />
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{label}</span>
+                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: COMPARISON_COLORS[catId] }} />
+                    <span className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-wider">{label}</span>
                   </button>
                 );
               })
@@ -142,10 +142,10 @@ export default function Estadisticas_Chart({
                   <button
                     key={year}
                     onClick={() => toggleYear(year)}
-                    className={`flex items-center gap-2 transition-all duration-300 ${isHidden ? 'opacity-30 grayscale' : 'opacity-100 hover:scale-105'}`}
+                    className={`flex items-center gap-1.5 md:gap-2 transition-all duration-300 ${isHidden ? 'opacity-30 grayscale' : 'opacity-100 hover:scale-105'}`}
                   >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getYearStyle(year).color }} />
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{year}</span>
+                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: getYearStyle(year).color }} />
+                    <span className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-wider">{year}</span>
                   </button>
                 );
               })
@@ -154,9 +154,9 @@ export default function Estadisticas_Chart({
       </div>
 
       {/* Gráfico */}
-      <div className="h-[400px] w-full px-8">
+      <div className="h-[280px] md:h-[400px] w-full px-2 md:px-8">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <LineChart data={chartData} margin={{ top: 5, right: 15, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
             <XAxis dataKey="month" stroke="#9ca3af" fontSize={10} fontWeight="black" tickLine={false} axisLine={false} dy={10} />
             <YAxis stroke="#9ca3af" fontSize={10} fontWeight="black" tickLine={false} axisLine={false} tickFormatter={v => v.toLocaleString()} />

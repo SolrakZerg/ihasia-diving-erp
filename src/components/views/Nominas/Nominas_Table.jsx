@@ -15,7 +15,7 @@ export default function Nominas_Table({
   totalAdj
 }) {
   return (
-    <div className="flex-1 px-0 lg:px-6 py-0 lg:py-2 md:min-h-0 min-h-fit flex flex-col">
+    <div className="flex-1 px-0 py-0 lg:py-2 md:min-h-0 min-h-fit flex flex-col">
       <div className="h-auto md:h-fit md:max-h-full w-full bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden max-w-[850px] flex flex-col mx-auto">
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="min-w-full text-left border-collapse table-fixed">

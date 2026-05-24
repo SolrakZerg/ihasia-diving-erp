@@ -31,7 +31,7 @@ export default function Estadisticas_View() {
   }
 
   return (
-    <div className="p-8 flex flex-col gap-8 max-w-[1600px] mx-auto animate-unfold">
+    <div className="px-1 py-6 md:p-8 flex flex-col gap-8 max-w-[1600px] mx-auto animate-unfold">
 
       {/* ── Selector de métricas ─────────────────────────────────────────── */}
       <Estadisticas_MetricSelector

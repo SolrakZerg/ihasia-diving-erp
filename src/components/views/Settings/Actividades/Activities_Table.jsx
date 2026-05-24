@@ -74,7 +74,7 @@ export default function Activities_Table({
 }) {
   return (
     <div 
-      className={`bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 ${isNested ? 'mx-8 mb-8' : ''}`}
+      className={`bg-surface-soft rounded-2xl border border-surface-edge shadow-xl flex flex-col overflow-hidden transition-all duration-500 ${isNested ? 'mx-1 md:mx-8 mb-8' : ''}`}
       style={{ minHeight: '400px' }}
     >
       {/* INNER TOOLBAR (Visible when nested or as secondary search) */}

@@ -30,11 +30,11 @@ export default function Estadisticas_Table({
   const isComparison = activeMetric === 'comparativa';
 
   return (
-    <div className="bg-surface-soft border border-surface-edge rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col mt-4">
+    <div className="bg-surface-soft border border-surface-edge rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col mt-4">
       {/* Header */}
-      <div className="py-2 px-8 border-b border-surface-edge flex items-center bg-white/2">
+      <div className="py-4 px-4 md:px-8 border-b border-surface-edge flex flex-col lg:flex-row items-center gap-4 lg:gap-0 bg-white/2">
         {/* Logo izquierda */}
-        <div className="w-1/4 flex justify-start">
+        <div className="w-full lg:w-1/4 flex justify-center lg:justify-start">
           <Estadisticas_MetricLogo
             activeMetric={activeMetric}
             fallbackIcon={<FileSpreadsheet style={getMetricStyle(activeMetric, 'text')} className="w-10 h-10" />}
@@ -42,14 +42,14 @@ export default function Estadisticas_Table({
         </div>
 
         {/* Título centro */}
-        <div className="flex-1 flex justify-center">
-          <h3 className="text-xl font-black text-white tracking-tight uppercase">Tabla Comparativa Mensual</h3>
+        <div className="w-full lg:flex-1 flex justify-center text-center">
+          <h3 className="text-lg md:text-xl font-black text-white tracking-tight uppercase">Tabla Comparativa Mensual</h3>
         </div>
 
         {/* Controles derecha */}
-        <div className="w-1/4 flex items-center justify-end gap-4">
+        <div className="w-full lg:w-1/4 flex flex-col sm:flex-row items-center justify-center lg:justify-end gap-3">
           {isComparison && (
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 mr-4">
+            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 mr-0 sm:mr-4">
               {availableYears.map(year => (
                 <button
                   key={year}
@@ -67,7 +67,7 @@ export default function Estadisticas_Table({
           )}
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 px-6 py-3 bg-surface-edge/30 hover:bg-surface-edge/50 rounded-2xl border border-surface-edge/30 text-[11px] font-black text-gray-400 hover:text-white transition-all uppercase tracking-widest active:scale-95"
+            className="flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-surface-edge/30 hover:bg-surface-edge/50 rounded-2xl border border-surface-edge/30 text-[10px] md:text-[11px] font-black text-gray-400 hover:text-white transition-all uppercase tracking-widest active:scale-95"
           >
             <Download className="w-4 h-4" /> Exportar CSV
           </button>
@@ -79,16 +79,16 @@ export default function Estadisticas_Table({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-black/20">
-              <th className="px-6 py-3 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] w-32 min-w-[128px] border-r border-surface-edge/30 text-center leading-tight">
+              <th className="px-2 lg:px-6 py-3 text-[10px] lg:text-[11px] font-black text-gray-500 uppercase tracking-[0.1em] lg:tracking-[0.2em] w-20 lg:w-32 min-w-[80px] lg:min-w-[128px] border-r border-surface-edge/30 text-center leading-tight">
                 {isComparison ? 'CATEGORÍA' : 'AÑO'}
               </th>
               {MONTH_NAMES.map(m => (
                 <th key={m} className="px-4 py-3 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center leading-tight">{m}</th>
               ))}
-              <th style={getMetricStyle(activeMetric, 'text')} className="px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-center border-l border-surface-edge/30 w-40 min-w-[160px] leading-tight">
+              <th style={getMetricStyle(activeMetric, 'text')} className="px-2 lg:px-6 py-3 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.1em] lg:tracking-[0.2em] text-center border-l border-surface-edge/30 w-24 lg:w-40 min-w-[96px] lg:min-w-[160px] leading-tight">
                 TOTAL
               </th>
-              <th className="px-6 py-3 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] text-center border-l border-surface-edge/30 w-32 leading-tight">VAR. %</th>
+              <th className="px-2 lg:px-6 py-3 text-[10px] lg:text-[11px] font-black text-gray-500 uppercase tracking-[0.1em] lg:tracking-[0.2em] text-center border-l border-surface-edge/30 w-20 lg:w-32 leading-tight">VAR. %</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-edge/20">
@@ -110,7 +110,7 @@ export default function Estadisticas_Table({
 
                     return (
                       <tr key={catId} className="hover:bg-white/5 transition-colors group relative">
-                        <td className="px-6 py-4 border-r border-surface-edge/30 relative text-center leading-tight">
+                        <td className="px-2 lg:px-6 py-4 border-r border-surface-edge/30 relative text-center leading-tight">
                           <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundColor: color }} />
                           <span className="text-xs font-black text-white uppercase tracking-wider relative z-10">{label}</span>
                         </td>
@@ -122,12 +122,12 @@ export default function Estadisticas_Table({
                             </span>
                           </td>
                         ))}
-                        <td className="px-6 py-3 text-center border-l border-surface-edge/30 relative leading-tight" style={{ backgroundColor: `${color}15` }}>
+                        <td className="px-2 lg:px-6 py-3 text-center border-l border-surface-edge/30 relative leading-tight" style={{ backgroundColor: `${color}15` }}>
                           <span className="relative z-10 text-lg font-black font-mono tracking-tighter" style={{ color }}>
                             {total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-center border-l border-surface-edge/30 relative bg-black/10 leading-tight">
+                        <td className="px-2 lg:px-6 py-3 text-center border-l border-surface-edge/30 relative bg-black/10 leading-tight">
                           {catId !== 'facturado' ? (
                             <span className={`text-sm font-mono font-black ${weight > 0 ? 'text-white' : 'text-gray-700'}`}>
                               {weight > 0 ? `${weight.toFixed(1)}%` : '-'}
@@ -169,9 +169,9 @@ export default function Estadisticas_Table({
 
                   return (
                     <tr key={year} className="hover:bg-white/5 transition-colors group relative">
-                      <td className="px-6 py-3 border-r border-surface-edge/30 relative text-center leading-tight">
+                      <td className="px-2 lg:px-6 py-3 border-r border-surface-edge/30 relative text-center leading-tight">
                         <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundColor: yearStyle.color }} />
-                        <div className="flex items-center justify-center gap-3 relative z-10">
+                        <div className="flex items-center justify-center gap-1.5 lg:gap-3 relative z-10">
                           <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style={{ backgroundColor: yearStyle.color }} />
                           <span className="text-lg font-black text-white font-mono tracking-tighter drop-shadow-md">{year}</span>
                         </div>
@@ -184,12 +184,12 @@ export default function Estadisticas_Table({
                           </span>
                         </td>
                       ))}
-                      <td style={getMetricStyle(activeMetric, 'bg')} className="px-6 py-3 text-center border-l border-surface-edge/30 relative leading-tight">
+                      <td style={getMetricStyle(activeMetric, 'bg')} className="px-2 lg:px-6 py-3 text-center border-l border-surface-edge/30 relative leading-tight">
                         <span style={getMetricStyle(activeMetric, 'text')} className="relative z-10 text-lg font-black font-mono tracking-tighter">
                           {yearTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-center border-l border-surface-edge/30 relative bg-black/10 leading-tight">
+                      <td className="px-2 lg:px-6 py-3 text-center border-l border-surface-edge/30 relative bg-black/10 leading-tight">
                         {variation !== null ? (
                           <div className="flex flex-col items-center justify-center">
                             <div className={`flex items-center gap-1.5 font-mono font-black ${variation >= 0 ? 'text-emerald-500' : 'text-rose-400'} leading-none`}>

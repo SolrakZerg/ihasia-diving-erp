@@ -12,7 +12,7 @@ export default function Activities_AddForm({
   handleThbChange
 }) {
   return (
-    <div className="flex flex-col h-full bg-background overflow-auto p-4 sm:p-10">
+    <div className="flex flex-col h-full bg-background overflow-auto px-1 py-4 sm:p-10">
       <div className="max-w-3xl mx-auto w-full">
         <button
           onClick={() => setView('list')}
@@ -21,7 +21,7 @@ export default function Activities_AddForm({
           <ArrowLeft className="w-4 h-4" /> Volver al catálogo
         </button>
 
-        <div className="bg-surface-soft border border-surface-edge p-8 rounded-2xl shadow-xl">
+        <div className="bg-surface-soft border border-surface-edge p-4 md:p-8 rounded-2xl shadow-xl">
           <h1 className="text-3xl font-bold text-white mb-2">Añadir Nuevo</h1>
           <p className="text-gray-400 mb-8">Registra un nuevo curso, fun dive o producto para la venta.</p>
 

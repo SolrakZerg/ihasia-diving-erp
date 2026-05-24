@@ -217,27 +217,25 @@ export default function Billing_Header({
           </button>
 
           {/* Zoom controls — solo móvil (ocultos en md+) */}
-          <div className="lg:hidden flex items-center gap-1 border-l border-slate-600/30 pl-3">
+          {/* Zoom toggle — solo móvil (oculto en lg+) */}
+          <div className="lg:hidden flex items-center border-l border-slate-600/30 pl-3">
             <button
-              onClick={handleZoomOut}
-              disabled={tableZoom <= 0.7}
-              className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-700/40 hover:bg-slate-600/60 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
-              title="Reducir zoom"
+              onClick={tableZoom === 1.0 ? handleZoomOut : handleZoomIn}
+              className={`flex items-center justify-center gap-1 px-1.5 h-6 rounded-lg text-xs font-black transition-all active:scale-90 ${
+                tableZoom === 0.7 
+                  ? 'bg-brand/20 border border-brand/40 text-brand-light' 
+                  : 'bg-slate-700/40 hover:bg-slate-600/60 text-slate-300 hover:text-white'
+              }`}
+              title={tableZoom === 1.0 ? "Reducir zoom a 70%" : "Restablecer zoom a 100%"}
             >
-              <ZoomOut className="w-3 h-3" />
-            </button>
-            {tableZoom < 1.0 && (
-              <span className="text-[9px] font-black text-slate-400 w-6 text-center tabular-nums">
-                {Math.round(tableZoom * 100)}%
-              </span>
-            )}
-            <button
-              onClick={handleZoomIn}
-              disabled={tableZoom >= 1.0}
-              className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-700/40 hover:bg-slate-600/60 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
-              title="Aumentar zoom"
-            >
-              <ZoomIn className="w-3 h-3" />
+              {tableZoom === 1.0 ? (
+                <ZoomOut className="w-3.5 h-3.5" />
+              ) : (
+                <>
+                  <ZoomIn className="w-3.5 h-3.5" />
+                  <span className="text-[9px] font-black select-none">70%</span>
+                </>
+              )}
             </button>
           </div>
         </div>
