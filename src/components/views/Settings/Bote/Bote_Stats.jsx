@@ -31,6 +31,8 @@ export default function Bote_Stats({
   months,
   pendingAmount,
   apartarReal,
+  tshirtCost,
+  insuranceCost,
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -88,15 +90,15 @@ export default function Bote_Stats({
         <div className="space-y-2 mt-4 pt-4 border-t border-emerald-500/10">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-black text-text-muted uppercase flex items-center gap-2">
-              <Shirt className="w-3 h-3" /> Camisetas
+              <Shirt className="w-3 h-3" /> Camisetas ({tshirtCost} ฿/u)
             </span>
-            <span className="text-[11px] font-black text-white/80">{(stats.tshirts * 160).toLocaleString()} ฿</span>
+            <span className="text-[11px] font-black text-white/80">{incomeTshirts.toLocaleString()} ฿</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-black text-text-muted uppercase flex items-center gap-2">
-              <ShieldCheck className="w-3 h-3" /> Seguros
+              <ShieldCheck className="w-3 h-3" /> Seguros ({insuranceCost} ฿/u)
             </span>
-            <span className="text-[11px] font-black text-white/80">{(stats.insurances * 75).toLocaleString()} ฿</span>
+            <span className="text-[11px] font-black text-white/80">{incomeInsurances.toLocaleString()} ฿</span>
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-emerald-500/5">
             <span className="text-[11px] font-black text-text-muted uppercase flex items-center gap-2">

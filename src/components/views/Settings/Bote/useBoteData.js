@@ -11,6 +11,10 @@ export default function useBoteData() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
 
+  // Costes condicionales de Bote
+  const tshirtCost = (year > 2026 || (year === 2026 && month >= 6)) ? 180 : 160;
+  const insuranceCost = 75;
+
   // ── Datos ────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -146,7 +150,7 @@ export default function useBoteData() {
   };
 
   const saveBoteStats = async () => {
-    const incomeValue = (stats.tshirts * 160) + (stats.insurances * 75);
+    const incomeValue = (stats.tshirts * tshirtCost) + (stats.insurances * insuranceCost);
     await supabase.from('bote_monthly').upsert({
       year, month,
       initial_balance: initialBote,
@@ -240,8 +244,8 @@ export default function useBoteData() {
   };
 
   // ── Valores calculados ────────────────────────────────────────────────────
-  const incomeTshirts    = stats.tshirts * 160;
-  const incomeInsurances = stats.insurances * 75;
+  const incomeTshirts    = stats.tshirts * tshirtCost;
+  const incomeInsurances = stats.insurances * insuranceCost;
   // totalExpenses ahora se lee de la base de datos (expensesTotal)
   const totalExpenses    = expensesTotal;
   // currentBalance ahora se lee de la base de datos (finalBalance)
@@ -272,5 +276,6 @@ export default function useBoteData() {
     // Valores calculados
     incomeTshirts, incomeInsurances, totalExpenses, currentBalance,
     pendingAmount, apartarReal, finalBalance,
+    tshirtCost, insuranceCost,
   };
 }

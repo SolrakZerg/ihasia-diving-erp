@@ -229,8 +229,12 @@ BEGIN
     WHERE EXTRACT(YEAR FROM created_at) = p_year
     AND EXTRACT(MONTH FROM created_at) = p_month;
 
-    -- 3. Calcular total (160 por camiseta, 75 por seguro)
-    v_total := (v_tshirts * 160) + (v_insurances * 75);
+    -- 3. Calcular total (180 por camiseta desde Junio 2026, 160 antes; 75 por seguro)
+    IF p_year > 2026 OR (p_year = 2026 AND p_month >= 6) THEN
+        v_total := (v_tshirts * 180) + (v_insurances * 75);
+    ELSE
+        v_total := (v_tshirts * 160) + (v_insurances * 75);
+    END IF;
 
     -- 4. Actualizar tabla bote_monthly
     SELECT EXISTS (

@@ -23,6 +23,7 @@ export default function Bote_View() {
     confirmConfig, setConfirmConfig,
     incomeTshirts, incomeInsurances, totalExpenses, currentBalance,
     pendingAmount, apartarReal,
+    tshirtCost, insuranceCost,
   } = useBoteData();
 
   // ── Loading ────────────────────────────────────────────────────────────────
@@ -69,6 +70,8 @@ export default function Bote_View() {
         months={MONTHS}
         pendingAmount={pendingAmount}
         apartarReal={apartarReal}
+        tshirtCost={tshirtCost}
+        insuranceCost={insuranceCost}
       />
 
       <div className="pt-4" />
