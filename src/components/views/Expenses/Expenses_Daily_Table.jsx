@@ -66,10 +66,11 @@ const Expenses_Daily_Table = ({
             <tbody className="divide-y divide-surface-edge/10">
               {loading ? (
                 <tr><td colSpan="5" className="py-20 text-center"><Loader2 className="w-8 h-8 animate-spin text-brand mx-auto opacity-20" /></td></tr>
-              ) : expenses.length === 0 && !isAddingExpense ? (
-                <tr><td colSpan="5" className="py-20 text-center text-text-header/60 italic text-xs">Sin movimientos registrados.</td></tr>
               ) : (
                 <>
+                  {expenses.length === 0 && !isAddingExpense && (
+                    <tr><td colSpan="5" className="py-20 text-center text-text-header/60 italic text-xs">Sin movimientos registrados.</td></tr>
+                  )}
                   {expenses.map(e => (
                     <tr key={e.id} className="hover:bg-brand/5 transition-colors group">
                       <td className="px-1 py-1.5 text-center">
