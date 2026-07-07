@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 import Login from './components/Login';
 import Menu from './components/Menu';
+import { APP_VERSION } from './version';
 
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set document title with version
+    document.title = `Ihasia Diving ERP v${APP_VERSION}`;
+
     // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
