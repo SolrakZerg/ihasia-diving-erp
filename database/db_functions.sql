@@ -838,18 +838,18 @@ DECLARE
   v_next_month integer;
   v_total numeric;
 BEGIN
-  -- 1. Sumar los totales de las filas
+  -- 1. Sumar los totales de las filas del desglose
   SELECT COALESCE(SUM(total_fila), 0)
   INTO v_calculated_total
   FROM public.ssi_monthly_breakdown
   WHERE year = p_year AND month = p_month;
   
-  -- 2. Leer el ajuste (mes_anterior) de la fila del MES ACTUAL
-  SELECT COALESCE(mes_anterior, 0)
-  INTO v_adj_prev
-  FROM public.supplier_settlements
-  WHERE supplier_name = 'SSI'
-  AND year = p_year AND month = p_month;
+  -- 2. Leer el ajuste (mes_anterior) de la fila del MES ACTUAL de forma segura (COALESCE de subconsulta)
+  v_adj_prev := COALESCE((
+      SELECT mes_anterior 
+      FROM public.supplier_settlements
+      WHERE supplier_name = 'SSI' AND year = p_year AND month = p_month
+  ), 0);
   
   -- 3. Calcular mes y año siguiente
   IF p_month = 12 THEN
@@ -860,20 +860,21 @@ BEGIN
       v_next_month := p_month + 1;
   END IF;
 
-  -- 4. Leer el adelanto (mes_anterior del mes siguiente)
-  SELECT COALESCE(mes_anterior, 0)
-  INTO v_adj_next
-  FROM public.supplier_settlements
-  WHERE supplier_name = 'SSI'
-  AND year = v_next_year AND month = v_next_month;
+  -- 4. Leer el adelanto (mes_anterior del mes siguiente) de forma segura (COALESCE de subconsulta)
+  v_adj_next := COALESCE((
+      SELECT mes_anterior 
+      FROM public.supplier_settlements
+      WHERE supplier_name = 'SSI' AND year = v_next_year AND month = v_next_month
+  ), 0);
 
-  -- 5. Total = Calculado - (Ajuste Mes Anterior * 1067) + (Adelanto Próx Mes * 1067)
+  -- 5. Total = Calculado - (v_adj_prev * 1067) + (v_adj_next * 1067)
   v_total := v_calculated_total - (v_adj_prev * 1067) + (v_adj_next * 1067);
   
-  -- 6. Actualizar supplier_settlements
-  UPDATE public.supplier_settlements
-  SET total_amount = v_total
-  WHERE supplier_name = 'SSI' AND year = p_year AND month = p_month;
+  -- 6. Insertar o actualizar la fila de supplier_settlements de forma segura (UPSERT)
+  INSERT INTO public.supplier_settlements (supplier_name, year, month, total_amount, paid_amount, mes_anterior)
+  VALUES ('SSI', p_year, p_month, v_total, 0, v_adj_prev)
+  ON CONFLICT (supplier_name, month, year)
+  DO UPDATE SET total_amount = EXCLUDED.total_amount;
 END;
 $function$;
 
