@@ -24,6 +24,94 @@ export default function InsuranceTable({
   handleRemoveCustomer,
   handleGenerateAndSend
 }) {
+  const duplicateIds = React.useMemo(() => {
+    const dups = new Set();
+    
+    const normalize = (str) => {
+      if (!str) return '';
+      return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+    };
+
+    const getLevenshteinDistance = (a, b) => {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+      for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1, // sustitución
+              matrix[i][j - 1] + 1,     // inserción
+              matrix[i - 1][j] + 1      // eliminación
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    };
+
+    for (let i = 0; i < customers.length; i++) {
+      const A = customers[i];
+      const passA = normalize(A.passport_number);
+      const firstA = normalize(A.first_name);
+      const lastA = normalize(A.last_name);
+
+      for (let j = i + 1; j < customers.length; j++) {
+        const B = customers[j];
+        const passB = normalize(B.passport_number);
+        const firstB = normalize(B.first_name);
+        const lastB = normalize(B.last_name);
+
+        let isDup = false;
+
+        // 1. Coincidencia exacta de pasaporte válido
+        if (passA && passA !== 'n/a' && passA === passB) {
+          isDup = true;
+        }
+
+        // 2. Coincidencia exacta de Nombre + Apellido
+        if (!isDup && firstA && lastA && firstA === firstB && lastA === lastB) {
+          isDup = true;
+        }
+
+        // 3. Similitud cruzada (Nombre similar Y Apellido similar)
+        if (!isDup) {
+          const nameSim = firstA && firstB && (firstA.includes(firstB) || firstB.includes(firstA) || getLevenshteinDistance(firstA, firstB) <= 2);
+          const lastSim = lastA && lastB && (lastA.includes(lastB) || lastB.includes(lastA) || getLevenshteinDistance(lastA, lastB) <= 2);
+          
+          if (nameSim && lastSim) {
+            isDup = true;
+          }
+        }
+
+        // 4. Pasaporte muy similar (distancia <= 1) + Nombre Y Apellido similares
+        if (!isDup && passA && passB && passA !== 'n/a' && passB !== 'n/a') {
+          const passSim = getLevenshteinDistance(passA, passB) <= 1;
+          const nameSim = firstA && firstB && (firstA.includes(firstB) || firstB.includes(firstA) || getLevenshteinDistance(firstA, firstB) <= 2);
+          const lastSim = lastA && lastB && (lastA.includes(lastB) || lastB.includes(lastA) || getLevenshteinDistance(lastA, lastB) <= 2);
+          
+          if (passSim && nameSim && lastSim) {
+            isDup = true;
+          }
+        }
+
+        if (isDup) {
+          dups.add(A.id);
+          dups.add(B.id);
+        }
+      }
+    }
+    return dups;
+  }, [customers]);
+
   return (
     <div className="w-full lg:w-auto flex-none lg:flex-1 bg-surface-soft border border-surface-edge shadow-xl rounded-2xl overflow-hidden flex flex-col min-w-0 lg:h-[calc(100vh-200px)] lg:min-h-[500px]">
       <div className="p-4 border-b border-surface-edge flex flex-col sm:flex-row sm:justify-between sm:items-center bg-surface-soft/50 flex-none gap-3">
@@ -143,53 +231,58 @@ export default function InsuranceTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-edge/20">
-              {filteredCustomers.map((customer, index) => (
-                <tr key={customer.id} className="hover:bg-brand/5 transition-colors group">
-                  <td className="hidden sm:table-cell px-3 py-3 text-center text-brand font-mono text-[15px] font-bold min-w-[50px]">
-                    {paxBalance - index}
-                  </td>
-                  <td className="px-2 py-3 min-w-[190px] max-w-[300px]">
-                    <div className="flex flex-col justify-center min-w-0">
-                      {editingId === customer.id ? (
-                        <div className="flex gap-1 font-bold text-white text-[15px] capitalize">
-                          <EditableInput
-                            defaultValue={customer.first_name || ''}
-                            onSave={(val) => {
-                              updateCustomerField(customer.id, 'first_name', val);
-                              setEditingId(null);
-                            }}
-                            onCancel={() => setEditingId(null)}
-                            className="bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded px-1 outline-none transition-colors max-w-[100px]"
-                            placeholder="Nombre"
-                            autoFocus
-                          />
-                          <EditableInput
-                            defaultValue={customer.last_name || ''}
-                            onSave={(val) => {
-                              updateCustomerField(customer.id, 'last_name', val);
-                              setEditingId(null);
-                            }}
-                            onCancel={() => setEditingId(null)}
-                            className="bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded px-1 outline-none transition-colors max-w-[150px]"
-                            placeholder="Apellidos"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="font-bold text-white text-[15px] capitalize truncate max-w-[150px] sm:max-w-[200px] lg:max-w-[300px]">
-                            {(customer.first_name || '') + ' ' + (customer.last_name || '')}
-                          </p>
-                          <button
-                            onClick={() => {
-                              setEditingId(customer.id);
-                            }}
-                            className="p-1 text-text-muted hover:text-brand hover:bg-brand/10 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Corregir nombre"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
+              {filteredCustomers.map((customer, index) => {
+                const isDuplicate = duplicateIds.has(customer.id);
+                return (
+                  <tr key={customer.id} className="hover:bg-brand/5 transition-colors group">
+                    <td className="hidden sm:table-cell px-3 py-3 text-center text-brand font-mono text-[15px] font-bold min-w-[50px]">
+                      {paxBalance - index}
+                    </td>
+                    <td className="px-2 py-3 min-w-[190px] max-w-[300px]">
+                      <div className="flex flex-col justify-center min-w-0">
+                        {editingId === customer.id ? (
+                          <div className="flex gap-1 font-bold text-white text-[15px] capitalize">
+                            <EditableInput
+                              defaultValue={customer.first_name || ''}
+                              onSave={(val) => {
+                                updateCustomerField(customer.id, 'first_name', val);
+                                setEditingId(null);
+                              }}
+                              onCancel={() => setEditingId(null)}
+                              className="bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded px-1 outline-none transition-colors max-w-[100px]"
+                              placeholder="Nombre"
+                              autoFocus
+                            />
+                            <EditableInput
+                              defaultValue={customer.last_name || ''}
+                              onSave={(val) => {
+                                updateCustomerField(customer.id, 'last_name', val);
+                                setEditingId(null);
+                              }}
+                              onCancel={() => setEditingId(null)}
+                              className="bg-transparent border border-transparent hover:border-surface-edge/40 focus:border-brand rounded px-1 outline-none transition-colors max-w-[150px]"
+                              placeholder="Apellidos"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isDuplicate && (
+                              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" title="Posible registro duplicado (mismo pasaporte o nombre muy similar)" />
+                            )}
+                            <p className={`font-bold text-[15px] capitalize truncate max-w-[150px] sm:max-w-[200px] lg:max-w-[300px] ${isDuplicate ? 'text-rose-400 font-extrabold' : 'text-white'}`}>
+                              {(customer.first_name || '') + ' ' + (customer.last_name || '')}
+                            </p>
+                            <button
+                              onClick={() => {
+                                setEditingId(customer.id);
+                              }}
+                              className="p-1 text-text-muted hover:text-brand hover:bg-brand/10 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Corregir nombre"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
 
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         {customer.booking_date && (
@@ -241,7 +334,8 @@ export default function InsuranceTable({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
