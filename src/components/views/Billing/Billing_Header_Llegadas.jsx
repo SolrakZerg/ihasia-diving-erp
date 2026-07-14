@@ -27,7 +27,7 @@ export default function Billing_Header_Llegadas({
   };
 
   return (
-    <div className="flex-none w-full max-w-[380px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
+    <div className="max-h-[279px] flex-none w-full max-w-[380px] flex flex-col border border-surface-edge rounded-xl bg-surface-soft shadow-md overflow-hidden shrink-0">
       {/* Cabecera del widget */}
       <div className="bg-surface border-b border-surface-edge px-3 flex items-center justify-between h-[25px] min-h-[25px] gap-2">
         <div className="flex items-center gap-2">
