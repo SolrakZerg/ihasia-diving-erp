@@ -1,6 +1,28 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 
+// Función para encontrar el ancestro más cercano que recorta el contenido (overflow: auto/scroll/hidden)
+const getClosestClippingParent = (node) => {
+  if (!node) return null;
+  let parent = node.parentElement;
+  while (parent) {
+    if (parent === document.body || parent === document.documentElement) {
+      break;
+    }
+    const style = window.getComputedStyle(parent);
+    const overflowY = style.overflowY || '';
+    const overflow = style.overflow || '';
+    if (
+      overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' ||
+      overflow === 'auto' || overflow === 'scroll' || overflow === 'hidden'
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+};
+
 export default function Billing_GridRow_SmartActivitySelect({
   value,
   activities = [],
@@ -19,8 +41,15 @@ export default function Billing_GridRow_SmartActivitySelect({
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setDirection(spaceBelow < 280 ? 'up' : 'down');
+      const clippingParent = getClosestClippingParent(containerRef.current);
+      
+      let spaceBelow = window.innerHeight - rect.bottom;
+      if (clippingParent) {
+        const parentRect = clippingParent.getBoundingClientRect();
+        const parentSpaceBelow = parentRect.bottom - rect.bottom;
+        spaceBelow = Math.min(spaceBelow, parentSpaceBelow);
+      }
+      setDirection(spaceBelow < 320 ? 'up' : 'down');
     }
   }, [isOpen]);
 

@@ -1,6 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import { AlertTriangle, ChevronDown } from 'lucide-react';
 
+// Función para encontrar el ancestro más cercano que recorta el contenido (overflow: auto/scroll/hidden)
+const getClosestClippingParent = (node) => {
+  if (!node) return null;
+  let parent = node.parentElement;
+  while (parent) {
+    if (parent === document.body || parent === document.documentElement) {
+      break;
+    }
+    const style = window.getComputedStyle(parent);
+    const overflowY = style.overflowY || '';
+    const overflow = style.overflow || '';
+    if (
+      overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' ||
+      overflow === 'auto' || overflow === 'scroll' || overflow === 'hidden'
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+};
+
 export default function Billing_GridRow_InstructorSelect({
   item,
   staff,
@@ -25,8 +47,15 @@ export default function Billing_GridRow_InstructorSelect({
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setDirection(spaceBelow < 200 ? 'up' : 'down');
+      const clippingParent = getClosestClippingParent(containerRef.current);
+      
+      let spaceBelow = window.innerHeight - rect.bottom;
+      if (clippingParent) {
+        const parentRect = clippingParent.getBoundingClientRect();
+        const parentSpaceBelow = parentRect.bottom - rect.bottom;
+        spaceBelow = Math.min(spaceBelow, parentSpaceBelow);
+      }
+      setDirection(spaceBelow < 320 ? 'up' : 'down');
     }
   }, [isOpen]);
 
@@ -91,33 +120,35 @@ export default function Billing_GridRow_InstructorSelect({
             className="relative z-10 bg-white border border-brand/40 text-gray-900 font-black text-sm w-full h-6 text-center outline-none rounded-sm px-1 shadow-sm"
           />
 
-          {/* Dropdown */}
+           {/* Dropdown */}
           <div className={`absolute left-0 z-[200] min-w-[90px] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden ${
             direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}>
-            {/* Clear option */}
-            <button
-              onMouseDown={(e) => { e.preventDefault(); handleSelect(null); }}
-              className="w-full px-3 py-1.5 text-left text-[14px] text-gray-400 hover:bg-red-50 hover:text-red-600 font-medium border-b border-gray-100 whitespace-nowrap"
-            >
-              —
-            </button>
+            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+              {/* Clear option */}
+              <button
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(null); }}
+                className="w-full px-3 py-1.5 text-left text-[14px] text-gray-400 hover:bg-red-50 hover:text-red-600 font-medium border-b border-gray-100 whitespace-nowrap"
+              >
+                —
+              </button>
 
-            {filteredStaff.length === 0 ? (
-              <div className="px-3 py-2 text-[14px] text-gray-400 italic">Sin resultados</div>
-            ) : (
-              filteredStaff.map(s => (
-                <button
-                  key={s.id}
-                  onMouseDown={(e) => { e.preventDefault(); handleSelect(s.id); }}
-                  className={`w-full px-3 py-1.5 text-left text-[14px] font-black hover:bg-brand/10 transition-colors whitespace-nowrap ${
-                    s.id === item.instructor_id ? 'bg-brand/5 text-brand' : 'text-gray-800'
-                  }`}
-                >
-                  {s.initials}
-                </button>
-              ))
-            )}
+              {filteredStaff.length === 0 ? (
+                <div className="px-3 py-2 text-[14px] text-gray-400 italic">Sin resultados</div>
+              ) : (
+                filteredStaff.map(s => (
+                  <button
+                    key={s.id}
+                    onMouseDown={(e) => { e.preventDefault(); handleSelect(s.id); }}
+                    className={`w-full px-3 py-1.5 text-left text-[14px] font-black hover:bg-brand/10 transition-colors whitespace-nowrap ${
+                      s.id === item.instructor_id ? 'bg-brand/5 text-brand' : 'text-gray-800'
+                    }`}
+                  >
+                    {s.initials}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
         </>
       ) : (

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import * as insuranceService from './insuranceService';
 import { generateInsurancePDF } from './generateInsurancePDF';
+import { addCustomersToBilling } from '../../common/billingHelpers';
 
 export const useInsuranceData = (initialSelectedIds) => {
   const [loading, setLoading] = useState(true);
@@ -19,6 +20,7 @@ export const useInsuranceData = (initialSelectedIds) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ emails: '', addPax: 0, durationDays: 30, contractTitle: '', paxBalance: 0 });
   const [historyBatches, setHistoryBatches] = useState([]);
+  const [confirmSend, setConfirmSend] = useState({ show: false, sendToBilling: false });
 
   // Async Search for adding manually
   const [addSearchQuery, setAddSearchQuery] = useState('');
@@ -171,7 +173,7 @@ export const useInsuranceData = (initialSelectedIds) => {
     syncToLocalStorage(customers.filter(c => c.id !== id));
   };
 
-  const handleGenerateAndSend = async () => {
+  const handleGenerateAndSend = async (sendToBilling = false) => {
     setProcessing(true);
     try {
       if (!targetEmails || customers.length === 0) {
@@ -217,11 +219,21 @@ export const useInsuranceData = (initialSelectedIds) => {
         setHistoryBatches(prev => [insertedBatch, ...prev].slice(0, 12));
       }
 
+      // Enviar a Facturación si se solicitó
+      if (sendToBilling) {
+        showToast('💵 Enviando clientes a facturación...', 'success');
+        await addCustomersToBilling(customers);
+      }
+
       // 7. Limpiar UI
       syncToLocalStorage([]);
       setPaxBalance(newBalance);
       
-      showToast('✅ ¡Seguros generados, guardados y descontados correctamente!', 'success');
+      if (sendToBilling) {
+        showToast('✅ ¡Seguros enviados y clientes agregados a facturación!', 'success');
+      } else {
+        showToast('✅ ¡Seguros generados, guardados y descontados correctamente!', 'success');
+      }
 
     } catch (error) {
       showToast('Error: ' + error.message, 'error');
@@ -276,6 +288,8 @@ export const useInsuranceData = (initialSelectedIds) => {
     handleRemoveCustomer,
     handleGenerateAndSend,
     handleAddDirectly,
-    filteredCustomers
+    filteredCustomers,
+    confirmSend,
+    setConfirmSend
   };
 };

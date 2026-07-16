@@ -134,7 +134,7 @@ export default function Billing_Header_Filtros({
             }`}
           >
             <Coins className={`w-3 h-3 ${showOnlyCommissionable ? 'text-amber-400' : ''}`} />
-            {showOnlyCommissionable ? 'COMISIONABLE' : 'TODOS'}
+            {showOnlyCommissionable ? 'TODOS (COM)' : 'COMISIONABLE'}
           </button>
 
           {/* Fila 2 - Columna 1: Selector de día (datepicker nativo) */}
@@ -193,7 +193,7 @@ export default function Billing_Header_Filtros({
             }`}
           >
             <Search className={`w-3 h-3 ${showOnlyUnpaid ? 'text-amber-500' : ''}`} />
-            {showOnlyUnpaid ? 'PENDIENTES' : 'TODOS'}
+            {showOnlyUnpaid ? 'TODOS (PEN)' : 'PENDIENTES'}
           </button>
         </div>
 

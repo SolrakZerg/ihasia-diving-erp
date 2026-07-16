@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Calendar, ShieldCheck, Download, UserPlus, Loader2, Check, X, Edit2, Trash2, AlertCircle, Send } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Download, UserPlus, Loader2, Check, X, Edit2, Trash2, AlertCircle, Send, CreditCard } from 'lucide-react';
 import EditableInput from '../../common/EditableInput';
 
 export default function InsuranceTable({
@@ -22,8 +22,11 @@ export default function InsuranceTable({
   setEditingId,
   updateCustomerField,
   handleRemoveCustomer,
-  handleGenerateAndSend
+  handleGenerateAndSend,
+  confirmSend,
+  setConfirmSend
 }) {
+  const [sendToBilling, setSendToBilling] = React.useState(false);
   const duplicateIds = React.useMemo(() => {
     const dups = new Set();
     
@@ -348,25 +351,47 @@ export default function InsuranceTable({
         )}
       </div>
 
-      <div className="p-4 border-t border-surface-edge bg-surface/50 flex justify-between items-center flex-none">
+      <div className="p-4 border-t border-surface-edge bg-surface/50 flex justify-between items-center flex-none gap-3 flex-wrap sm:flex-nowrap">
         <button
           onClick={loadTodayCustomers}
           disabled={processing || loading}
           title="Añadir a la lista todos los registrados para hoy"
-          className="flex items-center gap-1 bg-surface border border-emerald-500/50 text-emerald-400 px-2 py-2 rounded-xl text-sm font-bold hover:bg-emerald-500/10 transition-colors"
+          className="flex items-center gap-1 bg-surface border border-emerald-500/50 text-emerald-400 px-3 py-2 rounded-xl text-sm font-bold hover:bg-emerald-500/10 transition-colors"
         >
           {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
           Reservas Hoy
         </button>
 
-        <button
-          disabled={customers.length === 0 || processing}
-          onClick={handleGenerateAndSend}
-          className="bg-brand text-white font-bold py-2.5 px-2.5 rounded-xl hover:bg-brand-light transition-all flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
-        >
-          {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          Enviar Seguros
-        </button>
+        <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+          <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest cursor-pointer select-none hover:text-white transition-colors">
+            <input
+              type="checkbox"
+              checked={sendToBilling}
+              onChange={(e) => setSendToBilling(e.target.checked)}
+              className="w-4 h-4 rounded border-surface-edge bg-surface-soft text-brand focus:ring-brand accent-brand cursor-pointer"
+            />
+            <span>Mandar también a Facturación</span>
+          </label>
+
+          <button
+            disabled={customers.length === 0 || processing}
+            onClick={() => setConfirmSend({ show: true, sendToBilling })}
+            className={`font-black uppercase tracking-wider py-2.5 px-4 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-xs ${
+              sendToBilling
+                ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/20'
+                : 'bg-brand hover:bg-brand-light text-white shadow-brand/20'
+            }`}
+          >
+            {processing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : sendToBilling ? (
+              <CreditCard className="w-4 h-4" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            {sendToBilling ? 'Enviar y a Facturación' : 'Enviar Seguros'}
+          </button>
+        </div>
       </div>
     </div>
   );

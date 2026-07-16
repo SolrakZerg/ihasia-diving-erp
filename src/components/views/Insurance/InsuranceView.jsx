@@ -5,6 +5,7 @@ import InsuranceTable from './InsuranceTable';
 import InsuranceSidebar from './InsuranceSidebar';
 import { Settings, Mail, ShieldCheck, Calendar, Loader2, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
+import ConfirmModal from '../../common/ConfirmModal';
 
 export default function InsuranceView({ initialSelectedIds, onNavigate }) {
   const {
@@ -35,7 +36,9 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
     handleRemoveCustomer,
     handleGenerateAndSend,
     handleAddDirectly,
-    filteredCustomers
+    filteredCustomers,
+    confirmSend,
+    setConfirmSend
   } = useInsuranceData(initialSelectedIds);
 
   const handleViewPDF = async (pdf_url) => {
@@ -79,6 +82,8 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
           updateCustomerField={updateCustomerField}
           handleRemoveCustomer={handleRemoveCustomer}
           handleGenerateAndSend={handleGenerateAndSend}
+          confirmSend={confirmSend}
+          setConfirmSend={setConfirmSend}
         />
 
         <InsuranceSidebar 
@@ -189,6 +194,22 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        show={confirmSend.show}
+        title={confirmSend.sendToBilling ? "Enviar Seguros y a Facturación" : "Enviar Seguros"}
+        message={
+          confirmSend.sendToBilling
+            ? `¿Estás seguro de que quieres tramitar el alta de seguros de los ${customers.length} clientes Y además agregarlos a facturación?`
+            : `¿Estás seguro de que quieres tramitar el alta de seguros de los ${customers.length} clientes?`
+        }
+        type="info"
+        onConfirm={() => {
+          handleGenerateAndSend(confirmSend.sendToBilling);
+          setConfirmSend({ show: false, sendToBilling: false });
+        }}
+        onCancel={() => setConfirmSend({ show: false, sendToBilling: false })}
+      />
 
       {/* Modern Toast Notification */}
       {toast && (

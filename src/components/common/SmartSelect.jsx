@@ -1,6 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, Search } from 'lucide-react';
 
+// Función para encontrar el ancestro más cercano que recorta el contenido (overflow: auto/scroll/hidden)
+const getClosestClippingParent = (node) => {
+  if (!node) return null;
+  let parent = node.parentElement;
+  while (parent) {
+    if (parent === document.body || parent === document.documentElement) {
+      break;
+    }
+    const style = window.getComputedStyle(parent);
+    const overflowY = style.overflowY || '';
+    const overflow = style.overflow || '';
+    if (
+      overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' ||
+      overflow === 'auto' || overflow === 'scroll' || overflow === 'hidden'
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+};
+
 /**
  * SmartSelect — Unificado y altamente personalizable.
  * Soporta buscador en tiempo real, dirección de despliegue inteligente (up/down),
@@ -53,7 +75,15 @@ const SmartSelect = ({
     if (isOpen && containerRef.current) {
       if (placement === 'auto') {
         const rect = containerRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
+        const clippingParent = getClosestClippingParent(containerRef.current);
+        
+        let spaceBelow = window.innerHeight - rect.bottom;
+        if (clippingParent) {
+          const parentRect = clippingParent.getBoundingClientRect();
+          const parentSpaceBelow = parentRect.bottom - rect.bottom;
+          spaceBelow = Math.min(spaceBelow, parentSpaceBelow);
+        }
+
         setDir(spaceBelow < 280 ? 'up' : 'down');
       } else {
         setDir(placement);
