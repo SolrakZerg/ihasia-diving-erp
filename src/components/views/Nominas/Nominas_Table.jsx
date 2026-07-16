@@ -49,30 +49,30 @@ export default function Nominas_Table({
                 <th style={{ textAlign: 'center' }} className="p-2 text-[16px] font-black text-white uppercase tracking-widest bg-table-header/98 backdrop-blur-xl w-24 lg:w-24 min-w-[96px]">Total</th>
               </tr>
               <tr className="border-b border-surface-edge/50 bg-surface-edge/5 h-8">
-                <td className="sticky left-0 z-40 p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">TOT</td>
+                <td className="sticky left-0 z-40 p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)] w-12 min-w-[48px]">TOT</td>
                 {fixedColumns.map(col => (
-                  <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[13px] font-black text-brand italic">
+                  <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[13px] font-black text-brand italic w-[35px] min-w-[35px]">
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.items[col.key] || 0), 0)}
                   </td>
                 ))}
                 {dynamicActivities.map(act => (
-                  <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[12px] font-black text-amber-500 bg-amber-500/5">
+                  <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[12px] font-black text-amber-500 bg-amber-500/5 w-[35px] min-w-[35px]">
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.items[`dyn_${act.id}`] || 0), 0)}
                   </td>
                 ))}
                 <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 font-black text-[13px] bg-cyan-500/5 w-[35px] min-w-[35px]">
                   {Object.values(assists).reduce((acc, val) => acc + val, 0)}
                 </td>
-                <td className="p-0 text-center border-l border-surface-edge/10 text-brand font-black text-[11px] bg-brand/5">
+                <td className="p-0 text-center border-l border-surface-edge/10 text-brand font-black text-[11px] bg-brand/5 w-16 min-w-[64px]">
                   {totalAdj.toLocaleString()} ฿
                 </td>
-                <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5">
+                <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5 w-12 min-w-[48px]">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-[10px] font-black text-emerald-400">{attendanceData.summary.fullOff}F</span>
                     <span className="text-[10px] font-black text-amber-400">{attendanceData.summary.halfOff}H</span>
                   </div>
                 </td>
-                <td style={{ textAlign: 'center' }} className="p-1 border-l border-surface-edge/20 text-emerald-400 font-black text-sm bg-table-header/98 backdrop-blur-xl">
+                <td style={{ textAlign: 'center' }} className="p-1 border-l border-surface-edge/20 text-emerald-400 font-black text-sm bg-table-header/98 backdrop-blur-xl w-24 lg:w-24 min-w-[96px]">
                   {(totalComm + totalAssists + totalAdj).toLocaleString()}
                 </td>
               </tr>
@@ -102,7 +102,7 @@ export default function Nominas_Table({
                     )}
                   </td>
                   <td 
-                    className={`p-0 border-x border-brand/10 bg-slate-500/30 relative transition-all group/adj shadow-[inset_0_0_10px_rgba(59,130,246,0.05)] ${
+                    className={`p-0 border-x border-brand/10 bg-slate-500/30 relative transition-all group/adj shadow-[inset_0_0_10px_rgba(59,130,246,0.05)] w-16 min-w-[64px] ${
                       readOnly ? '' : 'cursor-pointer hover:bg-brand/20'
                     }`}
                     onClick={() => !readOnly && setAdjModal({ 
@@ -130,36 +130,36 @@ export default function Nominas_Table({
                       )}
                     </div>
                   </td>
-                  <td className={`p-0 border-l border-surface-edge/10 text-center transition-all ${
+                  <td className={`p-0 border-l border-surface-edge/10 text-center transition-all w-12 min-w-[48px] ${
                     readOnly ? '' : 'cursor-pointer'
                   } ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => !readOnly && handleAttendanceToggle(day)}>
                     <span className={`text-[11px] font-black ${attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-blue-400/90'}`}>{attendanceData.grid[day] === 'OFF' ? 'OFF' : attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}</span>
                   </td>
-                  <td style={{ textAlign: 'center' }} className="p-0 border-l border-surface-edge/10 bg-surface-edge/5"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000)).toLocaleString()}</span></td>
+                  <td style={{ textAlign: 'center' }} className="p-0 border-l border-surface-edge/10 bg-surface-edge/5 w-24 lg:w-24 min-w-[96px]"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000)).toLocaleString()}</span></td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="sticky bottom-0 z-30 bg-table-header/98 backdrop-blur-xl border-t-2 border-surface-edge shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
               <tr className="h-9 font-black">
-                <td className="sticky left-0 z-40 p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">TOTAL</td>
+                <td className="sticky left-0 z-40 p-0 text-center text-text-muted font-black text-[10px] uppercase tracking-widest bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)] w-12 min-w-[48px]">TOTAL</td>
                 {fixedColumns.map(col => (
-                  <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[11px] text-gray-400">
+                  <td key={col.key} className="p-0 text-center border-l border-surface-edge/10 text-[9px] text-gray-400 w-[35px] min-w-[35px] overflow-hidden whitespace-nowrap">
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[col.key] || 0), 0).toLocaleString()}
                   </td>
                 ))}
                 {dynamicActivities.map(act => (
-                  <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[11px] text-amber-500/60 bg-amber-500/5">
+                  <td key={act.id} className="p-0 text-center border-l border-surface-edge/10 text-[9px] text-amber-500/60 bg-amber-500/5 w-[35px] min-w-[35px] overflow-hidden whitespace-nowrap">
                     {Object.values(matrixData).reduce((acc, d) => acc + (d.colTotals[`dyn_${act.id}`] || 0), 0).toLocaleString()}
                   </td>
                 ))}
-                <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-[11px] bg-cyan-500/5 w-[35px] min-w-[35px]">
+                <td className="p-0 text-center border-l border-surface-edge/10 text-cyan-400 text-[11px] bg-cyan-500/5 w-[35px] min-w-[35px] overflow-hidden whitespace-nowrap">
                   {totalAssists.toLocaleString()}
                 </td>
-                <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-[11px] bg-brand/5">
+                <td className="p-0 text-center border-l border-surface-edge/10 text-brand text-[11px] bg-brand/5 w-16 min-w-[64px] overflow-hidden whitespace-nowrap">
                   {totalAdj.toLocaleString()}
                 </td>
-                <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5"></td>
-                <td style={{ textAlign: 'center' }} className="p-1 border-l border-surface-edge/20 text-emerald-400 text-lg bg-table-header/98 backdrop-blur-xl">
+                <td className="p-0 text-center border-l border-surface-edge/10 bg-indigo-500/5 w-12 min-w-[48px]"></td>
+                <td style={{ textAlign: 'center' }} className="p-1 border-l border-surface-edge/20 text-emerald-400 text-lg bg-table-header/98 backdrop-blur-xl w-24 lg:w-24 min-w-[96px]">
                   {(totalComm + totalAssists + totalAdj).toLocaleString()}
                 </td>
               </tr>
