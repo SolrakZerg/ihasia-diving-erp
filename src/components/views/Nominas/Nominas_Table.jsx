@@ -16,7 +16,7 @@ export default function Nominas_Table({
   readOnly = false,
   headerTitle = "Día"
 }) {
-  const tableWidth = 660 + (dynamicActivities.length * 35);
+  const tableWidth = 690 + (dynamicActivities.length * 35);
 
   return (
     <div className="flex-1 px-0 py-0 lg:py-2 md:min-h-0 min-h-fit flex flex-col">
@@ -24,7 +24,7 @@ export default function Nominas_Table({
         style={{ maxWidth: `${tableWidth}px` }}
         className="h-auto md:h-fit md:max-h-full w-full bg-surface-soft border border-surface-edge rounded-3xl shadow-2xl overflow-hidden flex flex-col mx-auto"
       >
-        <div className="flex-1 overflow-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto md:overflow-x-hidden overflow-x-auto custom-scrollbar">
           <table className="min-w-full text-left border-collapse table-fixed">
             <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
               <tr className="border-b border-surface-edge">

@@ -42,7 +42,7 @@ export default function Nominas_View() {
             {staff.filter(s => activeStaffIds.has(s.id)).map(member => {
               const data = getPayrollDataForStaff(member.id);
               if (!data) return null;
-              const tableWidth = 660 + (data.dynamicActivities.length * 35);
+              const tableWidth = 690 + (data.dynamicActivities.length * 35);
               return (
                 <div 
                   key={member.id} 
