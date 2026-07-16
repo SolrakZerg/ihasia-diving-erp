@@ -12,7 +12,9 @@ export default function Nominas_Table({
   handleAttendanceToggle,
   totalComm,
   totalAssists,
-  totalAdj
+  totalAdj,
+  readOnly = false,
+  headerTitle = "Día"
 }) {
   return (
     <div className="flex-1 px-0 py-0 lg:py-2 md:min-h-0 min-h-fit flex flex-col">
@@ -21,7 +23,9 @@ export default function Nominas_Table({
           <table className="min-w-full text-left border-collapse table-fixed">
             <thead className="sticky top-0 z-30 bg-table-header/98 backdrop-blur-xl">
               <tr className="border-b border-surface-edge">
-                <th className="sticky left-0 z-40 p-2 text-[10px] font-black text-text-muted uppercase tracking-widest text-center w-12 bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">Día</th>
+                <th className="sticky left-0 z-40 p-2 text-[12px] font-black text-brand uppercase tracking-widest text-center w-12 bg-table-header/98 backdrop-blur-xl border-r border-surface-edge/50 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">
+                  {headerTitle}
+                </th>
                 {fixedColumns.map(col => (
                   <th key={col.key} className="p-0 text-[16px] font-black text-gray-400 uppercase tracking-tighter text-center border-l border-surface-edge/30 transition-colors hover:text-white w-[35px] min-w-[35px] h-[70px]">
                     <div className="w-full h-full flex flex-col items-center justify-center leading-[0.9] py-1">{col.label.split('').map((char, i) => <span key={i}>{char}</span>)}</div>
@@ -80,10 +84,23 @@ export default function Nominas_Table({
                       const count = matrixData[day].items[`dyn_${act.id}`] || 0;
                       return (<td key={act.id} className="p-0 border-l border-surface-edge/10 text-center bg-amber-500/5 w-[35px] min-w-[35px]"><span className={`text-[17px] font-black ${count > 0 ? 'text-amber-400' : 'text-gray-800'}`}>{count || ''}</span></td>);
                    })}
-                  <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5 w-[35px] min-w-[35px]"><input type="number" value={assists[day] || ''} onChange={(e) => handleAssChange(day, e.target.value)} className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0" /></td>
+                  <td className="p-0 border-l border-surface-edge/10 bg-cyan-500/5 w-[35px] min-w-[35px] text-center">
+                    {readOnly ? (
+                      <span className="text-cyan-400 font-black text-base">{assists[day] || ''}</span>
+                    ) : (
+                      <input 
+                        type="number" 
+                        value={assists[day] || ''} 
+                        onChange={(e) => handleAssChange(day, e.target.value)} 
+                        className="w-full bg-transparent text-center text-cyan-400 font-black text-base outline-none focus:bg-cyan-500/10 rounded py-0" 
+                      />
+                    )}
+                  </td>
                   <td 
-                    className="p-0 border-x border-brand/10 bg-slate-500/30 relative cursor-pointer hover:bg-brand/20 transition-all group/adj shadow-[inset_0_0_10px_rgba(59,130,246,0.05)]"
-                    onClick={() => setAdjModal({ 
+                    className={`p-0 border-x border-brand/10 bg-slate-500/30 relative transition-all group/adj shadow-[inset_0_0_10px_rgba(59,130,246,0.05)] ${
+                      readOnly ? '' : 'cursor-pointer hover:bg-brand/20'
+                    }`}
+                    onClick={() => !readOnly && setAdjModal({ 
                       open: true, 
                       day, 
                       amount: manualAdj[day]?.amount || 0, 
@@ -92,9 +109,9 @@ export default function Nominas_Table({
                   >
                     {/* CUSTOM TOOLTIP */}
                     {manualAdj[day]?.concept && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-[11px] font-medium rounded-lg shadow-2xl opacity-0 group-hover/adj:opacity-100 pointer-events-none transition-all duration-200 z-50 whitespace-nowrap border border-white/10 flex flex-col items-center">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#0c0d16] text-white text-[11px] font-medium rounded-lg shadow-2xl opacity-0 group-hover/adj:opacity-100 pointer-events-none transition-all duration-200 z-50 whitespace-nowrap border border-white/10 flex flex-col items-center">
                         {manualAdj[day].concept}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#0c0d16]" />
                       </div>
                     )}
 
@@ -104,11 +121,13 @@ export default function Nominas_Table({
                           {manualAdj[day].amount}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-brand/20 group-hover/adj:text-brand/60 transition-colors font-black">+</span>
+                        !readOnly && <span className="text-[10px] text-brand/20 group-hover/adj:text-brand/60 transition-colors font-black">+</span>
                       )}
                     </div>
                   </td>
-                  <td className={`p-0 border-l border-surface-edge/10 text-center cursor-pointer transition-all ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => handleAttendanceToggle(day)}>
+                  <td className={`p-0 border-l border-surface-edge/10 text-center transition-all ${
+                    readOnly ? '' : 'cursor-pointer'
+                  } ${attendanceData.grid[day] === 'OFF' ? 'bg-emerald-500/20' : attendanceData.grid[day] === 'HALF' ? 'bg-amber-500/20' : ''}`} onClick={() => !readOnly && handleAttendanceToggle(day)}>
                     <span className={`text-[11px] font-black ${attendanceData.grid[day] === 'OFF' ? 'text-emerald-400' : attendanceData.grid[day] === 'HALF' ? 'text-amber-400' : 'text-blue-400/90'}`}>{attendanceData.grid[day] === 'OFF' ? 'OFF' : attendanceData.grid[day] === 'HALF' ? 'HALF' : 'WORK'}</span>
                   </td>
                   <td style={{ textAlign: 'center' }} className="p-0 border-l border-surface-edge/10 bg-surface-edge/5"><span className={`text-sm font-black ${matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000) > 0 ? 'text-emerald-400' : 'text-gray-700'}`}>{(matrixData[day].total + (manualAdj[day]?.amount || 0) + ((assists[day] || 0) * 2000)).toLocaleString()}</span></td>

@@ -29,6 +29,9 @@ export function useNominasData() {
   const [assists, setAssists] = useState({}); // { day: count }
   const [attendanceOverrides, setAttendanceOverrides] = useState({}); // { day: 'OFF' | 'HALF' | 'WORK' }
   const [advances, setAdvances] = useState([]); // [ { id, amount, date, concept } ]
+  const [rawAdvances, setRawAdvances] = useState([]);
+  const [rawActivity, setRawActivity] = useState([]);
+  const [rawAdjustments, setRawAdjustments] = useState([]);
 
   const fixedKeys = ['FD', 'SR1', 'SR2', 'DSD1', 'DSD2', 'SD', 'OW', 'AOW', 'S&R', 'CAN'];
 
@@ -68,7 +71,7 @@ export function useNominasData() {
       const ids = new Set(data.map(i => i.instructor_id).filter(Boolean));
       setActiveStaffIds(ids);
       
-      if (ids.size > 0 && (!selectedStaffId || !ids.has(selectedStaffId))) {
+      if (ids.size > 0 && (!selectedStaffId || (selectedStaffId !== 'TODOS' && !ids.has(selectedStaffId)))) {
         setSelectedStaffId(Array.from(ids)[0]);
       }
     } else {
@@ -97,42 +100,55 @@ export function useNominasData() {
 
     if (fetchError) console.error("Error fetching items:", fetchError);
 
-    const selectedMember = staff.find(s => s.id === selectedStaffId);
+    setInvoiceItems(items || []);
 
-    const filteredItems = (items || []).filter(it => {
-      const itInstId = typeof it.instructor_id === 'object' ? it.instructor_id?.id : it.instructor_id;
-      const itInitials = it.instructor?.initials;
-      
-      const matchId = String(itInstId) === String(selectedStaffId);
-      const matchInitials = itInitials && selectedMember && itInitials === selectedMember.initials;
-      
-      return matchId || matchInitials;
-    });
-    setInvoiceItems(filteredItems);
+    const isAllMode = selectedStaffId === 'TODOS';
+
+    let settlementPromise, advancesPromise, activityPromise, adjsPromise;
+
+    if (isAllMode) {
+      settlementPromise = supabase.from('staff_settlements').select('*').eq('year', year).eq('month', month);
+      advancesPromise = supabase.from('staff_advances').select('*').eq('year', year).eq('month', month);
+      activityPromise = supabase.from('staff_daily_activity').select('*').eq('year', year).eq('month', month);
+      adjsPromise = supabase.from('staff_adjustments').select('*').eq('year', year).eq('month', month);
+    } else {
+      settlementPromise = supabase.from('staff_settlements').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId).maybeSingle();
+      advancesPromise = supabase.from('staff_advances').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId);
+      activityPromise = supabase.from('staff_daily_activity').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId);
+      adjsPromise = supabase.from('staff_adjustments').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId);
+    }
 
     const [ { data: settlement }, { data: sAdvances }, { data: sActivity }, { data: sAdjs } ] = await Promise.all([
-      supabase.from('staff_settlements').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId).maybeSingle(),
-      supabase.from('staff_advances').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId),
-      supabase.from('staff_daily_activity').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId),
-      supabase.from('staff_adjustments').select('*').eq('year', year).eq('month', month).eq('staff_id', selectedStaffId)
+      settlementPromise, advancesPromise, activityPromise, adjsPromise
     ]);
 
-    setAdvances(sAdvances || []);
-    
-    const assistMap = {};
-    const attMap = {};
-    sActivity?.forEach(row => {
-      if (row.assists > 0) assistMap[row.day] = row.assists;
-      if (row.attendance_status !== 'AUTO') attMap[row.day] = row.attendance_status;
-    });
-    setAssists(assistMap);
-    setAttendanceOverrides(attMap);
+    setRawAdvances(sAdvances || []);
+    setRawActivity(sActivity || []);
+    setRawAdjustments(sAdjs || []);
 
-    const adjMap = {};
-    sAdjs?.forEach(row => { 
-      if (row.amount !== 0 || row.concept) adjMap[row.day] = { amount: row.amount, concept: row.concept || '' }; 
-    });
-    setManualAdj(adjMap);
+    if (isAllMode) {
+      setAdvances([]);
+      setAssists({});
+      setAttendanceOverrides({});
+      setManualAdj({});
+    } else {
+      setAdvances(sAdvances || []);
+      
+      const assistMap = {};
+      const attMap = {};
+      sActivity?.forEach(row => {
+        if (row.assists > 0) assistMap[row.day] = row.assists;
+        if (row.attendance_status !== 'AUTO') attMap[row.day] = row.attendance_status;
+      });
+      setAssists(assistMap);
+      setAttendanceOverrides(attMap);
+
+      const adjMap = {};
+      sAdjs?.forEach(row => { 
+        if (row.amount !== 0 || row.concept) adjMap[row.day] = { amount: row.amount, concept: row.concept || '' }; 
+      });
+      setManualAdj(adjMap);
+    }
     
     setLoading(false);
   };
@@ -259,7 +275,7 @@ export function useNominasData() {
     }
   };
 
-  // Matrix Processing
+  // Matrix Processing (Fixed Columns)
   const fixedColumns = useMemo(() => {
     if (!allActivities.length) return fixedKeys.map(key => ({ key, label: key, activityIds: [] }));
 
@@ -282,91 +298,158 @@ export function useNominasData() {
     });
   }, [allActivities]);
 
-  const dynamicActivities = useMemo(() => {
-    const fixedIds = new Set(fixedColumns.flatMap(c => c.activityIds).map(String));
-    const seenIds = new Set();
-    invoiceItems.forEach(item => {
-      const actId = String(item.activity_id || '');
-      if (actId && !fixedIds.has(actId)) seenIds.add(actId);
-    });
-    return Array.from(seenIds).map(id => allActivities.find(a => String(a.id) === id)).filter(Boolean);
-  }, [invoiceItems, fixedColumns, allActivities]);
+  // Common memoized selector to calculate payroll data for ANY instructor
+  const getPayrollDataForStaff = useMemo(() => {
+    return (staffId) => {
+      const member = staff.find(s => s.id === staffId);
+      if (!member) return null;
 
-  const matrixData = useMemo(() => {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const data = {};
-    for (let i = 1; i <= daysInMonth; i++) data[i] = { items: {}, colTotals: {}, total: 0 };
-    invoiceItems.forEach(item => {
-      if (!item.date) return;
-      const [y, m, d] = item.date.substring(0, 10).split('-').map(Number);
-      if (y !== year || m !== month || !data[d]) return;
-      const actId = String(item.activity_id || '');
-      let colKey = null;
-      const fixedCol = fixedColumns.find(c => c.activityIds.map(String).includes(actId));
-      if (fixedCol) colKey = fixedCol.key;
-      else {
-        const dynCol = dynamicActivities.find(a => String(a.id) === actId);
-        if (dynCol) colKey = `dyn_${actId}`;
-      }
-      if (colKey) {
-        const qty = Number(item.quantity) || 0;
-        data[d].items[colKey] = (data[d].items[colKey] || 0) + qty;
-        const rule = payoutRules.find(r => String(r.activity_id) === actId);
-        if (rule) {
-          const money = qty * rule.amount_thb;
-          data[d].colTotals[colKey] = (data[d].colTotals[colKey] || 0) + money;
-          data[d].total += money;
+      // 1. Filter invoice items for this instructor
+      console.log("=== Debugging getPayrollDataForStaff ===");
+      console.log("staffId:", staffId, "member initials:", member.initials);
+      console.log("invoiceItems length:", invoiceItems?.length);
+      const filteredItems = (invoiceItems || []).filter(it => {
+        const itInstId = typeof it.instructor_id === 'object' ? it.instructor_id?.id : it.instructor_id;
+        const itInitials = it.instructor?.initials;
+        const idMatch = String(itInstId) === String(staffId);
+        const initialsMatch = !!(itInitials && itInitials === member.initials);
+        
+        // Let's log first 3 items to see structure
+        if (invoiceItems.indexOf(it) < 3) {
+          console.log("Item index:", invoiceItems.indexOf(it), "itInstId:", itInstId, "itInitials:", itInitials, "idMatch:", idMatch, "initialsMatch:", initialsMatch);
         }
-      }
-    });
-    return data;
-  }, [invoiceItems, payoutRules, month, year, fixedColumns, dynamicActivities]);
+        
+        return idMatch || initialsMatch;
+      });
+      console.log("filteredItems length:", filteredItems.length);
 
-  const attendanceData = useMemo(() => {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const map = {};
-    for (let i = 1; i <= daysInMonth; i++) map[i] = { morning: false, afternoon: false };
-    invoiceItems.forEach(item => {
-      const duration = item.activities?.duration_days || 0.5;
-      const [y, m, d] = (item.date || '').split('-').map(Number);
-      if (y !== year || m !== month || !map[d]) return;
-      if (duration % 1 !== 0) map[d].morning = true;
-      else { map[d].morning = true; map[d].afternoon = true; }
-      const fullDaysBefore = (duration % 1 !== 0) ? Math.floor(duration) : (duration - 1);
-      for (let i = 1; i <= fullDaysBefore; i++) {
-        const prevDate = new Date(year, month - 1, d - i);
-        if (prevDate.getMonth() + 1 === month && prevDate.getFullYear() === year) {
-          const prevDay = prevDate.getDate();
-          if (map[prevDay]) { map[prevDay].morning = true; map[prevDay].afternoon = true; }
+      // 2. Determine dynamic activities seen for this instructor
+      const fixedIds = new Set(fixedColumns.flatMap(c => c.activityIds).map(String));
+      const seenIds = new Set();
+      filteredItems.forEach(item => {
+        const actId = String(item.activity_id || '');
+        if (actId && !fixedIds.has(actId)) seenIds.add(actId);
+      });
+      const dynActs = Array.from(seenIds).map(id => allActivities.find(a => String(a.id) === id)).filter(Boolean);
+
+      // 3. Extract assists and overrides for this instructor from raw activity
+      const assistMap = {};
+      const attMap = {};
+      rawActivity.filter(row => row.staff_id === staffId).forEach(row => {
+        if (row.assists > 0) assistMap[row.day] = row.assists;
+        if (row.attendance_status !== 'AUTO') attMap[row.day] = row.attendance_status;
+      });
+
+      // 4. Extract manual adjustments for this instructor
+      const adjMap = {};
+      rawAdjustments.filter(row => row.staff_id === staffId).forEach(row => {
+        if (row.amount !== 0 || row.concept) adjMap[row.day] = { amount: row.amount, concept: row.concept || '' };
+      });
+
+      // 5. Generate daily activities matrix
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const mData = {};
+      for (let i = 1; i <= daysInMonth; i++) mData[i] = { items: {}, colTotals: {}, total: 0 };
+      filteredItems.forEach(item => {
+        if (!item.date) return;
+        const [y, m, d] = item.date.substring(0, 10).split('-').map(Number);
+        if (y !== year || m !== month || !mData[d]) return;
+        const actId = String(item.activity_id || '');
+        let colKey = null;
+        const fixedCol = fixedColumns.find(c => c.activityIds.map(String).includes(actId));
+        if (fixedCol) colKey = fixedCol.key;
+        else {
+          const dynCol = dynActs.find(a => String(a.id) === actId);
+          if (dynCol) colKey = `dyn_${actId}`;
         }
+        if (colKey) {
+          const qty = Number(item.quantity) || 0;
+          mData[d].items[colKey] = (mData[d].items[colKey] || 0) + qty;
+          const rule = payoutRules.find(r => String(r.activity_id) === actId);
+          if (rule) {
+            const money = qty * rule.amount_thb;
+            mData[d].colTotals[colKey] = (mData[d].colTotals[colKey] || 0) + money;
+            mData[d].total += money;
+          }
+        }
+      });
+
+      // 6. Generate attendance status map and counts
+      const map = {};
+      for (let i = 1; i <= daysInMonth; i++) map[i] = { morning: false, afternoon: false };
+      filteredItems.forEach(item => {
+        const duration = item.activities?.duration_days || 0.5;
+        const [y, m, d] = (item.date || '').split('-').map(Number);
+        if (y !== year || m !== month || !map[d]) return;
+        if (duration % 1 !== 0) map[d].morning = true;
+        else { map[d].morning = true; map[d].afternoon = true; }
+        const fullDaysBefore = (duration % 1 !== 0) ? Math.floor(duration) : (duration - 1);
+        for (let i = 1; i <= fullDaysBefore; i++) {
+          const prevDate = new Date(year, month - 1, d - i);
+          if (prevDate.getMonth() + 1 === month && prevDate.getFullYear() === year) {
+            const prevDay = prevDate.getDate();
+            if (map[prevDay]) { map[prevDay].morning = true; map[prevDay].afternoon = true; }
+          }
+        }
+      });
+      const gridResult = {};
+      let fullOffCount = 0;
+      let halfOffCount = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const override = attMap[d] || 'AUTO';
+        let status = 'WORK';
+        if (override === 'AUTO') {
+          if (!map[d].morning && !map[d].afternoon) status = 'OFF';
+          else if (!map[d].afternoon) status = 'HALF';
+        } else status = override;
+        gridResult[d] = status;
+        if (status === 'OFF') fullOffCount++;
+        if (status === 'HALF') halfOffCount++;
       }
-    });
-    const result = {};
-    let fullOffCount = 0;
-    let halfOffCount = 0;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const override = attendanceOverrides[d] || 'AUTO';
-      let status = 'WORK';
-      if (override === 'AUTO') {
-        if (!map[d].morning && !map[d].afternoon) status = 'OFF';
-        else if (!map[d].afternoon) status = 'HALF';
-      } else status = override;
-      result[d] = status;
-      if (status === 'OFF') fullOffCount++;
-      if (status === 'HALF') halfOffCount++;
-    }
-    return { grid: result, summary: { fullOff: fullOffCount, halfOff: halfOffCount, totalOff: fullOffCount + (halfOffCount * 0.5) } };
-  }, [invoiceItems, attendanceOverrides, month, year]);
+      const attData = { grid: gridResult, summary: { fullOff: fullOffCount, halfOff: halfOffCount, totalOff: fullOffCount + (halfOffCount * 0.5) } };
 
-  const totalComm = Object.values(matrixData).reduce((acc, d) => acc + d.total, 0);
-  const totalAssists = Object.values(assists).reduce((acc, val) => acc + (val * 2000), 0);
-  const totalAdj = Object.values(manualAdj).reduce((acc, val) => acc + (val.amount || 0), 0);
-  const totalAdvances = advances.reduce((acc, a) => acc + a.amount, 0);
-  const finalBalance = totalComm + totalAssists + totalAdj - totalAdvances;
+      // 7. Calculate final financial figures
+      const tComm = Object.values(mData).reduce((acc, d) => acc + d.total, 0);
+      const tAssists = Object.values(assistMap).reduce((acc, val) => acc + (val * 2000), 0);
+      const tAdj = Object.values(adjMap).reduce((acc, val) => acc + (val.amount || 0), 0);
+      const tAdvances = rawAdvances.filter(a => a.staff_id === staffId).reduce((acc, a) => acc + a.amount, 0);
+      const fBalance = tComm + tAssists + tAdj - tAdvances;
 
-  // AUTO-SAVE LOGIC
+      return {
+        matrixData: mData,
+        dynamicActivities: dynActs,
+        attendanceData: attData,
+        assists: assistMap,
+        manualAdj: adjMap,
+        totalComm: tComm,
+        totalAssists: tAssists,
+        totalAdj: tAdj,
+        totalAdvances: tAdvances,
+        finalBalance: fBalance,
+        selectedMember: member
+      };
+    };
+  }, [invoiceItems, staff, fixedColumns, allActivities, rawActivity, rawAdjustments, rawAdvances, payoutRules, month, year]);
+
+  // Extract payroll data for currently selected individual staff
+  const singleStaffData = useMemo(() => {
+    if (!selectedStaffId || selectedStaffId === 'TODOS') return null;
+    return getPayrollDataForStaff(selectedStaffId);
+  }, [selectedStaffId, getPayrollDataForStaff]);
+
+  const matrixData = singleStaffData?.matrixData || {};
+  const dynamicActivities = singleStaffData?.dynamicActivities || [];
+  const attendanceData = singleStaffData?.attendanceData || { grid: {}, summary: { fullOff: 0, halfOff: 0, totalOff: 0 } };
+  const totalComm = singleStaffData?.totalComm || 0;
+  const totalAssists = singleStaffData?.totalAssists || 0;
+  const totalAdj = singleStaffData?.totalAdj || 0;
+  const totalAdvances = singleStaffData?.totalAdvances || 0;
+  const finalBalance = singleStaffData?.finalBalance || 0;
+  const selectedMember = singleStaffData?.selectedMember || null;
+
+  // AUTO-SAVE LOGIC (Disabled for ALL mode)
   useEffect(() => {
-    if (!selectedStaffId || loading) return;
+    if (!selectedStaffId || selectedStaffId === 'TODOS' || loading) return;
 
     const sync = async () => {
       setSyncing(true);
@@ -384,9 +467,7 @@ export function useNominasData() {
 
     const timer = setTimeout(sync, 1000); // Debounce to avoid too many writes
     return () => clearTimeout(timer);
-  }, [totalComm, totalAssists, totalAdj, totalAdvances, finalBalance, attendanceData.summary.totalOff, selectedStaffId, loading]);
-
-  const selectedMember = staff.find(s => s.id === selectedStaffId);
+  }, [totalComm, totalAssists, totalAdj, totalAdvances, finalBalance, attendanceData?.summary?.totalOff, selectedStaffId, loading]);
 
   return {
     selectedStaffId, setSelectedStaffId,
@@ -399,6 +480,7 @@ export function useNominasData() {
     fixedColumns, dynamicActivities, matrixData, attendanceData,
     totalComm, totalAssists, totalAdj, totalAdvances, finalBalance,
     selectedMember,
+    getPayrollDataForStaff,
     
     handleAdjUpdate, handleAssChange, handleAttendanceToggle, addAdvance, removeAdvance, updateAdvance
   };

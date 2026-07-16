@@ -45,12 +45,12 @@ export default function Nominas_Header({
               className="flex items-center gap-3 px-4 py-2 bg-surface-soft/50 hover:bg-surface-soft rounded-xl border border-surface-edge/50 transition-all w-full md:min-w-[240px] group"
             >
               <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-black text-xs shrink-0">
-                {selectedMember?.initials || '??'}
+                {selectedStaffId === 'TODOS' ? 'ALL' : (selectedMember?.initials || '??')}
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest leading-none mb-1">Instructor</p>
                 <p className="text-sm font-black text-white leading-none truncate">
-                  {selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Seleccionar...'}
+                  {selectedStaffId === 'TODOS' ? 'Todos los Instructores' : (selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Seleccionar...')}
                 </p>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 shrink-0 ${showStaffDropdown ? 'rotate-180' : ''}`} />
@@ -65,6 +65,23 @@ export default function Nominas_Header({
                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Filtrado por facturación</span>
                   </div>
                   <div className="max-h-[500px] overflow-auto custom-scrollbar">
+                    {/* Option TODOS */}
+                    <button 
+                      onClick={() => { setSelectedStaffId('TODOS'); setShowStaffDropdown(false); }} 
+                      className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 transition-colors text-left group ${selectedStaffId === 'TODOS' ? 'bg-brand/5' : ''}`}
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black shrink-0 ${selectedStaffId === 'TODOS' ? 'bg-brand text-[#1a1c2d]' : 'bg-surface-edge text-gray-400 group-hover:bg-brand/20 group-hover:text-brand'}`}>
+                        ALL
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-black transition-colors truncate ${selectedStaffId === 'TODOS' ? 'text-brand' : 'text-gray-300 group-hover:text-white'}`}>
+                          TODOS LOS INSTRUCTORES
+                        </p>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Vista general</p>
+                      </div>
+                      {selectedStaffId === 'TODOS' && <Check className="w-4 h-4 text-brand shrink-0" />}
+                    </button>
+
                     {staff.filter(s => activeStaffIds.has(s.id)).map(s => (
                       <button 
                         key={s.id} 
@@ -97,10 +114,10 @@ export default function Nominas_Header({
           <Handshake className="w-5 h-5 text-brand" />
           <span className="text-sm font-black text-white">Sueldos:</span>
           <span className="text-xs font-black text-gray-300">
-            {selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Ninguno'}
+            {selectedStaffId === 'TODOS' ? 'Todos los Instructores' : (selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : 'Ninguno')}
           </span>
           <span className="text-[10px] px-2 py-0.5 bg-surface-edge text-gray-400 font-bold rounded-lg uppercase tracking-widest shrink-0">
-            {selectedMember?.initials || '??'}
+            {selectedStaffId === 'TODOS' ? 'ALL' : (selectedMember?.initials || '??')}
           </span>
         </div>
         <div className="text-xs font-black text-brand uppercase tracking-wider portrait:w-full portrait:text-center">
