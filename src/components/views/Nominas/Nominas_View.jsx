@@ -42,8 +42,13 @@ export default function Nominas_View() {
             {staff.filter(s => activeStaffIds.has(s.id)).map(member => {
               const data = getPayrollDataForStaff(member.id);
               if (!data) return null;
+              const tableWidth = 660 + (data.dynamicActivities.length * 35);
               return (
-                <div key={member.id} className="flex-none w-[820px] max-w-[90%]">
+                <div 
+                  key={member.id} 
+                  style={{ width: `${tableWidth}px` }}
+                  className="flex-none max-w-[90%]"
+                >
                   <Nominas_Table 
                     matrixData={data.matrixData}
                     fixedColumns={fixedColumns}
