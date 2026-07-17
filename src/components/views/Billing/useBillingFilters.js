@@ -106,7 +106,11 @@ export function useBillingFilters({
         let items = [...(inv.invoice_items || [])];
 
         if (showOnlyUnpaid) {
-          items = items.filter(i => i.status !== 'Paid');
+          items = items.filter(i => {
+            const isUnpaid = i.status !== 'Paid';
+            const isReserva = i.activities?.category?.toLowerCase() === 'reserva' || i.activities?.name?.toLowerCase() === 'reserva';
+            return isUnpaid || isReserva;
+          });
         }
 
         if (s !== '') {
