@@ -2,6 +2,33 @@ import React from 'react';
 import { Search, Calendar, ShieldCheck, Download, UserPlus, Loader2, Check, X, Edit2, Trash2, AlertCircle, Send, CreditCard } from 'lucide-react';
 import EditableInput from '../../common/EditableInput';
 
+const getActivityBadgeClasses = (activity) => {
+  if (!activity) return 'text-brand bg-brand/10 border-brand/20';
+  const a = activity.toLowerCase();
+  if (a.includes('try dive') || a.includes('bautizo')) {
+    return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+  }
+  if (a.includes('open water') || a.includes('owd')) {
+    return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+  }
+  if (a.includes('advanced') || a.includes('aowd')) {
+    return 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+  }
+  if (a.includes('rescue')) {
+    return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+  }
+  if (a.includes('fun dive') || a.includes('fundive') || a.includes('ocio')) {
+    return 'text-purple-400 bg-purple-500/10 border-purple-500/20';
+  }
+  if (a.includes('refresh') || a.includes('refresher')) {
+    return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+  }
+  if (a.includes('ssi course')) {
+    return 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20';
+  }
+  return 'text-brand bg-brand/10 border-brand/20';
+};
+
 export default function InsuranceTable({
   customers,
   paxBalance,
@@ -299,6 +326,11 @@ export default function InsuranceTable({
                               · {customer.gender?.[0] || '-'}
                             </span>
                           </p>
+                        )}
+                        {customer.booked_activity && (
+                          <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shadow-sm border ${getActivityBadgeClasses(customer.booked_activity)}`}>
+                            {customer.booked_activity}
+                          </span>
                         )}
                       </div>
                     </div>
