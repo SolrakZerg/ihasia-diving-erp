@@ -219,7 +219,15 @@ export function useBillingData() {
         visibleIds.push(items[0].id);
       } else if (items.length > 1) {
         const saved = localStorage.getItem(`billing-group-expanded-${inv.id}`);
-        const isExpanded = saved !== 'false'; // por defecto true
+        let isExpanded;
+        if (saved !== null) {
+          isExpanded = saved !== 'false';
+        } else {
+          const totalCount = items.length;
+          const paidCount = items.filter(i => i.status === 'Paid').length;
+          const isAllPaid = totalCount > 0 && paidCount === totalCount;
+          isExpanded = !isAllPaid;
+        }
         if (isExpanded) {
           items.forEach(it => {
             visibleIds.push(it.id);
