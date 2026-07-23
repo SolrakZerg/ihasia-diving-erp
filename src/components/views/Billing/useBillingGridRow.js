@@ -422,6 +422,9 @@ export function useBillingGridRow({
     return !item.instructor_id && categoryData?.requires_staff !== false && item.activity_id;
   });
 
+  const dateList = items.map(it => it.date).filter(Boolean);
+  const minDate = dateList.length ? dateList.sort()[0] : null;
+
   return {
     expanded,
     toggleExpanded,
@@ -445,5 +448,6 @@ export function useBillingGridRow({
     gStyle,
     groupDisplayName,
     isAnyInstructorMissing,
+    minDate,
   };
 }

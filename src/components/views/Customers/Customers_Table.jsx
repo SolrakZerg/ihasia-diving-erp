@@ -1,7 +1,7 @@
 import {
   Search, Calendar, Activity, Phone,
   ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight,
-  Pencil, Trash2,
+  Pencil, Trash2, Receipt,
 } from 'lucide-react';
 import { getActivityColor, shortenLastDive, normalizeLevel } from './Customers_Utils';
 
@@ -144,19 +144,35 @@ export default function Customers_Table({
                   )}
 
                   {/* Buceador */}
-                  <td className={`${isExtendedView ? 'px-2' : 'px-2 md:px-6'} py-2 whitespace-nowrap truncate`} title={`${customer.first_name} ${customer.last_name}`}>
+                  <td className={`${isExtendedView ? 'px-2' : 'px-2 md:px-6'} py-2 whitespace-nowrap truncate`}>
                     <div className="flex items-center gap-3">
                       {!isExtendedView && (
-                        <div className="hidden md:flex w-10 h-10 rounded-full bg-gradient-to-br from-brand/20 to-brand/5 items-center justify-center text-brand font-bold border border-brand/10">
+                        <div className={`hidden md:flex w-10 h-10 rounded-full items-center justify-center font-bold border ${
+                          customer.hasBilling
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : 'bg-gradient-to-br from-brand/20 to-brand/5 text-brand border-brand/10'
+                        }`}>
                           {customer.first_name?.[0]}{customer.last_name?.[0]}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="text-white font-semibold text-base capitalize truncate">
-                          {customer.first_name} {customer.last_name}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p 
+                            className="text-white font-semibold text-base capitalize truncate"
+                            title={`${customer.first_name} ${customer.last_name}`}
+                          >
+                            {customer.first_name} {customer.last_name}
+                          </p>
+                          {customer.hasBilling && (
+                            <span title="Tiene facturas asignadas">
+                              <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
+                            </span>
+                          )}
+                        </div>
                         {!isExtendedView && (
-                          <p className="text-cyan-500/80 text-sm truncate">{customer.email}</p>
+                          <p className="text-cyan-500/80 text-sm truncate" title={customer.email}>
+                            {customer.email}
+                          </p>
                         )}
                       </div>
                     </div>

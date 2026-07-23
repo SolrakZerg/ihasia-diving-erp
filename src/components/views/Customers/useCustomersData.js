@@ -127,7 +127,27 @@ export default function useCustomersData() {
       }
 
       if (error) throw error;
-      setCustomers(data || []);
+
+      let customersWithBilling = data || [];
+      if (customersWithBilling.length > 0) {
+        const customerIds = customersWithBilling.map(c => c.id);
+        const [invRes, itemRes] = await Promise.all([
+          supabase.from('invoices').select('customer_id').in('customer_id', customerIds),
+          supabase.from('invoice_items').select('customer_id').in('customer_id', customerIds),
+        ]);
+
+        const billedIds = new Set([
+          ...(invRes.data || []).map(i => i.customer_id),
+          ...(itemRes.data || []).map(i => i.customer_id),
+        ]);
+
+        customersWithBilling = customersWithBilling.map(c => ({
+          ...c,
+          hasBilling: billedIds.has(c.id),
+        }));
+      }
+
+      setCustomers(customersWithBilling);
       setTotalCount(count || 0);
     } catch (err) {
       console.error('Error fetching customers:', err.message);
@@ -227,6 +247,32 @@ export default function useCustomersData() {
     });
   };
 
+  const handleDeleteMultiple = () => {
+    if (selectedIds.size === 0) return;
+    setConfirmConfig({
+      show: true,
+      title: 'Eliminar Registros en Lote',
+      message: `¿Estás seguro de que quieres eliminar los ${selectedIds.size} registros seleccionados? Esta acción no se puede deshacer. Los registros que tengan facturas asociadas bloquearán la eliminación de todo el lote.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig(prev => ({ ...prev, show: false }));
+        try {
+          const idsArray = Array.from(selectedIds);
+          const { error } = await supabase.from('customers').delete().in('id', idsArray);
+          if (error) throw error;
+
+          setSelectedIds(new Set());
+          fetchCustomers();
+          setToastMsg('Registros eliminados correctamente.');
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 4000);
+        } catch (err) {
+          alert('Error al eliminar en lote: ' + err.message);
+        }
+      },
+    });
+  };
+
   const handleEdit = async (e, customer) => {
     e.stopPropagation();
     setEditingCustomer(customer);
@@ -256,23 +302,52 @@ export default function useCustomersData() {
 
 
   const handleRowClick = async (customer) => {
-    setSelectedCustomer(customer);
+    if (!customer) return;
+
+    setSelectedCustomer({ ...customer, activities: undefined });
     setIsDrawerOpen(true);
 
-    if (!customer || 'address' in customer) {
-      return;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('id', customer.id)
-        .single();
-      if (error) throw error;
-      setSelectedCustomer(data);
+      let fullCustomerData = customer;
+      if (!('address' in customer)) {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customer.id)
+          .single();
+        if (error) throw error;
+        fullCustomerData = data;
+      }
+
+      const { data: items, error: itemsErr } = await supabase
+        .from('invoice_items')
+        .select(`
+          id,
+          date,
+          quantity,
+          total_thb,
+          status,
+          activities (
+            name,
+            color,
+            category
+          ),
+          staff (
+            initials
+          )
+        `)
+        .eq('customer_id', customer.id)
+        .order('date', { ascending: false });
+
+      if (itemsErr) throw itemsErr;
+
+      setSelectedCustomer({
+        ...fullCustomerData,
+        activities: items || [],
+      });
     } catch (err) {
-      console.error('Error fetching full customer details:', err.message);
+      console.error('Error fetching customer details and activities:', err.message);
+      setSelectedCustomer(prev => (prev ? { ...prev, activities: [] } : null));
     }
   };
 
@@ -411,6 +486,7 @@ export default function useCustomersData() {
     confirmConfig,
     dismissConfirm,
     handleDelete,
+    handleDeleteMultiple,
 
     // Refresh manual
     fetchCustomers,

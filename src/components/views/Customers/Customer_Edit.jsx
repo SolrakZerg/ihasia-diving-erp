@@ -54,10 +54,12 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
         }
       }
 
-      // 2. Clonamos el estado y excluimos campos de sólo lectura/generados
+      // 2. Clonamos el estado y excluimos campos de sólo lectura/generados/virtuales
       const updateData = { ...formData };
       delete updateData.id;
       delete updateData.created_at;
+      delete updateData.hasBilling;
+      delete updateData.activities;
 
       // 3. Sanitizamos campos de fecha vacíos opcionales convirtiéndolos a null
       dateFields.forEach(field => {

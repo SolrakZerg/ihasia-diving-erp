@@ -60,6 +60,7 @@ export default function Billing_GridRow({
     gStyle,
     groupDisplayName,
     isAnyInstructorMissing,
+    minDate,
   } = rowData;
 
   // Configuración de colores dinámicos desde uiConfig
@@ -152,7 +153,13 @@ export default function Billing_GridRow({
             </div>
           </div>
         </td>
-        <td className={`px-1 py-0 ${tb}`}></td>
+        <td className={`px-1 py-0 text-center ${tb} w-[110px] min-w-[110px]`}>
+          {!expanded && minDate && (
+            <span className={`text-[15px] font-black tracking-wider ${groupTitleClass}`}>
+              {minDate.split('-')[2]}
+            </span>
+          )}
+        </td>
         <td colSpan={3} className={`px-2 py-0 text-left overflow-hidden ${tb}`}>
           <span className={`text-[15px] font-bold tracking-tight uppercase leading-tight truncate block w-full ${groupTitleClass}`}>
             {groupDisplayName}

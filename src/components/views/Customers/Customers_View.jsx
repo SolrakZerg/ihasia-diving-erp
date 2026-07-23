@@ -73,6 +73,7 @@ export default function Customers_View({ onNavigate }) {
     confirmConfig,
     dismissConfirm,
     handleDelete,
+    handleDeleteMultiple,
 
     // Refresh
     fetchCustomers,
@@ -140,6 +141,7 @@ export default function Customers_View({ onNavigate }) {
         onClear={clearSelection}
         onSend={() => onNavigate('insurance', Array.from(selectedIds))}
         onBilling={handleSendToBilling}
+        onDelete={handleDeleteMultiple}
         isProcessing={isProcessingBilling}
       />
 

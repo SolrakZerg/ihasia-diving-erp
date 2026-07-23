@@ -1,4 +1,4 @@
-import { X, Phone, Mail, MapPin, Calendar, Award, Activity, Heart, Globe, CreditCard, Hash } from 'lucide-react';
+import { X, Phone, Mail, MapPin, Calendar, Award, Activity, Heart, Globe, CreditCard, Hash, Receipt, Loader2 } from 'lucide-react';
 
 export default function Customer_Details({ customer, isOpen, onClose }) {
   const normalizeLevel = (level) => {
@@ -7,6 +7,19 @@ export default function Customer_Details({ customer, isOpen, onClose }) {
     if (l === 'advance' || l === 'advanced') return 'Advanced Open Water';
     if (l.includes('instructor') || l.includes('master')) return 'Pro (Inst/DM)';
     return level;
+  };
+
+  const formatBookingDate = (dateStr) => {
+    if (!dateStr) return '---';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).replace('.', '');
   };
 
   if (!customer) return null;
@@ -25,13 +38,25 @@ export default function Customer_Details({ customer, isOpen, onClose }) {
         {/* Header */}
         <div className="sticky top-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge p-6 flex items-center justify-between z-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-amber-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand/20">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg ${
+              customer.hasBilling
+                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
+                : 'bg-gradient-to-br from-brand to-amber-600 shadow-brand/20'
+            }`}>
               {customer.first_name?.[0]}{customer.last_name?.[0]}
             </div>
             <div>
               <h2 className="text-xl font-bold text-white capitalize">{customer.first_name} {customer.last_name}</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] text-brand font-bold tracking-widest uppercase">Buceador</span>
+                {customer.hasBilling && (
+                  <>
+                    <span className="text-gray-600">•</span>
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                      <Receipt className="w-3 h-3" /> Factura
+                    </span>
+                  </>
+                )}
                 <span className="text-gray-600">•</span>
                 <span className="text-[10px] text-gray-400 font-medium">
                   ID: #{customer.id?.toString().slice(0, 8)}
@@ -146,6 +171,74 @@ export default function Customer_Details({ customer, isOpen, onClose }) {
             </div>
           </section>
 
+          {/* Section: Activities History */}
+          <section>
+            <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-500" />
+              Actividades y Cursos
+            </h3>
+            
+            <div className="bg-surface-soft/50 p-6 rounded-2xl border border-surface-edge space-y-4">
+              {customer.activities === undefined ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand" />
+                </div>
+              ) : customer.activities.length === 0 ? (
+                <p className="text-sm text-gray-400 italic text-center py-2">
+                  No hay actividades registradas en facturación.
+                </p>
+              ) : (
+                <div className="divide-y divide-surface-edge/30 max-h-[300px] overflow-y-auto pr-1 space-y-3">
+                  {customer.activities.map((item, idx) => {
+                    const actName = item.activities?.name || 'Actividad Desconocida';
+                    const actColor = item.activities?.color || '#3b82f6';
+                    return (
+                      <div key={item.id || idx} className={`py-3 flex items-center justify-between gap-4 ${idx === 0 ? 'pt-0' : ''}`}>
+                        <div className="flex items-start gap-3 min-w-0">
+                          {/* Dot indicator matching activity color */}
+                          <span 
+                            className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 shadow-sm"
+                            style={{ backgroundColor: actColor }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-white text-sm font-semibold capitalize truncate">{actName}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+                              <span>{item.date ? new Date(item.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' }) : '---'}</span>
+                              <span>•</span>
+                              <span>Cant: {item.quantity}</span>
+                              {item.staff?.initials && (
+                                <>
+                                  <span>•</span>
+                                  <span className="bg-cyan-500/10 text-cyan-300 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                                    {item.staff.initials}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Badge & Price */}
+                        <div className="text-right shrink-0">
+                          <p className="text-white text-sm font-bold font-mono">
+                            {Number(item.total_thb).toLocaleString('es-ES')} THB
+                          </p>
+                          <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md mt-1 uppercase ${
+                            item.status === 'Paid' 
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {item.status === 'Paid' ? 'Cobrado' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Booking Info Banner */}
           <div className="bg-gradient-to-r from-brand/20 to-brand/5 border border-brand/20 p-6 rounded-3xl relative overflow-hidden group">
             <div className="relative z-10">
@@ -153,7 +246,7 @@ export default function Customer_Details({ customer, isOpen, onClose }) {
               <h4 className="text-white text-xl font-bold mb-2">{customer.booked_activity}</h4>
               <div className="flex items-center gap-2 text-gray-400 text-sm">
                 <Calendar className="w-4 h-4" />
-                <span>Programado para: {customer.booking_date}</span>
+                <span>Programado para: {formatBookingDate(customer.booking_date)}</span>
               </div>
             </div>
             <Activity className="absolute right-[-10px] bottom-[-10px] w-24 h-24 text-brand/10 group-hover:scale-110 transition-transform duration-700" />
