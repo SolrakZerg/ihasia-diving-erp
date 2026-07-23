@@ -176,9 +176,20 @@ export function useNominasData() {
         delete newMap[day];
         return newMap;
       });
+      setRawAdjustments(prev => prev.filter(row => !(row.day === day && row.staff_id === selectedStaffId)));
       await supabase.from('staff_adjustments').delete().eq('year', year).eq('month', month).eq('day', day).eq('staff_id', selectedStaffId);
     } else {
       setManualAdj(prev => ({ ...prev, [day]: { amount: newAmount, concept: newConcept } }));
+      setRawAdjustments(prev => {
+        const idx = prev.findIndex(row => row.day === day && row.staff_id === selectedStaffId);
+        const newRow = { year, month, day, staff_id: selectedStaffId, amount: newAmount, concept: newConcept };
+        if (idx > -1) {
+          const copy = [...prev];
+          copy[idx] = newRow;
+          return copy;
+        }
+        return [...prev, newRow];
+      });
       await supabase.from('staff_adjustments').upsert({
         year, month, day, staff_id: selectedStaffId, amount: newAmount, concept: newConcept
       }, { onConflict: 'year, month, day, staff_id' });
@@ -197,10 +208,29 @@ export function useNominasData() {
         delete newMap[day];
         return newMap;
       });
+      setRawActivity(prev => {
+        const idx = prev.findIndex(row => row.day === day && row.staff_id === selectedStaffId);
+        if (idx > -1) {
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], assists: 0 };
+          return copy;
+        }
+        return prev;
+      });
       await updateDailyActivity(day, { assists: 0 });
     } else {
       const val = parseInt(value) || 0;
       setAssists(prev => ({ ...prev, [day]: val }));
+      setRawActivity(prev => {
+        const idx = prev.findIndex(row => row.day === day && row.staff_id === selectedStaffId);
+        if (idx > -1) {
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], assists: val };
+          return copy;
+        } else {
+          return [...prev, { year, month, day, staff_id: selectedStaffId, assists: val, attendance_status: 'AUTO' }];
+        }
+      });
       await updateDailyActivity(day, { assists: val });
     }
 
@@ -215,6 +245,16 @@ export function useNominasData() {
     const next = forcedNext || states[(states.indexOf(current) + 1) % states.length];
     
     setAttendanceOverrides(prev => ({ ...prev, [day]: next }));
+    setRawActivity(prev => {
+      const idx = prev.findIndex(row => row.day === day && row.staff_id === selectedStaffId);
+      if (idx > -1) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], attendance_status: next };
+        return copy;
+      } else {
+        return [...prev, { year, month, day, staff_id: selectedStaffId, assists: 0, attendance_status: next }];
+      }
+    });
     await updateDailyActivity(day, { attendance_status: next });
 
     if (!skipHistory) {
@@ -229,6 +269,7 @@ export function useNominasData() {
 
     if (newAdv) {
       setAdvances(prev => [...prev, newAdv]);
+      setRawAdvances(prev => [...prev, newAdv]);
 
       if (!skipHistory) {
         pushAction(buildAddAdvanceAction(newAdv, selectedMember?.first_name, fetchData));
@@ -250,6 +291,7 @@ export function useNominasData() {
     }
     if (data) {
       setAdvances(prev => prev.map(a => a.id === id ? data : a));
+      setRawAdvances(prev => prev.map(a => a.id === id ? data : a));
 
       if (!skipHistory) {
         pushAction(buildUpdateAdvanceAction(id, updates, oldAdvanceState, selectedMember?.first_name, fetchData));
@@ -267,6 +309,7 @@ export function useNominasData() {
       const { error } = await supabase.from('staff_advances').delete().eq('id', actualId);
       if (!error) {
         setAdvances(prev => prev.filter(a => a.id !== actualId));
+        setRawAdvances(prev => prev.filter(a => a.id !== actualId));
 
         if (!skipHistory) {
           pushAction(buildRemoveAdvanceAction(actualId, advanceItem, selectedMember?.first_name, fetchData));
