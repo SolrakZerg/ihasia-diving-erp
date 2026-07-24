@@ -11,6 +11,7 @@ import SSI_View from './views/SSI/SSI_View';
 import Nominas_View from './views/Nominas/Nominas_View';
 import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_View from './views/Carabao/Carabao_Header';
+import Bizums_View from './views/Bizums/Bizums_View';
 import { ChevronRight } from 'lucide-react';
 import { UndoProvider } from '../context/UndoContext';
 
@@ -48,6 +49,7 @@ export default function Dashboard({ user }) {
     switch (activeView) {
       case 'dashboard': return <Dashboard_View />;
       case 'customers': return <Customers_View onNavigate={navigateTo} />;
+      case 'bizums': return <Bizums_View />;
       case 'insurance': return <Insurance_View initialSelectedIds={viewPayload} onNavigate={navigateTo} />;
       case 'settings': return <Settings_View />;
       case 'billing': return <Billing_View isSidebarCollapsed={isSidebarCollapsed} />;

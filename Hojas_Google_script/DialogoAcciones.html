@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <style>
+    /* ... (CSS SIN CAMBIOS respecto a la última versión que te funcionó con la fecha) ... */
+    body {font-family: Arial, Helvetica, sans-serif; padding: 20px; text-align: center; margin: 0; background-color: white; font-size: 14px;}
+    p {margin-bottom: 10px; color: #333; font-size: 1.1em;}
+    #contenedorPrincipalDialogo, #contenedorFinalAcciones {display: flex;flex-direction: column;align-items: center; text-align: center; }
+    #tituloDialogo, #tituloFinal { font-weight: bold;font-size: 1.1em;color: #333;}
+    #tituloFinal { margin-bottom: 30px; } /* Más espacio debajo de "Acciones Completadas:" */
+    .button-grid {display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 20px;}
+    button, #enlaceVerEvento {width: 100%; padding: 12px 15px; border: none; color: white; cursor: pointer; border-radius: 4px; font-size: 1em; font-weight: bold; line-height: 1.5; position: relative;box-sizing: border-box;}
+    #enlaceVerEvento {background-color: #17a2b8; display: none; margin-top: 35px; max-width: 300px; margin-left: auto;margin-right: auto;}
+    #enlaceVerEvento:hover { opacity: 0.9; }
+    .btn-todo {background-color: #007bff;}
+    .btn-whatsapp-solo {background-color: #356854;}
+    .btn-ordenar-solo {background-color: #ffc107; color: #212529;}
+    .btn-calendario-solo {background-color: #6f42c1;}
+    button:hover {opacity: 0.85;}
+    button:disabled {background-color: #cccccc; cursor: not-allowed;}
+    .status-message-lista { font-size: 1em;text-align: left; color: black; width: fit-content; margin-left: auto; margin-right: auto; }
+    .status-message-lista ul { list-style-type: none; padding-left: 0; margin-top: 0; }
+    .status-message-lista ul li { margin-bottom: 12px; line-height: 1.5;  } /* Más interlineado lista */
+    #infoEventoFinal { font-weight: bold;font-size: 1em;color: #333;margin-top: 30px; margin-bottom: 15px; } /* Info del evento en la vista final */
+    #infoReservaInicial { font-size:0.9em; color:#555; margin-bottom: 5px; } /* Para la info en la vista inicial */
+    .loading-spinner { display: none; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; margin-left: 10px; vertical-align: middle; position: absolute; right: 15px; top: 50%; transform: translateY(-50%);}
+    @keyframes spin { 0% { transform: translateY(-50%) rotate(0deg); } 100% { transform: translateY(-50%) rotate(360deg); } }
+    #statusIndividual { text-align:center; color: green; margin-top:15px; font-size: 0.9em; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <div id="contenedorPrincipalDialogo"> 
+      <p id="tituloDialogo"><strong>¿Qué acciones deseas realizar?</strong></p>
+      <!-- CORRECCIÓN: Restaurar la información de la reserva aquí -->
+      <p id="infoReservaInicial"></p> 
+
+      <div id="botonesPrincipalesGrid" class="button-grid">
+        <button id="btnTodo" class="btn-todo" onclick="accionTodo()">
+          WhatsApp, Evento y Ordenar <span class="loading-spinner"></span>
+        </button>
+        <button id="btnWhatsappSolo" class="btn-whatsapp-solo" onclick="accionWhatsappSolo()">Solo Enviar WhatsApp <span class="loading-spinner"></span></button>
+        <button id="btnOrdenarSolo" class="btn-ordenar-solo" onclick="accionOrdenarSolo()">Solo Ordenar Hoja <span class="loading-spinner"></span></button>
+        <button id="btnCalendarioSolo" class="btn-calendario-solo" onclick="accionCalendarioSolo()">Solo Crear Evento en Calendario <span class="loading-spinner"></span></button>
+      </div>
+      <div id="statusIndividual"></div> 
+  </div>
+
+  <div id="contenedorFinalAcciones" style="display: none;">
+      <p id="tituloFinal"><strong>Acciones Completadas:</strong></p> 
+      <div id="statusLista" class="status-message-lista"></div>
+      <p id="infoEventoFinal"></p> 
+      <button id="enlaceVerEvento" onclick="abrirEnlaceEventoYCerrarDialogo()">Haz clic aquí para ver el evento</button>
+  </div>
+
+<script>
+  var datosReserva = <?!= JSON.stringify(datosReserva) ?>;
+  var enlaceEventoGuardado = null; 
+  var whatsappIntentado = false; 
+
+  // --- Funciones de Utilidad (SIN CAMBIOS) ---
+  function setLoader(botonId, isLoading) {var boton = document.getElementById(botonId);if (boton) {var spinner = boton.querySelector('.loading-spinner');if (spinner) spinner.style.display = isLoading ? 'inline-block' : 'none';}}
+  function setBotonesEstado(habilitados) { var botonesDelGrid = document.querySelectorAll('#botonesPrincipalesGrid button'); botonesDelGrid.forEach(function(btn) { if(btn) btn.disabled = !habilitados; });}
+  function mostrarStatus(mensaje, esError, elementoId) {var el = document.getElementById(elementoId || 'statusIndividual'); if(el) {if (elementoId === 'statusLista') {el.innerHTML = mensaje;} else {el.textContent = mensaje;} el.style.color = esError ? 'red' : (elementoId === 'statusLista' ? 'black' : 'green');}}
+  function abrirWhatsappSiCorresponde() {whatsappIntentado = true; if (datosReserva.whatsappLink && datosReserva.whatsappLink !== "ERROR_NO_PHONE" && datosReserva.whatsappLink !== "INVALID_PHONE_FORMAT") {window.open(datosReserva.whatsappLink, '_blank');return true;} return false;}
+
+  document.addEventListener('DOMContentLoaded', function() { 
+    // CORRECCIÓN: Mostrar la info de la reserva en la vista inicial
+    var infoReservaInicialEl = document.getElementById('infoReservaInicial');
+    if (datosReserva && datosReserva.nombreCliente && datosReserva.actividadOriginal) {
+      var info = "Reserva: " + datosReserva.nombreCliente + " - " + datosReserva.actividadOriginal +
+                 (datosReserva.numPersonas ? " x" + datosReserva.numPersonas : "") +
+                 // Usamos fechaFormateadaParaCalendario que sabemos que funciona para la visualización
+                 (datosReserva.fechaFormateadaParaCalendario && datosReserva.fechaFormateadaParaCalendario !== "fecha desconocida" ? " el " + datosReserva.fechaFormateadaParaCalendario : "");
+      if (infoReservaInicialEl) infoReservaInicialEl.textContent = info;
+    } else if (infoReservaInicialEl) {
+      infoReservaInicialEl.textContent = "No se pudo cargar la información de la reserva.";
+      infoReservaInicialEl.style.color = "red";
+    }
+
+
+    var whatsappValido = datosReserva.whatsappLink && datosReserva.whatsappLink !== "ERROR_NO_PHONE" && datosReserva.whatsappLink !== "INVALID_PHONE_FORMAT";
+    var calendarioValido = datosReserva.fechaReservaTimestamp && datosReserva.tituloEvento;
+    if (!whatsappValido) { ['btnTodo', 'btnWhatsappSolo'].forEach(id => { var btn = document.getElementById(id); if(btn) { btn.disabled = true; btn.title = "WhatsApp no disponible"; } }); }
+    if (!calendarioValido) { ['btnTodo', 'btnCalendarioSolo'].forEach(id => { var btn = document.getElementById(id); if(btn) { btn.disabled = true; btn.title = "Faltan datos para evento"; } }); }
+    document.getElementById('enlaceVerEvento').style.display = 'none';
+  });
+
+  // --- Funciones de Llamada al Servidor (SIN CAMBIOS) ---
+  function llamarCrearEvento(botonIdFeedback, callbackExito, callbackError) {setLoader(botonIdFeedback, true);var datosParaEvento = {fechaReservaTimestamp: datosReserva.fechaReservaTimestamp,tituloEvento: datosReserva.tituloEvento,descripcionEvento: datosReserva.descripcionEvento};google.script.run.withSuccessHandler(function(respuesta) {setLoader(botonIdFeedback, false);if (respuesta.success) {var msg = "Evento '" + respuesta.tituloEvento + "' para el " + datosReserva.fechaFormateadaParaCalendario + " creado."; mostrarStatus(msg, false, 'statusIndividual'); if (callbackExito) callbackExito(respuesta); } else {mostrarStatus(respuesta.message, true, 'statusIndividual');if (callbackError) callbackError(respuesta);}}).withFailureHandler(function(err) {setLoader(botonIdFeedback, false);mostrarStatus(err.message || "Error de servidor al crear evento.", true, 'statusIndividual');if (callbackError) callbackError(err);}).crearEventoCalendario(datosParaEvento);}
+  function llamarReordenarHoja(botonIdFeedback, callbackExito, callbackError) {setLoader(botonIdFeedback, true);google.script.run.withSuccessHandler(function(respuesta) {setLoader(botonIdFeedback, false);mostrarStatus(respuesta, false, 'statusIndividual');if (callbackExito) callbackExito(respuesta);}).withFailureHandler(function(err) {setLoader(botonIdFeedback, false);mostrarStatus(err.message || "Error de servidor al reordenar.", true, 'statusIndividual');if (callbackError) callbackError(err);}).reordenarHojaReservas();}
+
+
+  // --- Acciones de los Botones ---
+  function accionTodo() {
+    document.getElementById('contenedorPrincipalDialogo').style.display = 'none'; 
+    document.getElementById('contenedorFinalAcciones').style.display = 'flex';  
+    document.getElementById('tituloFinal').innerHTML = "<strong>Procesando Acciones...</strong>";
+    document.getElementById('statusLista').innerHTML = ""; 
+    document.getElementById('infoEventoFinal').textContent = ""; 
+    document.getElementById('enlaceVerEvento').style.display = 'none'; 
+
+    whatsappIntentado = false; 
+    abrirWhatsappSiCorresponde(); 
+
+    var eventoFueExitoso = false; 
+    enlaceEventoGuardado = null;
+
+    llamarCrearEvento(null, 
+      function(respuestaEvento) { 
+        if (respuestaEvento.success) {
+          eventoFueExitoso = true;
+          if (respuestaEvento.htmlLink) {
+            enlaceEventoGuardado = respuestaEvento.htmlLink; 
+          }
+        }
+        llamarReordenarHoja(null, 
+          function(respuestaOrden) { 
+            document.getElementById('tituloFinal').innerHTML = "<strong>Acciones Completadas:</strong>";
+
+            var listaAcciones = "<ul>";
+            listaAcciones += "<li>- Hoja de reservas ordenada</li>"; 
+            if (whatsappIntentado) {
+                listaAcciones += "<li>- WhatsApp abierto/intentado</li>";
+            }
+            if (eventoFueExitoso) {
+                listaAcciones += "<li>- Evento en el calendario creado</li>";
+            } else {
+                listaAcciones += "<li>- Creación de evento falló.</li>";
+            }
+            listaAcciones += "</ul>";
+            mostrarStatus(listaAcciones, false, 'statusLista');
+
+            var infoEventoTexto = "";
+            if (eventoFueExitoso) { 
+                 // Usar fechaFormateadaParaCalendario que sabemos que funciona para mostrar
+                 infoEventoTexto = "<b>" + datosReserva.nombreCliente + " " +
+                                  datosReserva.codigoActividad + "x" + datosReserva.numPersonas + 
+                                  (datosReserva.fechaFormateadaParaCalendario && datosReserva.fechaFormateadaParaCalendario !== "fecha desconocida" ? " el " + datosReserva.fechaFormateadaParaCalendario : "") + 
+                                  "</b>";
+            }
+            document.getElementById('infoEventoFinal').innerHTML = infoEventoTexto;
+            
+            if (enlaceEventoGuardado) { 
+              document.getElementById('enlaceVerEvento').style.display = 'block'; 
+            }
+          }, 
+          function(errorOrden) { 
+            document.getElementById('tituloFinal').textContent = "Error al Reordenar";
+            mostrarStatus("Hubo un error al reordenar la hoja.", true, 'statusLista'); 
+            document.getElementById('contenedorPrincipalDialogo').style.display = 'flex';
+            document.getElementById('contenedorFinalAcciones').style.display = 'none';
+            setBotonesEstado(true); 
+          }
+        );
+      }, 
+      function(errorEvento) { 
+        document.getElementById('tituloFinal').textContent = "Error en Evento";
+        mostrarStatus("Hubo un error al crear el evento. No se reordenará.", true, 'statusLista');
+        document.getElementById('contenedorPrincipalDialogo').style.display = 'flex';
+        document.getElementById('contenedorFinalAcciones').style.display = 'none';
+        setBotonesEstado(true); 
+      }
+    );
+  }
+
+  function abrirEnlaceEventoYCerrarDialogo() { if (enlaceEventoGuardado) {window.open(enlaceEventoGuardado, '_blank');}google.script.host.close();  }
+  function accionWhatsappSolo() { setBotonesEstado(false); if(abrirWhatsappSiCorresponde()){mostrarStatus("WhatsApp abierto.", false, 'statusIndividual');}setBotonesEstado(true);  }
+  function accionOrdenarSolo() { setBotonesEstado(false);llamarReordenarHoja('btnOrdenarSolo', function(respuesta) { setBotonesEstado(true); },function(error) { setBotonesEstado(true); }); }
+  function accionCalendarioSolo() { setBotonesEstado(false);llamarCrearEvento('btnCalendarioSolo', function(respuestaEvento) { if (respuestaEvento.success && respuestaEvento.htmlLink) {window.open(respuestaEvento.htmlLink, '_blank');}setBotonesEstado(true); },function(errorEvento) { setBotonesEstado(true); }); }
+</script>
+</body>
+</html>
