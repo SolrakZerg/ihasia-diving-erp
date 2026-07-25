@@ -1,4 +1,4 @@
-import { Phone, Edit2, Trash2, ChevronLeft, ChevronRight, Check, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Phone, Edit2, Trash2, ChevronLeft, ChevronRight, Check, AlertCircle, CheckCircle2, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
 import { getActivityColor, getTranslucentBg, generateWhatsappLink, formatPrettyPhone } from './Bizums_Utils';
 
 export default function Bizums_Table({
@@ -12,6 +12,8 @@ export default function Bizums_Table({
   onSort,
   onTogglePaid,
   onToggleReturned,
+  onToggleRetained,
+  onToggleSettled,
   onEdit,
   onDelete,
   goToPage,
@@ -121,19 +123,38 @@ export default function Bizums_Table({
 
           {/* Nombre y Apellidos */}
           <td className="py-2.5 px-3 max-w-[180px] w-[180px]">
-            <p
-              className="text-white/70 font-bold text-sm capitalize leading-snug line-clamp-2 break-words"
-              title={row.customer_name}
-            >
-              {row.customer_name}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p
+                className="text-white/70 font-bold text-sm capitalize leading-snug line-clamp-2 break-words"
+                title={row.customer_name}
+              >
+                {row.customer_name}
+              </p>
+              {((row.is_returned && row.returned_people !== null && row.returned_people < row.num_people) || (row.is_retained && row.returned_people !== null && row.returned_people > 0)) && (
+                <span 
+                  className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 
+                  title={`Retención Parcial: asistieron ${row.returned_people} de ${row.num_people} personas. El importe restante de ${(row.num_people - row.returned_people) * 25}€ está retenido.`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                </span>
+              )}
+            </div>
           </td>
 
           {/* Pax */}
           <td className="py-2.5 px-3 text-center">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand text-white border border-brand-light/30 font-black text-sm shadow-md shadow-brand/20 mx-auto">
-              {row.num_people || 1}
-            </span>
+            {row.returned_people !== null && row.returned_people !== row.num_people ? (
+              <span 
+                className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-extrabold text-[11px] shadow-sm mx-auto cursor-default"
+                title={`Pax Asistidos/Devueltos: ${row.returned_people} de ${row.num_people} total`}
+              >
+                {row.returned_people}/{row.num_people}
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand text-white border border-brand-light/30 font-black text-sm shadow-md shadow-brand/20 mx-auto">
+                {row.num_people || 1}
+              </span>
+            )}
           </td>
 
           {/* Actividad */}
@@ -168,35 +189,69 @@ export default function Bizums_Table({
             )}
           </td>
 
-          {/* Checkbox PAGADO */}
-          <td className="py-2.5 px-2 text-center">
-            <button
-              onClick={() => onTogglePaid(row)}
-              title={row.is_paid ? 'Marcado como Pagado (clic para desmarcar)' : 'Marcar como Pagado'}
-              className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
-                row.is_paid
-                  ? 'bg-brand border-brand-light text-white shadow-md shadow-brand/20'
-                  : 'border-surface-edge bg-surface-soft text-transparent hover:border-brand/50'
-              }`}
-            >
-              <Check className="w-4 h-4 stroke-[3]" />
-            </button>
-          </td>
+          {activeTab === 'retained' ? (
+            /* Checkbox REPARTIDO (Liquidado entre socios) */
+            <td className="py-2.5 px-2 text-center">
+              <button
+                onClick={() => onToggleSettled(row)}
+                title={row.is_settled ? 'Marcado como Repartido entre socios (clic para marcar como pendiente)' : 'Marcar como Repartido entre socios'}
+                className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
+                  row.is_settled
+                    ? 'bg-amber-500 border-amber-400 text-white shadow-md shadow-amber-500/20'
+                    : 'border-surface-edge bg-surface-soft text-transparent hover:border-amber-500/50'
+                }`}
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+              </button>
+            </td>
+          ) : (
+            <>
+              {/* Checkbox PAGADO */}
+              <td className="py-2.5 px-2 text-center">
+                <button
+                  onClick={() => onTogglePaid(row)}
+                  title={row.is_paid ? 'Marcado como Pagado (clic para desmarcar)' : 'Marcar como Pagado'}
+                  className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
+                    row.is_paid
+                      ? 'bg-brand border-brand-light text-white shadow-md shadow-brand/20'
+                      : 'border-surface-edge bg-surface-soft text-transparent hover:border-brand/50'
+                  }`}
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </button>
+              </td>
 
-          {/* Checkbox DEVUELTO */}
-          <td className="py-2.5 px-2 text-center">
-            <button
-              onClick={() => onToggleReturned(row)}
-              title={row.is_returned ? 'Marcado como Devuelto (clic para mover a activas)' : 'Marcar como Devuelto (mover a historial)'}
-              className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
-                row.is_returned
-                  ? 'bg-brand border-brand-light text-white shadow-md shadow-brand/20'
-                  : 'border-surface-edge bg-surface-soft text-transparent hover:border-brand/50'
-              }`}
-            >
-              <Check className="w-4 h-4 stroke-[3]" />
-            </button>
-          </td>
+              {/* Checkbox DEVUELTO */}
+              <td className="py-2.5 px-2 text-center">
+                <button
+                  onClick={() => onToggleReturned(row)}
+                  title={row.is_returned ? 'Marcado como Devuelto (clic para mover a activas)' : 'Marcar como Devuelto (mover a historial)'}
+                  className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
+                    row.is_returned
+                      ? 'bg-brand border-brand-light text-white shadow-md shadow-brand/20'
+                      : 'border-surface-edge bg-surface-soft text-transparent hover:border-brand/50'
+                  }`}
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </button>
+              </td>
+
+              {/* Checkbox RETENIDO */}
+              <td className="py-2.5 px-2 text-center">
+                <button
+                  onClick={() => onToggleRetained(row)}
+                  title={row.is_retained ? 'Marcado como Retenido (clic para mover a activas)' : 'Marcar como Retenido (no presentado)'}
+                  className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
+                    row.is_retained
+                      ? 'bg-amber-600 border-amber-500 text-white shadow-md shadow-amber-600/20'
+                      : 'border-surface-edge bg-surface-soft text-transparent hover:border-amber-600/50'
+                  }`}
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                </button>
+              </td>
+            </>
+          )}
 
           {/* Acciones */}
           <td className="py-2.5 px-3 text-right whitespace-nowrap">
@@ -257,8 +312,15 @@ export default function Bizums_Table({
         </th>
         <th className="py-2.5 px-2 max-w-[150px] w-[150px]">TEL. BIZUM</th>
         <th className="py-2.5 px-2 text-center w-[65px]">WHATSAPP</th>
-        <th className="py-2.5 px-2 text-center w-[55px]">PAGADO</th>
-        <th className="py-2.5 px-2 text-center w-[55px]">DEVUELTO</th>
+        {activeTab === 'retained' ? (
+          <th className="py-2.5 px-2 text-center w-[75px]">REPARTIDO</th>
+        ) : (
+          <>
+            <th className="py-2.5 px-2 text-center w-[55px]">PAGADO</th>
+            <th className="py-2.5 px-2 text-center w-[55px]">DEVUELTO</th>
+            <th className="py-2.5 px-2 text-center w-[55px]">RETENIDO</th>
+          </>
+        )}
         <th className="py-2.5 px-3 text-right w-[55px]">ACC.</th>
       </tr>
     </thead>
@@ -269,6 +331,78 @@ export default function Bizums_Table({
       <div className="p-12 flex flex-col items-center justify-center space-y-4">
         <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         <p className="text-gray-400 font-medium animate-pulse text-sm">Cargando reservas por Bizum...</p>
+      </div>
+    );
+  }
+
+  // --- Vista 3: DEPÓSITOS RETENIDOS (Dividida en 2 tablas: Pendientes e Historial) ---
+  if (activeTab === 'retained') {
+    const pendingSettlement = bizums.filter((b) => !b.is_settled);
+    const settledBizums = bizums.filter((b) => b.is_settled);
+
+    return (
+      <div className="flex-1 flex flex-col min-h-0 gap-4 overflow-hidden">
+        {/* SECCIÓN 1: PENDIENTES DE REPARTIR ENTRE SOCIOS */}
+        <div className="bg-surface-soft/40 border border-amber-500/20 rounded-2xl overflow-hidden shadow-xl shrink-0">
+          {/* Banner de Sección */}
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-extrabold text-amber-300 uppercase tracking-wider">
+                  Pendientes de Repartir entre Socios
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {pendingSettlement.length} {pendingSettlement.length === 1 ? 'registro' : 'reservas'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] text-amber-400/80 font-medium hidden sm:inline">
+              Reserva retenida (no presentado o cancelación parcial). Haz el reparto y marca "REPARTIDO"
+            </span>
+          </div>
+
+          {/* Tabla de Pendientes */}
+          <div className="overflow-x-auto overflow-y-auto max-h-[290px] custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-full">
+              {renderTableHeader()}
+              <tbody className="divide-y divide-surface-edge/60 text-sm">
+                {renderTableRows(pendingSettlement, '🎉 ¡Genial! No hay depósitos pendientes de repartir entre los socios.')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SECCIÓN 2: HISTORIAL DE REPARTIDOS */}
+        <div className="flex-1 flex flex-col min-h-0 bg-surface-soft/40 border border-emerald-500/20 rounded-2xl overflow-hidden shadow-xl">
+          {/* Banner de Sección */}
+          <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2.5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-extrabold text-emerald-300 uppercase tracking-wider">
+                  Historial de Repartidos (Liquidado)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {settledBizums.length} {settledBizums.length === 1 ? 'registro' : 'registros'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] text-emerald-400/80 font-medium hidden sm:inline">
+              Cuentas saldadas. Reservas archivadas y liquidadas entre socios.
+            </span>
+          </div>
+
+          {/* Tabla de Repartidos */}
+          <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-full">
+              {renderTableHeader()}
+              <tbody className="divide-y divide-surface-edge/60 text-sm">
+                {renderTableRows(settledBizums, 'No hay depósitos liquidados en el historial.')}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   }

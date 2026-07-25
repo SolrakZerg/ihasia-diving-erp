@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabaseClient';
 
 export default function useBizumsData() {
   // --- Tab State ---
-  const [activeTab, setActiveTab] = useState('active'); // 'active' (is_returned=false) | 'returned' (is_returned=true)
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'returned' | 'retained'
 
   // --- Data State ---
   const [bizums, setBizums] = useState([]);
@@ -39,13 +39,19 @@ export default function useBizumsData() {
   const fetchBizums = useCallback(async () => {
     try {
       setLoading(true);
-      const isReturnedFilter = activeTab === 'returned';
       const limit = activeTab === 'active' ? 200 : 50;
 
       let q = supabase
         .from('bizums')
-        .select('*', { count: 'exact' })
-        .eq('is_returned', isReturnedFilter);
+        .select('*', { count: 'exact' });
+
+      if (activeTab === 'active') {
+        q = q.eq('is_returned', false).eq('is_retained', false);
+      } else if (activeTab === 'returned') {
+        q = q.eq('is_returned', true);
+      } else if (activeTab === 'retained') {
+        q = q.eq('has_retention', true);
+      }
 
       if (debouncedSearch.trim()) {
         const query = `%${debouncedSearch.trim()}%`;
@@ -145,6 +151,46 @@ export default function useBizumsData() {
     }
   };
 
+  // --- Toggle Retained ---
+  const handleToggleRetained = async (bizumRow) => {
+    const newRetainedStatus = !bizumRow.is_retained;
+    try {
+      const { error } = await supabase
+        .from('bizums')
+        .update({ is_retained: newRetainedStatus })
+        .eq('id', bizumRow.id);
+
+      if (error) throw error;
+
+      fetchBizums();
+      setToastMsg(newRetainedStatus ? 'Reserva movida a Retenidos.' : 'Reserva movida a Activas.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      alert('Error al actualizar estado de retención: ' + err.message);
+    }
+  };
+
+  // --- Toggle Settled ---
+  const handleToggleSettled = async (bizumRow) => {
+    const newSettledStatus = !bizumRow.is_settled;
+    try {
+      const { error } = await supabase
+        .from('bizums')
+        .update({ is_settled: newSettledStatus })
+        .eq('id', bizumRow.id);
+
+      if (error) throw error;
+
+      fetchBizums();
+      setToastMsg(newSettledStatus ? 'Depósito marcado como repartido.' : 'Depósito marcado como pendiente de repartir.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      alert('Error al actualizar estado de liquidación: ' + err.message);
+    }
+  };
+
   // --- Delete ---
   const handleDelete = (e, id, name) => {
     e.stopPropagation();
@@ -232,6 +278,8 @@ export default function useBizumsData() {
     // Handlers
     handleTogglePaid,
     handleToggleReturned,
+    handleToggleRetained,
+    handleToggleSettled,
     handleDelete,
     handleAdd,
     handleEdit,

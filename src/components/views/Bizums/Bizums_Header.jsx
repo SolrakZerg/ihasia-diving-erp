@@ -1,4 +1,4 @@
-import { Search, Plus, CreditCard, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, CreditCard, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function Bizums_Header({
   totalCount,
@@ -63,6 +63,17 @@ export default function Bizums_Header({
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Historial Devueltas
+          </button>
+          <button
+            onClick={() => onTabChange('retained')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'retained'
+                ? 'bg-brand text-white shadow-md'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Depósitos Retenidos
           </button>
         </div>
 

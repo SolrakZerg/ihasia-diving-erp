@@ -33,6 +33,8 @@ export default function Bizums_View() {
     // Handlers
     handleTogglePaid,
     handleToggleReturned,
+    handleToggleRetained,
+    handleToggleSettled,
     handleDelete,
     handleAdd,
     handleEdit,
@@ -81,6 +83,8 @@ export default function Bizums_View() {
           onSort={handleSort}
           onTogglePaid={handleTogglePaid}
           onToggleReturned={handleToggleReturned}
+          onToggleRetained={handleToggleRetained}
+          onToggleSettled={handleToggleSettled}
           onEdit={handleEdit}
           onDelete={handleDelete}
           goToPage={goToPage}

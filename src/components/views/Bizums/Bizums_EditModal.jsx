@@ -11,7 +11,10 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
 
   useEffect(() => {
     if (isOpen && bizum) {
-      setFormData({ ...bizum });
+      setFormData({ 
+        ...bizum,
+        returned_people: bizum.returned_people !== null && bizum.returned_people !== undefined ? bizum.returned_people : ''
+      });
     } else if (isOpen && !bizum) {
       const today = new Date().toISOString().split('T')[0];
       setFormData({
@@ -19,6 +22,9 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
         num_people: 1,
         is_paid: false,
         is_returned: false,
+        is_retained: false,
+        is_settled: false,
+        returned_people: '',
       });
     } else if (!isOpen) {
       setFormData({});
@@ -57,6 +63,9 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
         whatsapp_phone: formData.whatsapp_phone ? formData.whatsapp_phone.trim() : null,
         is_paid: !!formData.is_paid,
         is_returned: !!formData.is_returned,
+        is_retained: !!formData.is_retained,
+        returned_people: formData.returned_people !== '' && formData.returned_people !== undefined && formData.returned_people !== null ? Number(formData.returned_people) : null,
+        is_settled: !!formData.is_settled,
         notes: formData.notes ? formData.notes.trim() : null,
       };
 
@@ -182,6 +191,18 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
               icon={Phone}
               placeholder="Ej. +34623181447"
             />
+
+            <InputGroup
+              label="Pax Devuelto / Aplicado"
+              name="returned_people"
+              type="number"
+              min="0"
+              max={formData.num_people || 1}
+              value={formData.returned_people !== undefined ? formData.returned_people : ''}
+              onChange={handleChange}
+              icon={Hash}
+              placeholder="Vacío = todos"
+            />
           </div>
 
           {/* Checkboxes */}
@@ -207,6 +228,30 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
               />
               <span>Marcado como DEVUELTO</span>
             </label>
+
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-300 select-none">
+              <input
+                type="checkbox"
+                name="is_retained"
+                checked={!!formData.is_retained}
+                onChange={handleChange}
+                className="w-4 h-4 rounded border-surface-edge text-brand focus:ring-brand"
+              />
+              <span>Marcado como RETENIDO</span>
+            </label>
+
+            {(formData.is_retained || (formData.is_returned && formData.returned_people !== '' && formData.returned_people !== null && Number(formData.returned_people) < Number(formData.num_people))) && (
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-400 select-none">
+                <input
+                  type="checkbox"
+                  name="is_settled"
+                  checked={!!formData.is_settled}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded border-surface-edge text-amber-500 focus:ring-amber-500"
+                />
+                <span>REPARTIDO ENTRE SOCIOS</span>
+              </label>
+            )}
           </div>
         </form>
 
