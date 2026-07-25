@@ -1,6 +1,7 @@
--- Migration script to automate sync between 'bizums' and 'invoice_items'
+-- Migration script to automate sync between 'bizums' and 'invoice_items',
+-- and auto-import Wise deposits from Google Calendar.
 -- Project: Diving ERP
--- Version: 3.1 (Supports Retained, Partial Refunds, and Partner Settlements - Fully Tested)
+-- Version: 4.0 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync)
 
 -- Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;
@@ -28,7 +29,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Función para buscar depósitos de Bizum activos (ignora retenidos y calcula pax devuelto)
+-- Función para buscar depósitos de Bizum activos (ventana flexible de ±3 días)
 CREATE OR REPLACE FUNCTION public.fn_match_bizum_deposit(
   p_customer_id uuid
 )
@@ -70,7 +71,8 @@ BEGIN
   WHERE b.is_paid = true 
     AND b.is_returned = false
     AND b.is_retained = false -- Excluir retenidos
-    AND b.booking_date = v_cust_date
+    AND b.booking_date >= v_cust_date - 3 -- Margen de 3 días antes
+    AND b.booking_date <= v_cust_date + 3 -- Margen de 3 días después
     AND (
       -- Coincidencia de teléfono
       (v_clean_phone <> '' AND (
@@ -87,6 +89,7 @@ BEGIN
     )
   ORDER BY 
     (v_clean_phone <> '' AND (public.fn_clean_phone(b.bizum_phone) = v_clean_phone OR public.fn_clean_phone(b.whatsapp_phone) = v_clean_phone)) DESC,
+    abs(b.booking_date - v_cust_date) ASC, -- Priorizar fecha más cercana
     extensions.similarity(v_normalized_full, public.fn_normalize_name(b.customer_name)) DESC,
     b.created_at DESC
   LIMIT 1;
@@ -253,7 +256,275 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Crear triggers
+-- Función RPC para buscar depósitos Wise en Google Calendar
+CREATE OR REPLACE FUNCTION public.fn_match_google_calendar_deposit(
+  p_first_name text,
+  p_last_name text,
+  p_booking_date date
+)
+RETURNS jsonb AS $$
+DECLARE
+  v_client_id text;
+  v_client_secret text;
+  v_refresh_token text;
+  
+  v_token_req_body text;
+  v_token_res http_response;
+  v_token_json jsonb;
+  v_access_token text;
+  
+  v_calendar_list_res http_response;
+  v_calendar_list_json jsonb;
+  v_item jsonb;
+  v_calendar_id text := 'primary';
+  
+  v_start_str text;
+  v_end_str text;
+  v_cal_res http_response;
+  v_cal_json jsonb;
+  v_event jsonb;
+  v_summary text;
+  v_description text;
+  
+  -- Regex extraction variables
+  v_matches text[];
+  v_pax int;
+  v_amount numeric;
+  v_method text;
+  
+  v_search_query text;
+BEGIN
+  -- 1. Obtener los 3 secretos desencrypted desde Supabase Vault
+  SELECT decrypted_secret INTO v_client_id FROM vault.decrypted_secrets WHERE name = 'GOOGLE_CLIENT_ID' LIMIT 1;
+  SELECT decrypted_secret INTO v_client_secret FROM vault.decrypted_secrets WHERE name = 'GOOGLE_CLIENT_SECRET' LIMIT 1;
+  SELECT decrypted_secret INTO v_refresh_token FROM vault.decrypted_secrets WHERE name = 'GOOGLE_REFRESH_TOKEN' LIMIT 1;
+
+  IF v_client_id IS NULL OR v_client_secret IS NULL OR v_refresh_token IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'No se encontraron las credenciales de Google OAuth en Vault');
+  END IF;
+
+  -- 2. Renovar Access Token usando Google OAuth2 API
+  v_token_req_body := 'client_id=' || urlencode(v_client_id) ||
+                      '&client_secret=' || urlencode(v_client_secret) ||
+                      '&refresh_token=' || urlencode(v_refresh_token) ||
+                      '&grant_type=refresh_token';
+
+  v_token_res := http((
+    'POST',
+    'https://oauth2.googleapis.com/token',
+    ARRAY[http_header('Content-Type', 'application/x-www-form-urlencoded')],
+    'application/x-www-form-urlencoded',
+    v_token_req_body
+  )::http_request);
+
+  IF v_token_res.status >= 300 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Error al obtener Access Token de Google (status ' || v_token_res.status::text || '): ' || v_token_res.content);
+  END IF;
+
+  v_token_json := v_token_res.content::jsonb;
+  v_access_token := v_token_json->>'access_token';
+
+  IF v_access_token IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'No se pudo obtener access_token de la respuesta de Google');
+  END IF;
+
+  -- 3. Buscar el Calendar ID para "IHASIA Llegadas New"
+  BEGIN
+    v_calendar_list_res := http((
+      'GET',
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+      ARRAY[http_header('Authorization', 'Bearer ' || v_access_token)],
+      NULL,
+      NULL
+    )::http_request);
+
+    IF v_calendar_list_res.status = 200 THEN
+      v_calendar_list_json := v_calendar_list_res.content::jsonb;
+      FOR v_item IN SELECT * FROM jsonb_array_elements(v_calendar_list_json->'items') LOOP
+        IF v_item->>'summary' = 'IHASIA Llegadas New' THEN
+          v_calendar_id := v_item->>'id';
+          EXIT;
+        END IF;
+      END LOOP;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    v_calendar_id := 'primary';
+  END;
+
+  -- 4. Definir rango de búsqueda (la fecha del evento)
+  v_start_str := to_char(p_booking_date, 'YYYY-MM-DD') || 'T00:00:00Z';
+  v_end_str := to_char(p_booking_date, 'YYYY-MM-DD') || 'T23:59:59Z';
+  
+  v_search_query := trim(p_first_name);
+
+  IF length(v_search_query) = 0 THEN
+    RETURN jsonb_build_object('success', true, 'matched', false, 'reason', 'Primer nombre vacío');
+  END IF;
+
+  v_cal_res := http((
+    'GET',
+    'https://www.googleapis.com/calendar/v3/calendars/' || urlencode(v_calendar_id) || '/events?' ||
+      'timeMin=' || urlencode(v_start_str) || '&timeMax=' || urlencode(v_end_str) || '&q=' || urlencode(v_search_query),
+    ARRAY[
+      http_header('Authorization', 'Bearer ' || v_access_token)
+    ],
+    NULL,
+    NULL
+  )::http_request);
+
+  IF v_cal_res.status >= 300 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Error consultando eventos en Google Calendar (status ' || v_cal_res.status::text || '): ' || v_cal_res.content);
+  END IF;
+
+  v_cal_json := v_cal_res.content::jsonb;
+
+  -- 5. Analizar los eventos encontrados
+  FOR v_event IN SELECT * FROM jsonb_array_elements(v_cal_json->'items') LOOP
+    v_summary := v_event->>'summary';
+    v_description := v_event->>'description';
+
+    -- Comprobar si el summary coincide con el nombre
+    IF v_summary ILIKE '%' || v_search_query || '%' THEN
+      -- Limpiar formato HTML y decodificar entidades comunes
+      v_description := regexp_replace(COALESCE(v_description, ''), '<[^>]*>', '', 'g');
+      v_description := replace(v_description, '&gt;', '>');
+      v_description := replace(v_description, '&lt;', '<');
+      v_description := replace(v_description, '&nbsp;', ' ');
+
+      -- Buscar el patrón en la descripción
+      v_matches := regexp_matches(
+        v_description, 
+        'Reserva:\s*(\d+)\s*personas?\s*->\s*(\d+)\s*(?:thb)?\s*a\s*([A-Za-z0-9\s]+)', 
+        'i'
+      );
+      
+      IF v_matches IS NOT NULL AND array_length(v_matches, 1) >= 3 THEN
+        v_pax := v_matches[1]::int;
+        v_amount := v_matches[2]::numeric;
+        v_method := trim(v_matches[3]);
+
+        RETURN jsonb_build_object(
+          'success', true,
+          'matched', true,
+          'event_summary', v_summary,
+          'num_people', v_pax,
+          'deposit_thb', v_amount,
+          'payment_method', v_method
+        );
+      END IF;
+    END IF;
+  END LOOP;
+
+  RETURN jsonb_build_object('success', true, 'matched', false);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para importar reservas de Google Calendar en facturas automáticamente
+CREATE OR REPLACE FUNCTION public.fn_trg_billing_auto_import_calendar_deposit()
+RETURNS trigger AS $$
+DECLARE
+  v_cust record;
+  v_cal_res jsonb;
+  v_reserva_exists boolean;
+  v_bizum_exists boolean;
+  v_reserva_activity_id uuid := '06ee3b83-af61-462e-9e98-b8dc90107ef9';
+BEGIN
+  -- 1. Evitar recursividad
+  IF NEW.activity_id = v_reserva_activity_id THEN
+    RETURN NEW;
+  END IF;
+
+  -- 2. Ejecutar solo si tiene cliente asignado y es una nueva asignación
+  IF NEW.customer_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.customer_id IS NOT DISTINCT FROM NEW.customer_id THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+
+  -- 3. OPTIMIZACIÓN CRÍTICA: Si ya tiene un depósito de Bizum asignado o existe uno coincidente
+  -- en la base de datos local (ventana ±3 días), omitir por completo la llamada a Google Calendar.
+  IF NEW.bizum_deposit_eur IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.fn_match_bizum_deposit(NEW.customer_id)
+  ) INTO v_bizum_exists;
+
+  IF v_bizum_exists THEN
+    RETURN NEW;
+  END IF;
+
+  -- 4. Comprobar si ya existe una línea de Reserva para esta factura
+  SELECT EXISTS (
+    SELECT 1 
+    FROM public.invoice_items 
+    WHERE invoice_id = NEW.invoice_id 
+      AND activity_id = v_reserva_activity_id
+  ) INTO v_reserva_exists;
+
+  IF v_reserva_exists THEN
+    RETURN NEW;
+  END IF;
+
+  -- 5. Obtener datos del cliente
+  SELECT first_name, last_name, booking_date
+  INTO v_cust
+  FROM public.customers
+  WHERE id = NEW.customer_id;
+
+  IF NOT FOUND OR v_cust.booking_date IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- 6. Consultar Google Calendar
+  BEGIN
+    v_cal_res := public.fn_match_google_calendar_deposit(v_cust.first_name, v_cust.last_name, v_cust.booking_date);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Error al consultar Google Calendar en trigger: %', SQLERRM;
+    RETURN NEW;
+  END;
+
+  -- 7. Si hay coincidencia de Wise, insertar la línea de Reserva en la misma factura
+  IF v_cal_res->>'matched' = 'true' THEN
+    INSERT INTO public.invoice_items (
+      invoice_id,
+      customer_id,
+      activity_id,
+      date,
+      quantity,
+      unit_price_thb,
+      total_thb,
+      status,
+      payment_method,
+      notes
+    ) VALUES (
+      NEW.invoice_id,
+      NEW.customer_id,
+      v_reserva_activity_id,
+      v_cust.booking_date,
+      (v_cal_res->>'num_people')::integer,
+      CASE 
+        WHEN (v_cal_res->>'num_people')::integer > 0 THEN ((v_cal_res->>'deposit_thb')::numeric / (v_cal_res->>'num_people')::integer)::numeric
+        ELSE 1000
+      END,
+      (v_cal_res->>'deposit_thb')::numeric,
+      'Paid',
+      COALESCE(v_cal_res->>'payment_method', 'WISE BT'),
+      'Auto-importado de Google Calendar: ' || (v_cal_res->>'event_summary')
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Registrar disparadores
+
 DROP TRIGGER IF EXISTS trg_sync_invoice_item_bizum ON public.invoice_items;
 CREATE TRIGGER trg_sync_invoice_item_bizum
 BEFORE INSERT OR UPDATE ON public.invoice_items
@@ -271,3 +542,9 @@ CREATE TRIGGER trg_bizums_before_save
 BEFORE INSERT OR UPDATE ON public.bizums
 FOR EACH ROW
 EXECUTE FUNCTION public.fn_trg_bizums_before_save();
+
+DROP TRIGGER IF EXISTS trg_billing_auto_import_calendar_deposit ON public.invoice_items;
+CREATE TRIGGER trg_billing_auto_import_calendar_deposit
+AFTER INSERT OR UPDATE ON public.invoice_items
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_trg_billing_auto_import_calendar_deposit();
