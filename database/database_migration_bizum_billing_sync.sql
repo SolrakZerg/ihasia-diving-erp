@@ -1,7 +1,7 @@
 -- Migration script to automate sync between 'bizums' and 'invoice_items',
 -- and auto-import Wise deposits from Google Calendar.
 -- Project: Diving ERP
--- Version: 4.1 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Phone matching)
+-- Version: 4.2 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Timezone-proof phone matching)
 
 -- Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;
@@ -256,7 +256,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Función RPC para buscar depósitos Wise en Google Calendar
+-- Función RPC para buscar depósitos Wise en Google Calendar (desfase de zona horaria mitigado ±1 día)
 CREATE OR REPLACE FUNCTION public.fn_match_google_calendar_deposit(
   p_first_name text,
   p_last_name text,
@@ -330,7 +330,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'No se pudo obtener access_token de la respuesta de Google');
   END IF;
 
-  -- 3. Buscar el Calendar ID para "IHASIA Llegadas New"
+  -- 3. Buscar el Calendar ID para "IHASIA llegadas New"
   BEGIN
     v_calendar_list_res := http((
       'GET',
@@ -343,7 +343,7 @@ BEGIN
     IF v_calendar_list_res.status = 200 THEN
       v_calendar_list_json := v_calendar_list_res.content::jsonb;
       FOR v_item IN SELECT * FROM jsonb_array_elements(v_calendar_list_json->'items') LOOP
-        IF v_item->>'summary' = 'IHASIA Llegadas New' THEN
+        IF lower(v_item->>'summary') = 'ihasia llegadas new' THEN
           v_calendar_id := v_item->>'id';
           EXIT;
         END IF;
@@ -353,14 +353,13 @@ BEGIN
     v_calendar_id := 'primary';
   END;
 
-  -- 4. Definir rango de búsqueda (la fecha del evento)
-  v_start_str := to_char(p_booking_date, 'YYYY-MM-DD') || 'T00:00:00Z';
-  v_end_str := to_char(p_booking_date, 'YYYY-MM-DD') || 'T23:59:59Z';
+  -- 4. Rango de búsqueda ±1 día para compensar desfases de zonas horarias en eventos de todo el día
+  v_start_str := to_char(p_booking_date - 1, 'YYYY-MM-DD') || 'T00:00:00Z';
+  v_end_str := to_char(p_booking_date + 1, 'YYYY-MM-DD') || 'T23:59:59Z';
   
   v_clean_phone := public.fn_clean_phone(p_phone);
   v_search_query := trim(p_first_name);
 
-  -- Realizar la consulta a Google Calendar para todo el día (sin filtro de consulta &q=)
   v_cal_res := http((
     'GET',
     'https://www.googleapis.com/calendar/v3/calendars/' || urlencode(v_calendar_id) || '/events?' ||
@@ -380,40 +379,43 @@ BEGIN
 
   -- 5. Analizar los eventos encontrados
   FOR v_event IN SELECT * FROM jsonb_array_elements(v_cal_json->'items') LOOP
-    v_summary := v_event->>'summary';
-    v_description := v_event->>'description';
+    -- Filtrar en SQL que la fecha del evento sea exactamente el día de reserva (p_booking_date)
+    IF COALESCE(v_event->'start'->>'date', v_event->'start'->>'dateTime') LIKE to_char(p_booking_date, 'YYYY-MM-DD') || '%' THEN
+      v_summary := v_event->>'summary';
+      v_description := v_event->>'description';
 
-    -- Limpiar formato HTML y decodificar entidades comunes
-    v_description := regexp_replace(COALESCE(v_description, ''), '<[^>]*>', '', 'g');
-    v_description := replace(v_description, '&gt;', '>');
-    v_description := replace(v_description, '&lt;', '<');
-    v_description := replace(v_description, '&nbsp;', ' ');
+      -- Limpiar formato HTML y decodificar entidades comunes
+      v_description := regexp_replace(COALESCE(v_description, ''), '<[^>]*>', '', 'g');
+      v_description := replace(v_description, '&gt;', '>');
+      v_description := replace(v_description, '&lt;', '<');
+      v_description := replace(v_description, '&nbsp;', ' ');
 
-    -- Comprobar coincidencia: por teléfono (prioritario e inmune a erratas) o por primer nombre en el título
-    IF (v_clean_phone <> '' AND (v_description LIKE '%' || v_clean_phone || '%' OR v_summary LIKE '%' || v_clean_phone || '%'))
-       OR (v_search_query <> '' AND v_summary ILIKE '%' || v_search_query || '%') THEN
-       
-      -- Buscar el patrón en la descripción:
-      -- Ej: "Reserva: 2 personas -> 2000 thb a WISE BT"
-      v_matches := regexp_matches(
-        v_description, 
-        'Reserva:\s*(\d+)\s*personas?\s*->\s*(\d+)\s*(?:thb)?\s*a\s*([A-Za-z0-9\s]+)', 
-        'i'
-      );
-      
-      IF v_matches IS NOT NULL AND array_length(v_matches, 1) >= 3 THEN
-        v_pax := v_matches[1]::int;
-        v_amount := v_matches[2]::numeric;
-        v_method := trim(v_matches[3]);
-
-        RETURN jsonb_build_object(
-          'success', true,
-          'matched', true,
-          'event_summary', v_summary,
-          'num_people', v_pax,
-          'deposit_thb', v_amount,
-          'payment_method', v_method
+      -- Comprobar coincidencia: por teléfono (prioritario) o por primer nombre en el título
+      IF (v_clean_phone <> '' AND (v_description LIKE '%' || v_clean_phone || '%' OR v_summary LIKE '%' || v_clean_phone || '%'))
+         OR (v_search_query <> '' AND v_summary ILIKE '%' || v_search_query || '%') THEN
+         
+        -- Buscar el patrón en la descripción:
+        -- Ej: "Reserva: 2 personas -> 2000 thb a WISE BT"
+        v_matches := regexp_matches(
+          v_description, 
+          'Reserva:\s*(\d+)\s*personas?\s*->\s*(\d+)\s*(?:thb)?\s*a\s*([A-Za-z0-9\s]+)', 
+          'i'
         );
+        
+        IF v_matches IS NOT NULL AND array_length(v_matches, 1) >= 3 THEN
+          v_pax := v_matches[1]::int;
+          v_amount := v_matches[2]::numeric;
+          v_method := trim(v_matches[3]);
+
+          RETURN jsonb_build_object(
+            'success', true,
+            'matched', true,
+            'event_summary', v_summary,
+            'num_people', v_pax,
+            'deposit_thb', v_amount,
+            'payment_method', v_method
+          );
+        END IF;
       END IF;
     END IF;
   END LOOP;
