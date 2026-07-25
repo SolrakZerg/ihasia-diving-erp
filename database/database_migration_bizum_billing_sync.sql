@@ -1,7 +1,7 @@
 -- Migration script to automate sync between 'bizums' and 'invoice_items',
 -- and auto-import Wise deposits from Google Calendar.
 -- Project: Diving ERP
--- Version: 4.2 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Timezone-proof phone matching)
+-- Version: 4.3 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Timezone-proof phone matching, Group matching filters and Sentinel checks)
 
 -- Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;
@@ -295,6 +295,10 @@ DECLARE
   
   v_clean_phone text;
   v_search_query text;
+  
+  v_matched_by_phone boolean;
+  v_event_phone text;
+  v_other_cust_exists boolean;
 BEGIN
   -- 1. Obtener los 3 secretos desencrypted desde Supabase Vault
   SELECT decrypted_secret INTO v_client_id FROM vault.decrypted_secrets WHERE name = 'GOOGLE_CLIENT_ID' LIMIT 1;
@@ -360,6 +364,7 @@ BEGIN
   v_clean_phone := public.fn_clean_phone(p_phone);
   v_search_query := trim(p_first_name);
 
+  -- Realizar la consulta a Google Calendar para el rango de 3 días
   v_cal_res := http((
     'GET',
     'https://www.googleapis.com/calendar/v3/calendars/' || urlencode(v_calendar_id) || '/events?' ||
@@ -379,43 +384,65 @@ BEGIN
 
   -- 5. Analizar los eventos encontrados
   FOR v_event IN SELECT * FROM jsonb_array_elements(v_cal_json->'items') LOOP
-    -- Filtrar en SQL que la fecha del evento sea exactamente el día de reserva (p_booking_date)
+    -- Filtrar que la fecha sea la correcta
     IF COALESCE(v_event->'start'->>'date', v_event->'start'->>'dateTime') LIKE to_char(p_booking_date, 'YYYY-MM-DD') || '%' THEN
       v_summary := v_event->>'summary';
       v_description := v_event->>'description';
 
-      -- Limpiar formato HTML y decodificar entidades comunes
+      -- Limpiar formato HTML
       v_description := regexp_replace(COALESCE(v_description, ''), '<[^>]*>', '', 'g');
       v_description := replace(v_description, '&gt;', '>');
       v_description := replace(v_description, '&lt;', '<');
       v_description := replace(v_description, '&nbsp;', ' ');
 
-      -- Comprobar coincidencia: por teléfono (prioritario) o por primer nombre en el título
-      IF (v_clean_phone <> '' AND (v_description LIKE '%' || v_clean_phone || '%' OR v_summary LIKE '%' || v_clean_phone || '%'))
-         OR (v_search_query <> '' AND v_summary ILIKE '%' || v_search_query || '%') THEN
-         
-        -- Buscar el patrón en la descripción:
-        -- Ej: "Reserva: 2 personas -> 2000 thb a WISE BT"
-        v_matches := regexp_matches(
-          v_description, 
-          'Reserva:\s*(\d+)\s*personas?\s*->\s*(\d+)\s*(?:thb)?\s*a\s*([A-Za-z0-9\s]+)', 
-          'i'
-        );
-        
-        IF v_matches IS NOT NULL AND array_length(v_matches, 1) >= 3 THEN
-          v_pax := v_matches[1]::int;
-          v_amount := v_matches[2]::numeric;
-          v_method := trim(v_matches[3]);
+      -- Comprobar coincidencia: por teléfono (prioritario) o por nombre (fallback)
+      IF (v_clean_phone <> '' AND (v_description LIKE '%' || v_clean_phone || '%' OR v_summary LIKE '%' || v_clean_phone || '%')) THEN
+        v_matched_by_phone := true;
+      ELSIF (v_search_query <> '' AND v_summary ILIKE '%' || v_search_query || '%') THEN
+        v_matched_by_phone := false;
+      ELSE
+        CONTINUE;
+      END IF;
 
-          RETURN jsonb_build_object(
-            'success', true,
-            'matched', true,
-            'event_summary', v_summary,
-            'num_people', v_pax,
-            'deposit_thb', v_amount,
-            'payment_method', v_method
-          );
+      -- OPTIMIZACIÓN DE PROPIEDAD: Si coincide por nombre pero NO por teléfono,
+      -- comprobamos si el evento contiene el teléfono de otro cliente registrado hoy.
+      -- Si es así, no lo asignamos a este cliente, dejamos que se asigne al cliente dueño del teléfono.
+      IF NOT v_matched_by_phone THEN
+        v_event_phone := substring(v_description from 'wa\.me/(\d+)');
+        IF v_event_phone IS NOT NULL AND v_event_phone <> v_clean_phone THEN
+          SELECT EXISTS (
+            SELECT 1 FROM public.customers 
+            WHERE booking_date = p_booking_date 
+              AND public.fn_clean_phone(phone) = v_event_phone
+          ) INTO v_other_cust_exists;
+          
+          IF v_other_cust_exists THEN
+            -- Pertenece al otro cliente propietario del teléfono, saltar coincidencia
+            CONTINUE;
+          END IF;
         END IF;
+      END IF;
+
+      -- Buscar el patrón de la reserva
+      v_matches := regexp_matches(
+        v_description, 
+        'Reserva:\s*(\d+)\s*personas?\s*->\s*(\d+)\s*(?:thb)?\s*a\s*([A-Za-z0-9\s]+)', 
+        'i'
+      );
+      
+      IF v_matches IS NOT NULL AND array_length(v_matches, 1) >= 3 THEN
+        v_pax := v_matches[1]::int;
+        v_amount := v_matches[2]::numeric;
+        v_method := trim(v_matches[3]);
+
+        RETURN jsonb_build_object(
+          'success', true,
+          'matched', true,
+          'event_summary', v_summary,
+          'num_people', v_pax,
+          'deposit_thb', v_amount,
+          'payment_method', v_method
+        );
       END IF;
     END IF;
   END LOOP;
@@ -432,6 +459,20 @@ DECLARE
   v_cal_res jsonb;
   v_reserva_exists boolean;
   v_bizum_exists boolean;
+  v_event_already_imported boolean;
+  v_reserva_activity_id uuid := '06ee3b83-af61-462e-9e98-b8dc90107ef9';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para importar reservas de Google Calendar en facturas automáticamente
+CREATE OR REPLACE FUNCTION public.fn_trg_billing_auto_import_calendar_deposit()
+RETURNS trigger AS $$
+DECLARE
+  v_cust record;
+  v_cal_res jsonb;
+  v_reserva_exists boolean;
+  v_bizum_exists boolean;
+  v_event_already_imported boolean;
   v_reserva_activity_id uuid := '06ee3b83-af61-462e-9e98-b8dc90107ef9';
 BEGIN
   -- 1. Evitar recursividad
@@ -494,8 +535,21 @@ BEGIN
     RETURN NEW;
   END;
 
-  -- 7. Si hay coincidencia de Wise, insertar la línea de Reserva en la misma factura
+  -- 7. Si hay coincidencia de Wise, insertar la línea de Reserva
   IF v_cal_res->>'matched' = 'true' THEN
+    -- 7.5. PREVENIR DUPLICIDAD GLOBAL: Comprobar si este evento de Google Calendar ya fue importado
+    -- en cualquier otra factura para la fecha de reserva (para no duplicar depósitos de reservas grupales)
+    SELECT EXISTS (
+      SELECT 1 
+      FROM public.invoice_items 
+      WHERE date = v_cust.booking_date 
+        AND notes = 'Auto-importado de Google Calendar: ' || (v_cal_res->>'event_summary')
+    ) INTO v_event_already_imported;
+
+    IF v_event_already_imported THEN
+      RETURN NEW;
+    END IF;
+
     INSERT INTO public.invoice_items (
       invoice_id,
       customer_id,
