@@ -422,7 +422,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'matched', false);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp, extensions;
 
 -- Trigger para importar reservas de Google Calendar en facturas automáticamente
 CREATE OR REPLACE FUNCTION public.fn_trg_billing_auto_import_calendar_deposit()
