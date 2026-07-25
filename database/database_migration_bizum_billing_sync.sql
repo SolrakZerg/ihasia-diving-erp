@@ -1,7 +1,7 @@
 -- Migration script to automate sync between 'bizums' and 'invoice_items',
 -- and auto-import Wise deposits from Google Calendar.
 -- Project: Diving ERP
--- Version: 4.0 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync)
+-- Version: 4.1 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Phone matching)
 
 -- Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;
@@ -260,6 +260,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION public.fn_match_google_calendar_deposit(
   p_first_name text,
   p_last_name text,
+  p_phone text,
   p_booking_date date
 )
 RETURNS jsonb AS $$
@@ -292,6 +293,7 @@ DECLARE
   v_amount numeric;
   v_method text;
   
+  v_clean_phone text;
   v_search_query text;
 BEGIN
   -- 1. Obtener los 3 secretos desencrypted desde Supabase Vault
@@ -355,16 +357,14 @@ BEGIN
   v_start_str := to_char(p_booking_date, 'YYYY-MM-DD') || 'T00:00:00Z';
   v_end_str := to_char(p_booking_date, 'YYYY-MM-DD') || 'T23:59:59Z';
   
+  v_clean_phone := public.fn_clean_phone(p_phone);
   v_search_query := trim(p_first_name);
 
-  IF length(v_search_query) = 0 THEN
-    RETURN jsonb_build_object('success', true, 'matched', false, 'reason', 'Primer nombre vacío');
-  END IF;
-
+  -- Realizar la consulta a Google Calendar para todo el día (sin filtro de consulta &q=)
   v_cal_res := http((
     'GET',
     'https://www.googleapis.com/calendar/v3/calendars/' || urlencode(v_calendar_id) || '/events?' ||
-      'timeMin=' || urlencode(v_start_str) || '&timeMax=' || urlencode(v_end_str) || '&q=' || urlencode(v_search_query),
+      'timeMin=' || urlencode(v_start_str) || '&timeMax=' || urlencode(v_end_str),
     ARRAY[
       http_header('Authorization', 'Bearer ' || v_access_token)
     ],
@@ -383,15 +383,18 @@ BEGIN
     v_summary := v_event->>'summary';
     v_description := v_event->>'description';
 
-    -- Comprobar si el summary coincide con el nombre
-    IF v_summary ILIKE '%' || v_search_query || '%' THEN
-      -- Limpiar formato HTML y decodificar entidades comunes
-      v_description := regexp_replace(COALESCE(v_description, ''), '<[^>]*>', '', 'g');
-      v_description := replace(v_description, '&gt;', '>');
-      v_description := replace(v_description, '&lt;', '<');
-      v_description := replace(v_description, '&nbsp;', ' ');
+    -- Limpiar formato HTML y decodificar entidades comunes
+    v_description := regexp_replace(COALESCE(v_description, ''), '<[^>]*>', '', 'g');
+    v_description := replace(v_description, '&gt;', '>');
+    v_description := replace(v_description, '&lt;', '<');
+    v_description := replace(v_description, '&nbsp;', ' ');
 
-      -- Buscar el patrón en la descripción
+    -- Comprobar coincidencia: por teléfono (prioritario e inmune a erratas) o por primer nombre en el título
+    IF (v_clean_phone <> '' AND (v_description LIKE '%' || v_clean_phone || '%' OR v_summary LIKE '%' || v_clean_phone || '%'))
+       OR (v_search_query <> '' AND v_summary ILIKE '%' || v_search_query || '%') THEN
+       
+      -- Buscar el patrón en la descripción:
+      -- Ej: "Reserva: 2 personas -> 2000 thb a WISE BT"
       v_matches := regexp_matches(
         v_description, 
         'Reserva:\s*(\d+)\s*personas?\s*->\s*(\d+)\s*(?:thb)?\s*a\s*([A-Za-z0-9\s]+)', 
@@ -471,8 +474,8 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- 5. Obtener datos del cliente
-  SELECT first_name, last_name, booking_date
+  -- 5. Obtener datos del cliente (incluyendo el teléfono)
+  SELECT first_name, last_name, phone, booking_date
   INTO v_cust
   FROM public.customers
   WHERE id = NEW.customer_id;
@@ -481,9 +484,9 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- 6. Consultar Google Calendar
+  -- 6. Consultar Google Calendar pasando nombre, apellido, teléfono y fecha de reserva
   BEGIN
-    v_cal_res := public.fn_match_google_calendar_deposit(v_cust.first_name, v_cust.last_name, v_cust.booking_date);
+    v_cal_res := public.fn_match_google_calendar_deposit(v_cust.first_name, v_cust.last_name, v_cust.phone, v_cust.booking_date);
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING 'Error al consultar Google Calendar en trigger: %', SQLERRM;
     RETURN NEW;
