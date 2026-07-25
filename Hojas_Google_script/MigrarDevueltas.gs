@@ -21,10 +21,10 @@ function migrarReservasDevueltas() {
   var sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
   var sheet = null;
   
-  // Buscar la hoja de forma robusta por coincidencia parcial de nombre (ignora emojis)
+  // Buscar la hoja de forma robusta por coincidencia de "Reservas Devueltas 2026" (ignora emojis)
   for (var i = 0; i < sheets.length; i++) {
     var name = sheets[i].getName();
-    if (name.indexOf("Reservas Devueltas") !== -1) {
+    if (name.indexOf("Reservas Devueltas 2026") !== -1) {
       sheet = sheets[i];
       break;
     }
