@@ -1,7 +1,7 @@
 -- Migration script to automate sync between 'bizums' and 'invoice_items',
 -- and auto-import Wise deposits from Google Calendar.
 -- Project: Diving ERP
--- Version: 4.3 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Timezone-proof phone matching, Group matching filters and Sentinel checks)
+-- Version: 4.4 (Supports Retained, Partial Refunds, Partner Settlements, and Google Calendar Wise Sync with Timezone-proof phone matching, Group matching filters, Sentinel checks, and Manual date assignment)
 
 -- Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;
@@ -461,19 +461,6 @@ DECLARE
   v_bizum_exists boolean;
   v_event_already_imported boolean;
   v_reserva_activity_id uuid := '06ee3b83-af61-462e-9e98-b8dc90107ef9';
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger para importar reservas de Google Calendar en facturas automáticamente
-CREATE OR REPLACE FUNCTION public.fn_trg_billing_auto_import_calendar_deposit()
-RETURNS trigger AS $$
-DECLARE
-  v_cust record;
-  v_cal_res jsonb;
-  v_reserva_exists boolean;
-  v_bizum_exists boolean;
-  v_event_already_imported boolean;
-  v_reserva_activity_id uuid := '06ee3b83-af61-462e-9e98-b8dc90107ef9';
 BEGIN
   -- 1. Evitar recursividad
   IF NEW.activity_id = v_reserva_activity_id THEN
@@ -538,18 +525,18 @@ BEGIN
   -- 7. Si hay coincidencia de Wise, insertar la línea de Reserva
   IF v_cal_res->>'matched' = 'true' THEN
     -- 7.5. PREVENIR DUPLICIDAD GLOBAL: Comprobar si este evento de Google Calendar ya fue importado
-    -- en cualquier otra factura para la fecha de reserva (para no duplicar depósitos de reservas grupales)
+    -- en cualquier otra factura
     SELECT EXISTS (
       SELECT 1 
       FROM public.invoice_items 
-      WHERE date = v_cust.booking_date 
-        AND notes = 'Auto-importado de Google Calendar: ' || (v_cal_res->>'event_summary')
+      WHERE notes = 'Auto-importado de Google Calendar: ' || (v_cal_res->>'event_summary')
     ) INTO v_event_already_imported;
 
     IF v_event_already_imported THEN
       RETURN NEW;
     END IF;
 
+    -- Insertar la Reserva con fecha NULL para asignarla manualmente en la UI
     INSERT INTO public.invoice_items (
       invoice_id,
       customer_id,
@@ -565,7 +552,7 @@ BEGIN
       NEW.invoice_id,
       NEW.customer_id,
       v_reserva_activity_id,
-      v_cust.booking_date,
+      NULL, -- date set to NULL
       (v_cal_res->>'num_people')::integer,
       CASE 
         WHEN (v_cal_res->>'num_people')::integer > 0 THEN ((v_cal_res->>'deposit_thb')::numeric / (v_cal_res->>'num_people')::integer)::numeric
