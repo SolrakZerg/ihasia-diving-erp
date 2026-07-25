@@ -279,6 +279,15 @@ function syncBizumToSupabase(sheet, row) {
       return "Faltan datos obligatorios";
     }
 
+    var isPaid = (pagadoVal === true || (typeof pagadoVal === 'string' && pagadoVal.toUpperCase() === 'TRUE'));
+    var isReturned = (devueltoVal === true || (typeof devueltoVal === 'string' && devueltoVal.toUpperCase() === 'TRUE'));
+
+    // Si viene de la pestaña de Reservas Devueltas 2026, forzar a true
+    if (sheet.getName() === "Reservas Devueltas 2026") {
+      isPaid = true;
+      isReturned = true;
+    }
+
     var payload = {
       "customer_name": customerName.toString().trim(),
       "booking_date": bookingDate,
@@ -286,8 +295,8 @@ function syncBizumToSupabase(sheet, row) {
       "activity": activity.toString().trim(),
       "bizum_phone": bizumPhone.toString().trim(),
       "whatsapp_phone": whatsappPhone.toString().trim(),
-      "is_paid": (pagadoVal === true || (typeof pagadoVal === 'string' && pagadoVal.toUpperCase() === 'TRUE')),
-      "is_returned": (devueltoVal === true || (typeof devueltoVal === 'string' && devueltoVal.toUpperCase() === 'TRUE'))
+      "is_paid": isPaid,
+      "is_returned": isReturned
     };
 
     if (createdAtIso) {
@@ -309,11 +318,11 @@ function syncBizumToSupabase(sheet, row) {
 
     var response = UrlFetchApp.fetch(url, options);
     var code = response.getResponseCode();
-    Logger.log("syncBizumToSupabase fila " + row + ": Resultado HTTP " + code);
+    Logger.log("syncBizumToSupabase fila " + row + " (" + sheet.getName() + "): Resultado HTTP " + code);
     return code >= 200 && code < 300 ? "OK (" + code + ")" : "Error " + code;
 
   } catch (err) {
-    Logger.log("syncBizumToSupabase Fila " + row + " Exception: " + err.toString());
+    Logger.log("syncBizumToSupabase Fila " + row + " (" + sheet.getName() + ") Exception: " + err.toString());
     return "Exception: " + err.toString();
   }
 }
@@ -342,6 +351,34 @@ function syncAllExistingReservasToSupabase() {
 
   Logger.log("Migración masiva completada: " + successCount + " registros migrados a Supabase.");
   SpreadsheetApp.getActiveSpreadsheet().toast("Migradas " + successCount + " reservas a Diving ERP.", "Migración Completa", 5);
+}
+
+/**
+ * Función de Migración Masiva para la pestaña "Reservas Devueltas 2026":
+ * Puedes ejecutar esta función manualmente en Apps Script para enviar TODAS las reservas
+ * devueltas de esa pestaña a la base de datos de Diving ERP.
+ */
+function syncAllReturnedReservasToSupabase() {
+  var sheetName = "Reservas Devueltas 2026";
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) {
+    Logger.log("Hoja '" + sheetName + "' no encontrada.");
+    SpreadsheetApp.getActiveSpreadsheet().toast("Error: Hoja '" + sheetName + "' no encontrada.", "Sync Fallido", 5);
+    return;
+  }
+  var lastRow = sheet.getLastRow();
+  Logger.log("Iniciando migración de devueltas desde la fila " + FIRST_DATA_ROW + " hasta la fila " + lastRow + "...");
+
+  var successCount = 0;
+  for (var r = FIRST_DATA_ROW; r <= lastRow; r++) {
+    var res = syncBizumToSupabase(sheet, r);
+    if (res && res.indexOf("OK") !== -1) {
+      successCount++;
+    }
+  }
+
+  Logger.log("Migración de devueltas completada: " + successCount + " registros migrados a Supabase.");
+  SpreadsheetApp.getActiveSpreadsheet().toast("Migradas " + successCount + " reservas devueltas a Diving ERP.", "Migración Completa", 5);
 }
 
 function cleanGasPhone(phone) {
