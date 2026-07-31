@@ -61,7 +61,7 @@ export default function useEstadisticasData() {
       settlementsData.forEach(item => {
         const sName = item.supplier_name?.toUpperCase() || '';
         if (sName === target && grid[item.year]) {
-          grid[item.year][item.month - 1] += parseFloat(item.paid_amount) || 0;
+          grid[item.year][item.month - 1] += parseFloat(item.total_amount) || 0;
         }
       });
     } else {
@@ -96,8 +96,8 @@ export default function useEstadisticasData() {
       settlementsData.forEach(s => {
         if (s.year !== year || s.month !== month) return;
         const sName = s.supplier_name?.toUpperCase() || '';
-        if (sName === 'CARABAO') point.carabao += parseFloat(s.paid_amount) || 0;
-        if (sName === 'SSI')     point.ssi     += parseFloat(s.paid_amount) || 0;
+        if (sName === 'CARABAO') point.carabao += parseFloat(s.total_amount) || 0;
+        if (sName === 'SSI')     point.ssi     += parseFloat(s.total_amount) || 0;
       });
 
       return point;
@@ -106,8 +106,26 @@ export default function useEstadisticasData() {
 
   /** Datos formateados para Recharts */
   const getChartData = (metric) => {
+    const currentYear = new Date().getFullYear();
+    const currentMonthIdx = new Date().getMonth();
+
     if (metric === 'comparativa') {
-      return getYearlyComparisonData(selectedComparisonYear).map((d, i) => ({
+      let compData = getYearlyComparisonData(selectedComparisonYear);
+      
+      // Si comparamos el año actual, ocultamos los meses en curso y futuros (Opción A)
+      if (selectedComparisonYear === currentYear) {
+        return compData.map((d, i) => {
+          if (i >= currentMonthIdx) {
+            return { month: MONTH_NAMES[i] };
+          }
+          return {
+            ...d,
+            month: MONTH_NAMES[i],
+          };
+        });
+      }
+
+      return compData.map((d, i) => ({
         ...d,
         month: MONTH_NAMES[i],
       }));
@@ -118,8 +136,15 @@ export default function useEstadisticasData() {
       const point = { month: name };
       availableYears.slice().sort().forEach(year => {
         const val = grid[year][idx];
-        if (val > 0 || (year === new Date().getFullYear() && idx < new Date().getMonth())) {
-          point[year] = val;
+        if (year < currentYear) {
+          if (val > 0) {
+            point[year] = val;
+          }
+        } else if (year === currentYear) {
+          // Para el año actual, solo graficar meses ya finalizados (Opción A)
+          if (idx < currentMonthIdx) {
+            point[year] = val;
+          }
         }
       });
       return point;

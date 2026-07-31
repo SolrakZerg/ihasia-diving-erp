@@ -23,17 +23,21 @@ export function useBillingGridRow({
   // ── ESTADO LOCAL ──────────────────────────────────────────────────────────
   const storageKey = `billing-group-expanded-${invoice.id}`;
   const [expanded, setExpanded] = useState(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved !== null) {
-      return saved === 'true';
-    }
-    // Por defecto, si no hay nada guardado en el navegador:
-    // Las facturas totalmente pagadas (Paid) se muestran colapsadas (false).
-    // Las facturas con ítems pendientes se muestran expandidas (true).
     const items = invoice.invoice_items || [];
     const totalCount = items.length;
     const paidCount = items.filter(i => i.status === 'Paid').length;
     const isAllPaid = totalCount > 0 && paidCount === totalCount;
+
+    // Si está todo pagado, siempre colapsado por defecto al iniciar/recargar
+    if (isAllPaid) {
+      return false;
+    }
+
+    const saved = localStorage.getItem(storageKey);
+    if (saved !== null) {
+      return saved === 'true';
+    }
+
     return !isAllPaid;
   });
 
@@ -162,6 +166,10 @@ export function useBillingGridRow({
       const cleanInsertData = { ...data };
 
       pushAction(buildAddChildItemAction(data.id, cleanInsertData, targetDateStr, customerName, onUpdate));
+
+      // Asegurar que el grupo se expanda en la vista al añadir un nuevo item
+      setExpanded(true);
+      localStorage.setItem(storageKey, 'true');
 
       onUpdate();
     } catch (err) {

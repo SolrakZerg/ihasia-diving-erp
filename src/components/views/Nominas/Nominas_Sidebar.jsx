@@ -62,7 +62,7 @@ export default function Nominas_Sidebar({
         </div>
       </section>
 
-      <section className="space-y-4 flex-1">
+      <section className="space-y-4 flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between"><h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Handshake className="w-4 h-4" /> Pagos</h4><button onClick={() => setShowAdvForm(!showAdvForm)} className={`p-1.5 rounded-lg transition-all ${showAdvForm ? 'bg-rose-500 text-white' : 'bg-brand/10 text-brand hover:bg-brand hover:text-white'}`}>{showAdvForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button></div>
         {showAdvForm && (
           <div className="adv-form-container bg-surface p-4 rounded-xl border border-brand/30 animate-in slide-in-from-top-2 duration-300 space-y-3 relative">
@@ -128,14 +128,14 @@ export default function Nominas_Sidebar({
             </div>
           </div>
         )}
-        <div className="space-y-2">
-          {advances.length === 0 ? (
-            <div className="p-8 border-2 border-dashed border-surface-edge rounded-2xl flex flex-col items-center text-center">
-              <div className="p-3 bg-surface rounded-full mb-3"><AlertCircle className="w-5 h-5 text-gray-600" /></div>
-              <p className="text-[10px] font-bold text-gray-600 uppercase">Sin pagos este mes</p>
-            </div>
-          ) : (
-            advances.map((adv, idx) => (
+        {advances.length === 0 ? (
+          <div className="p-8 border-2 border-dashed border-surface-edge rounded-2xl flex flex-col items-center text-center">
+            <div className="p-3 bg-surface rounded-full mb-3"><AlertCircle className="w-5 h-5 text-gray-600" /></div>
+            <p className="text-[10px] font-bold text-gray-600 uppercase">Sin pagos este mes</p>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar space-y-2">
+            {advances.map((adv, idx) => (
               <div key={idx} className="bg-surface border border-surface-edge p-3 rounded-xl flex items-center gap-4 group/adv hover:border-brand/30 transition-all text-sm">
                 {/* 1. Fecha (Solo el día) */}
                 <div className="text-gray-500 font-bold w-8 text-center">
@@ -171,9 +171,9 @@ export default function Nominas_Sidebar({
                   </button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

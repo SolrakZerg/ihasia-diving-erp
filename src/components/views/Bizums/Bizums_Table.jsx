@@ -103,11 +103,11 @@ export default function Bizums_Table({
           {/* Marca Temporal (Fecha + Hora) */}
           <td className="py-2.5 px-3 text-center whitespace-nowrap border-r border-surface-edge/10">
             <div className="flex flex-col items-center">
-              <p className="text-white text-xs font-bold uppercase tracking-tight">
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-tight">
                 {regDate.date}
               </p>
               {regDate.time && (
-                <p className="text-cyan-500/80 text-[11px] font-bold">
+                <p className="text-cyan-600/50 text-[11px] font-semibold">
                   {regDate.time}
                 </p>
               )}
@@ -116,7 +116,7 @@ export default function Bizums_Table({
 
           {/* Fecha Reserva (Pill Badge) */}
           <td className="py-2.5 px-3 text-center whitespace-nowrap">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-xl bg-slate-800/90 border border-slate-700/50 text-amber-500/90 font-extrabold text-xs tracking-wide shadow-sm">
+            <span className="inline-flex items-center px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-extrabold text-sm tracking-wide shadow-sm">
               {formatBookingDatePill(row.booking_date)}
             </span>
           </td>
@@ -163,7 +163,7 @@ export default function Bizums_Table({
           </td>
 
           {/* Teléfono Bizum */}
-          <td className="py-2.5 px-2 font-mono text-cyan-500 font-bold text-sm whitespace-nowrap tracking-tight max-w-[150px] w-[150px] truncate" title={row.bizum_phone}>
+          <td className="py-2.5 px-2 font-mono text-white/70 font-bold text-base whitespace-nowrap tracking-tight max-w-[150px] w-[150px] truncate" title={row.bizum_phone}>
             {formatPrettyPhone(row.bizum_phone)}
           </td>
 

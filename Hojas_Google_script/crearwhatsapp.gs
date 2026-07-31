@@ -380,4 +380,4 @@ function cleanAllPhonesInSheet() {
     }
   }
   SpreadsheetApp.getActiveSpreadsheet().toast("Todos los teléfonos de la hoja han sido saneados.", "Limpieza Completada", 5);
-}
+}
