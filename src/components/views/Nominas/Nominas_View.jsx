@@ -71,7 +71,7 @@ export default function Nominas_View() {
           </div>
         )
       ) : (
-        <div className="flex-1 flex flex-col lg:flex-row md:overflow-hidden overflow-visible gap-6 lg:gap-2 xl:gap-6 p-2 sm:p-6 lg:p-8 lg:pr-0">
+        <div className="flex-1 flex flex-col lg:flex-row md:overflow-hidden overflow-visible gap-6 lg:gap-2 xl:gap-6 p-2 sm:p-4 lg:py-4 lg:px-6 lg:pr-0">
           <Nominas_Table 
             matrixData={matrixData}
             fixedColumns={fixedColumns}

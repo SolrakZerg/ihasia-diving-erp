@@ -13,11 +13,11 @@ export default function Nominas_Header({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className={`flex-shrink-0 bg-surface-soft/50 border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-5 px-3 sm:px-6 lg:px-8 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
+    <div className={`flex-shrink-0 bg-surface-soft/50 border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-3 px-3 sm:px-6 lg:px-8 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
       <div className="header-full-content max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         
         {/* Left Side: Title and Month/Year Selector */}
-        <div className="flex flex-col gap-4 w-full md:w-auto items-center md:items-start shrink-0">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full md:w-auto items-center md:items-center shrink-0">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black text-white leading-tight flex items-center gap-3">
               <Handshake className="w-8 h-8 text-brand" />

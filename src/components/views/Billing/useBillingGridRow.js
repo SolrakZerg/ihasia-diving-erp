@@ -28,16 +28,13 @@ export function useBillingGridRow({
     const paidCount = items.filter(i => i.status === 'Paid').length;
     const isAllPaid = totalCount > 0 && paidCount === totalCount;
 
-    // Si está todo pagado, siempre colapsado por defecto al iniciar/recargar
-    if (isAllPaid) {
-      return false;
-    }
-
     const saved = localStorage.getItem(storageKey);
     if (saved !== null) {
       return saved === 'true';
     }
 
+    // Si no hay preferencia manual guardada (primera vez):
+    // Si está todo pagado por defecto colapsa, si no se mantiene expandido.
     return !isAllPaid;
   });
 

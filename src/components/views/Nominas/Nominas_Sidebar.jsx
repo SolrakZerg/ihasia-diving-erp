@@ -22,8 +22,8 @@ export default function Nominas_Sidebar({
   const isSaving = useRef(false);
 
   return (
-    <div className="my-0 lg:my-2 w-full lg:w-[380px] lg:min-w-[280px] bg-surface-soft border border-surface-edge rounded-3xl flex flex-col p-6 lg:px-2 lg:py-4 space-y-8 lg:space-y-10 overflow-visible lg:overflow-auto shadow-2xl z-10">
-      <div className="bg-emerald-600 rounded-[32px] p-8 shadow-xl shadow-emerald-900/20 relative overflow-hidden group border border-emerald-400/20">
+    <div className="my-0 lg:my-2 w-full lg:w-[380px] lg:min-w-[280px] bg-surface-soft border border-surface-edge rounded-3xl flex flex-col p-4 lg:px-2 lg:py-3 space-y-6 lg:space-y-6 overflow-visible lg:overflow-auto shadow-2xl z-10">
+      <div className="bg-emerald-600 rounded-[32px] p-6 shadow-xl shadow-emerald-900/20 relative overflow-hidden group border border-emerald-400/20">
         <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
         <div className="flex justify-between items-start relative z-10">
           <p className="text-lg font-black text-emerald-100 uppercase tracking-[0.2em] mb-4 opacity-80">Sueldo</p>
@@ -34,7 +34,7 @@ export default function Nominas_Sidebar({
             {finalBalance.toLocaleString()}
             <span className="text-xl font-black text-emerald-300/40 ml-2 italic">฿</span>
           </h3>
-          <div className="flex items-center gap-4 mt-6">
+          <div className="flex items-center gap-4 mt-4">
             <div className="flex flex-col">
               <span className="text-[12px] font-black text-emerald-950/40 uppercase tracking-widest leading-none mb-1">Días Libres</span>
               <span className="text-xl font-black text-white leading-none">{attendanceData.summary.totalOff}</span>
@@ -45,16 +45,16 @@ export default function Nominas_Sidebar({
               <span className="text-xl font-black text-white leading-none">{Object.values(assists).reduce((acc, v) => acc + v, 0)}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-emerald-950/50 text-[10px] font-black uppercase tracking-[0.2em] mt-6 border-t border-emerald-950/5 pt-4">
+          <div className="flex items-center gap-2 text-emerald-950/50 text-[10px] font-black uppercase tracking-[0.2em] mt-4 border-t border-emerald-950/5 pt-3">
             <TrendingUp className="w-3.5 h-3.5" />
             <span>Sincronizado</span>
           </div>
         </div>
       </div>
 
-      <section className="space-y-4">
+      <section className="space-y-3">
         <h4 className="text-lg font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4" /> Desglose</h4>
-        <div className="bg-surface p-6 rounded-2xl border border-surface-edge space-y-4">
+        <div className="bg-surface p-4 rounded-2xl border border-surface-edge space-y-3">
           <div className="flex justify-between items-center group/item"><span className="text-base font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Cursos</span><span className="text-base font-black text-white">{totalComm.toLocaleString()} ฿</span></div>
           <div className="flex justify-between items-center group/item"><span className="text-base font-bold text-gray-400 group-hover/item:text-gray-200 transition-colors">Extras y Ajustes</span><span className={`text-base font-black ${totalAdj + totalAssists >= 0 ? 'text-brand' : 'text-rose-400'}`}>{totalAdj + totalAssists >= 0 ? '+' : ''}{(totalAdj + totalAssists).toLocaleString()}</span></div>
           <div className="h-px bg-surface-edge/50 my-2" />
