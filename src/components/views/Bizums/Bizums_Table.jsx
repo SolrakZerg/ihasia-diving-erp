@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
 import Bizums_Row from './Bizums_Row';
 
 export default function Bizums_Table({
@@ -119,9 +119,77 @@ export default function Bizums_Table({
     ));
   };
 
+  // --- Vista 1: RESERVAS ACTIVAS (Dividida en 2 tablas: Pendientes y Pagadas) ---
+  if (activeTab === 'active') {
+    const pendingBizums = bizums.filter((b) => !b.is_paid);
+    const paidBizums = bizums.filter((b) => b.is_paid);
+
+    return (
+      <div className="flex-1 flex flex-col min-h-0 gap-4 overflow-hidden">
+        {/* SECCIÓN 1: PENDIENTES DE CONFIRMACIÓN */}
+        <div className="bg-surface-soft/40 border border-amber-500/20 rounded-2xl overflow-hidden shadow-xl shrink-0">
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-extrabold text-amber-300 uppercase tracking-wider">
+                  Pendientes de Confirmación de Pago
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {pendingBizums.length} {pendingBizums.length === 1 ? 'reserva' : 'reservas'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] text-amber-400/80 font-medium hidden sm:inline">
+              Comprueba el pago en la app del banco y marca la casilla "PAGADO"
+            </span>
+          </div>
+
+          <div className="overflow-x-auto overflow-y-auto max-h-[290px] custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-full">
+              {renderTableHeader()}
+              <tbody className="divide-y divide-surface-edge/60 text-sm">
+                {renderTableRows(pendingBizums, '🎉 ¡Genial! No hay reservas pendientes de confirmar pago en este momento.')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SECCIÓN 2: PAGADAS (PENDIENTES DE DEVOLUCIÓN) */}
+        <div className="flex-1 flex flex-col min-h-0 bg-surface-soft/40 border border-emerald-500/20 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2.5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-extrabold text-emerald-300 uppercase tracking-wider">
+                  Pagadas (Pendientes de Devolución en la Actividad)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {paidBizums.length} {paidBizums.length === 1 ? 'reserva' : 'reservas'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] text-emerald-400/80 font-medium hidden sm:inline">
+              Bizum comprobado. El día del buceo se les devuelve el importe y se marca "DEVUELTO"
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-full">
+              {renderTableHeader()}
+              <tbody className="divide-y divide-surface-edge/60 text-sm">
+                {renderTableRows(paidBizums, 'No hay reservas pagadas pendientes de devolución.')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Vista para Depósitos Retenidos (2 Secciones) */}
+      {/* Vista para Depósitos Retenidos (2 Secciones: Pendientes y Repartidos) */}
       {activeTab === 'retained' ? (
         <div className="flex-1 flex flex-col min-h-0 gap-4 overflow-hidden">
           {/* SECCIÓN 1: PENDIENTES DE REPARTIR ENTRE SOCIOS */}
@@ -183,12 +251,12 @@ export default function Bizums_Table({
           </div>
         </div>
       ) : (
-        /* Vista Estándar (Activas o Historial Devueltos) */
+        /* Vista Estándar (Historial Devueltos) */
         <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 rounded-2xl border border-surface-edge bg-surface-soft/20 shadow-xl custom-scrollbar">
           <table className="w-full border-collapse text-left min-w-full">
             {renderTableHeader()}
             <tbody className="divide-y divide-surface-edge/60 text-sm">
-              {renderTableRows(bizums, activeTab === 'active' ? 'No hay reservas activas.' : 'No hay reservas devueltas en el historial.')}
+              {renderTableRows(bizums, 'No hay reservas devueltas en el historial.')}
             </tbody>
           </table>
         </div>
