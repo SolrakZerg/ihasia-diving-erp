@@ -93,7 +93,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
     { id: 'expenses', label: 'Gastos', icon: DollarSign },
     { id: 'ssi', label: 'SSI', icon: SSIIcon },
     { id: 'customers', label: 'Buceadores', icon: UserRoundSearch },
-    { id: 'bizums', label: 'Bizums', icon: CreditCard },
+    { id: 'bizums', label: 'Depósitos', icon: CreditCard },
     { id: 'insurance', label: 'Seguros Diarios', icon: ShieldCheck },
     { id: 'carabao', label: 'Carabao', icon: CarabaoIcon },
     { id: 'crbt', label: 'CRBT', icon: UsersRound },

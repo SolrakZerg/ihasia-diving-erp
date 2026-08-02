@@ -28,3 +28,7 @@ dist-ssr
 .claude/
 skills-lock.json
 
+# Secrets and Keys
+*.pem
+.env
+

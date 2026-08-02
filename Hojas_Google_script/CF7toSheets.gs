@@ -62,9 +62,12 @@ function doPost(e) {
 function syncToSupabase(rawData) {
   var url = SUPABASE_URL + "/rest/v1/customers";
   
-  // v1.2.0: Ya no forzamos parseInt, permitimos el texto original del rango
-  var numBuceos = (rawData["Numero de Inmersiones"] || "").replace(/---/g, '').trim();
-  if (numBuceos.toLowerCase().includes('ninguno') || numBuceos.toLowerCase().includes('none')) {numBuceos = "0";}
+  // v1.2.1: Soporta 'Numero Buceos' y 'Numero de Inmersiones' y preserva rangos de texto en 'last_dive_date'
+  var numBuceos = (rawData["Numero Buceos"] || rawData["Numero de Inmersiones"] || "").replace(/---/g, '').trim();
+  if (numBuceos.toLowerCase().includes('ninguno') || numBuceos.toLowerCase().includes('none')) { numBuceos = "0"; }
+  
+  var ultimoBuceoRaw = (rawData["Fecha Ultimo Buceo"] || "").replace(/---/g, '').trim();
+  var ultimoBuceoFinal = formatDate(ultimoBuceoRaw) || ultimoBuceoRaw;
   
   var payload = {
     "first_name": rawData["Nombre"] || "",
@@ -78,8 +81,8 @@ function syncToSupabase(rawData) {
     "address": rawData["Direccion"] || "",
     "lead_source": rawData["Como Nos Conociste"] || "",
     "certification_level": (rawData["Nivel Buceador"] || "").replace(/---/g, '').trim(),
-    "total_dives": numBuceos, // Ahora acepta "51-100"
-    "last_dive_date": formatDate(rawData["Fecha Ultimo Buceo"]),
+    "total_dives": numBuceos,
+    "last_dive_date": ultimoBuceoFinal,
     "form_origin": rawData["Origen Formulario"] || "Form Web",
     "booked_activity": rawData["Actividad"] || "",
     "booking_date": formatDate(rawData["Fecha Actividad"])

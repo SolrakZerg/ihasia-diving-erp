@@ -73,6 +73,7 @@ function copiarRegistroDeGoogleForm(e) {
       "Direccion": datosFormulario[9] || "",
       "Como Nos Conociste": datosFormulario[10] || "",
       "Nivel Buceador": datosFormulario[11] || "",
+      "Numero Buceos": datosFormulario[13] || "",
       "Numero de Inmersiones": datosFormulario[13] || "",
       "Fecha Ultimo Buceo": datosFormulario[12] || "",
       "Origen Formulario": "Google Form",

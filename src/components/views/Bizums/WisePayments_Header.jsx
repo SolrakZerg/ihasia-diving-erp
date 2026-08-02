@@ -1,16 +1,15 @@
-import { Search, Plus, CreditCard, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Search, CreditCard, Clock, Check, AlertTriangle } from 'lucide-react';
 
-export default function Bizums_Header({
+export default function WisePayments_Header({
   totalCount,
   activeTab,
   onTabChange,
   searchTerm,
   onSearchChange,
-  onAddClick,
 }) {
   return (
     <div className="bg-surface-soft/20 border border-surface-edge rounded-2xl p-4 sm:p-6 space-y-4 mb-4">
-      {/* Top row: Title + Actions */}
+      {/* Top row: Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-brand/20 border border-brand/30 flex items-center justify-center text-brand">
@@ -18,57 +17,49 @@ export default function Bizums_Header({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white tracking-tight">Gestión de Bizums</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight">Ingresos Recibidos en Wise</h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand/10 text-brand border border-brand/20">
                 {totalCount} {totalCount === 1 ? 'registro' : 'registros'}
               </span>
             </div>
             <p className="text-xs text-gray-400 font-medium">
-              Control de reservas con depósito por Bizum y seguimiento de devoluciones
+              Verificación automática de transferencias Wise importadas de Gmail
             </p>
           </div>
         </div>
-
-        <button
-          onClick={onAddClick}
-          className="px-4 py-2.5 rounded-xl bg-brand text-white text-xs font-bold shadow-lg shadow-brand/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          NUEVA RESERVA
-        </button>
       </div>
 
       {/* Bottom row: Tabs + Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 pt-2">
-        {/* Tabs */}
+        {/* Tabs idénticas a Bizum */}
         <div className="flex items-center p-1 bg-surface-soft border border-surface-edge rounded-xl max-w-fit">
           <button
-            onClick={() => onTabChange('active')}
+            onClick={() => onTabChange('pending')}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'active'
+              activeTab === 'pending'
                 ? 'bg-brand text-white shadow-md'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Reservas Activas
+            <Clock className="w-3.5 h-3.5" />
+            Pendientes
           </button>
           <button
-            onClick={() => onTabChange('returned')}
+            onClick={() => onTabChange('processed')}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'returned'
+              activeTab === 'processed'
                 ? 'bg-brand text-white shadow-md'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Historial Devueltas
+            <Check className="w-3.5 h-3.5" />
+            Procesados
           </button>
           <button
             onClick={() => onTabChange('retained')}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'retained'
-                ? 'bg-brand text-white shadow-md'
+                ? 'bg-amber-500 text-white shadow-md'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -84,7 +75,7 @@ export default function Bizums_Header({
             type="text"
             value={searchTerm}
             onChange={onSearchChange}
-            placeholder="Buscar por cliente, teléfono, actividad..."
+            placeholder="Buscar por remitente, referencia..."
             className="w-full bg-surface-soft border border-surface-edge rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand/50 transition-all"
           />
         </div>

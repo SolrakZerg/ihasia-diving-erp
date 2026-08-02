@@ -86,6 +86,11 @@ export default function Billing_View({ isSidebarCollapsed }) {
     }
   }, [billing.loadingInvoices, billing.invoices.length]);
 
+  // Limpiar selección de casillas al cambiar de día, mes, año o búsqueda
+  useEffect(() => {
+    billing.setSelectedItemIds(new Set());
+  }, [billing.selectedDay, billing.selectedMonth, billing.selectedYear, billing.searchTerm]);
+
   const {
     invoices, loadingInvoices, staff, activities, categories,
     selectedItemIds, setSelectedItemIds,

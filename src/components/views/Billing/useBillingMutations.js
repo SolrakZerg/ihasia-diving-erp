@@ -338,7 +338,11 @@ export function useBillingMutations({
 
   const handleCopyEmails = () => {
     const emails = [...new Set(invoices.flatMap(inv => inv.invoice_items || []).filter(it => selectedItemIds.has(it.id)).map(it => it.customers?.email).filter(Boolean))];
-    if (emails.length > 0) { navigator.clipboard.writeText(emails.join(', ')); setToast(`${emails.length} emails copiados`); }
+    if (emails.length > 0) { 
+      navigator.clipboard.writeText(emails.join(', ')); 
+      setToast(`${emails.length} emails copiados`); 
+      setSelectedItemIds(new Set());
+    }
     else alert("No hay emails en los registros seleccionados");
   };
 
