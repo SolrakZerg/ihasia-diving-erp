@@ -70,7 +70,8 @@ export function useActivitiesData() {
     payout_group: '',
     is_commissionable: false,
     is_ssi_active: false,
-    tshirt_included: false
+    tshirt_included: false,
+    ssi_parent_id: ''
   });
 
   useEffect(() => {
@@ -155,14 +156,15 @@ export function useActivitiesData() {
         is_commissionable: formData.is_commissionable,
         is_ssi_active: formData.is_ssi_active,
         tshirt_included: formData.tshirt_included,
-        payout_group: formData.payout_group || null
+        payout_group: formData.payout_group || null,
+        ssi_parent_id: formData.ssi_parent_id || null
       }
     ]);
 
     if (!error) {
       setView('list');
       fetchData();
-      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false, tshirt_included: false, payout_group: '' });
+      setFormData({ name: '', price_thb: '', price_eur: '', tanks_weight: '0', ssi_cost_thb: '0', category: categories[0]?.name || '', color: '', acronym: '', duration_days: '0', is_commissionable: false, is_ssi_active: false, tshirt_included: false, payout_group: '', ssi_parent_id: '' });
     } else {
       alert('Error guardando: ' + error.message);
     }
@@ -234,7 +236,8 @@ export function useActivitiesData() {
       is_commissionable: act.is_commissionable || false,
       is_ssi_active: act.is_ssi_active || false,
       tshirt_included: act.tshirt_included || false,
-      payout_group: act.payout_group || ''
+      payout_group: act.payout_group || '',
+      ssi_parent_id: act.ssi_parent_id || ''
     });
   };
 
@@ -252,7 +255,8 @@ export function useActivitiesData() {
       is_commissionable: editData.is_commissionable,
       is_ssi_active: editData.is_ssi_active,
       tshirt_included: editData.tshirt_included,
-      payout_group: editData.payout_group || null
+      payout_group: editData.payout_group || null,
+      ssi_parent_id: editData.ssi_parent_id || null
     }).eq('id', id);
 
     if (!error) {

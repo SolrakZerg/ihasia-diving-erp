@@ -69,7 +69,7 @@ export default function TestSSIView() {
     // Cargar todas las actividades para saber cuáles son de SSI
     const { data: activities } = await supabase
       .from('activities')
-      .select('id, name, acronym, ssi_cost_thb, color, is_ssi_active, category, ssi_order')
+      .select('id, name, acronym, ssi_cost_thb, color, is_ssi_active, category, ssi_order, ssi_parent_id')
       .order('ssi_order', { ascending: true })
       .order('name');
     
@@ -124,14 +124,24 @@ export default function TestSSIView() {
         .eq('year', yy)
         .eq('month', mm);
 
-      // 4. Combinar con las actividades
-      const ssiActivities = allActivities.filter(a => a.is_ssi_active || MUST_SHOW_NAMES.includes(a.name));
+      // Mapa para acumular actividades hijas en su ssi_parent_id
+      const aggregatedQty = {};
+      breakdown?.forEach(b => {
+        const act = allActivities.find(a => a.id === b.activity_id);
+        const targetId = act?.ssi_parent_id || b.activity_id;
+        if (!aggregatedQty[targetId]) {
+          aggregatedQty[targetId] = { system_quantity: 0, manual_adjustment: 0 };
+        }
+        aggregatedQty[targetId].system_quantity += (b.system_quantity || 0);
+        aggregatedQty[targetId].manual_adjustment += (b.manual_adjustment || 0);
+      });
+
+      // 4. Combinar con las actividades (solo actividades principales/padre)
+      const ssiActivities = allActivities.filter(a => !a.ssi_parent_id && (a.is_ssi_active || MUST_SHOW_NAMES.includes(a.name)));
       const result = [];
 
-
-
       ssiActivities.forEach(act => {
-        const bdItem = breakdown?.find(b => b.activity_id === act.id);
+        const bdItem = aggregatedQty[act.id];
         const sysQty = bdItem?.system_quantity || 0;
         const manAdj = bdItem?.manual_adjustment || 0;
         const realQty = sysQty + manAdj;

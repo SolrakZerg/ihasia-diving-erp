@@ -70,7 +70,8 @@ export default function Activities_Table({
   categories,
   payoutGroups,
   saveEdit, startEditing, deleteActivity,
-  getCategoryColor
+  getCategoryColor,
+  activities = []
 }) {
   return (
     <div 
@@ -131,9 +132,9 @@ export default function Activities_Table({
               <th onClick={() => handleSort('duration_days')} className="px-2 py-2 text-center cursor-pointer hover:bg-indigo-500/10 transition-colors group w-[50px] min-w-[50px]">
                 <div className="flex items-center justify-center"><Timer className="w-4 h-4 text-indigo-400 opacity-70 group-hover:opacity-100" /></div>
               </th>
-              <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-center w-16">Grupo</th>
+              <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-center w-16">Grupo / SSI</th>
               <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-center w-16">Color</th>
-              <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-right w-20">Acciones</th>
+              <th className="px-[15px] py-2 text-sm font-black text-slate-400 uppercase tracking-widest text-center w-12">ACC</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-edge/50">
@@ -189,10 +190,18 @@ export default function Activities_Table({
                        <input value={editData.duration_days} onChange={e=>setEditData({...editData, duration_days: e.target.value})} className="bg-surface border border-indigo-500/30 rounded-lg px-0.5 py-1.5 text-[12px] text-indigo-200 focus:border-indigo-400 focus:outline-none w-full text-center font-bold" step="0.5" type="number" />
                     </td>
                     <td className="px-2 py-1 text-center">
-                       <select value={editData.payout_group} onChange={e=>setEditData({...editData, payout_group: e.target.value})} className="bg-surface border border-emerald-500/30 rounded-lg px-1.5 py-1.5 text-[11px] text-emerald-100 focus:border-emerald-400 focus:outline-none w-full max-w-[80px]">
-                          <option value="">-</option>
+                      <div className="flex flex-col gap-1">
+                       <select value={editData.payout_group} onChange={e=>setEditData({...editData, payout_group: e.target.value})} className="bg-surface border border-emerald-500/30 rounded-lg px-1 py-1 text-[10px] text-emerald-100 focus:border-emerald-400 focus:outline-none w-full">
+                          <option value="">- CRB -</option>
                           {payoutGroups.map(g => <option key={g} value={g}>{g}</option>)}
                        </select>
+                       <select value={editData.ssi_parent_id || ''} onChange={e=>setEditData({...editData, ssi_parent_id: e.target.value})} className="bg-surface border border-rose-500/30 rounded-lg px-1 py-1 text-[10px] text-rose-100 focus:border-rose-400 focus:outline-none w-full">
+                          <option value="">- SSI -</option>
+                          {activities.filter(a => a.id !== activity.id && (a.is_ssi_active || ['Course', 'Pro'].includes(a.category))).map(a => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
+                       </select>
+                      </div>
                     </td>
                     <td className="px-2 py-1 text-center">
                        <AdvancedColorPicker 
@@ -201,7 +210,7 @@ export default function Activities_Table({
                          align="right"
                        />
                     </td>
-                    <td className="px-2 py-1 text-right flex justify-end items-center gap-1.5">
+                    <td className="px-2 py-1 text-center flex justify-center items-center gap-1.5">
                        <button onClick={()=>saveEdit(activity.id)} title="Guardar" className="p-2 text-emerald-400 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl shadow-sm"><Check className="w-4 h-4 stroke-[3]" /></button>
                        <button onClick={()=>setEditingId(null)} title="Cancelar" className="p-2 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl"><X className="w-4 h-4" /></button>
                     </td>
@@ -265,12 +274,22 @@ export default function Activities_Table({
                       {activity.duration_days > 0 ? activity.duration_days : '-'}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center">
-                     <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${activity.payout_group ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'text-gray-700 border-transparent'}`}>
-                       {activity.payout_group || '-'}
-                     </span>
+                  <td className="px-2 py-2 text-center">
+                     <div className="flex flex-col gap-0.5 items-center">
+                        {activity.payout_group && (
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                            {activity.payout_group}
+                          </span>
+                        )}
+                        {activity.ssi_parent_id && (
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded border bg-rose-500/10 text-rose-300 border-rose-500/20" title={`Mapeado en SSI a: ${activities.find(a => a.id === activity.ssi_parent_id)?.name || 'Curso Padre'}`}>
+                            SSI: {activities.find(a => a.id === activity.ssi_parent_id)?.acronym || activities.find(a => a.id === activity.ssi_parent_id)?.name?.slice(0, 5) || 'Padre'}
+                          </span>
+                        )}
+                        {!activity.payout_group && !activity.ssi_parent_id && <span className="text-gray-700">-</span>}
+                     </div>
                   </td>
-                  <td className="px-6 py-2 text-center">
+                  <td className="px-3 py-2 text-center">
                     <div className="flex justify-center">
                       <div 
                         className="w-6 h-6 rounded-lg border border-white/20 shadow-sm"
@@ -279,7 +298,7 @@ export default function Activities_Table({
                       />
                     </div>
                   </td>
-                  <td className="px-6 py-3.5 text-right flex justify-end">
+                  <td className="px-3 py-3.5 text-center flex justify-center">
                     <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => startEditing(activity)} 

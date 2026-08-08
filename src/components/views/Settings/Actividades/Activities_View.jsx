@@ -29,6 +29,7 @@ export default function Activities_View({ isNested = false }) {
         colorPresets={data.colorPresets}
         payoutGroups={data.payoutGroups}
         handleThbChange={data.handleThbChange}
+        activities={data.activities}
       />
     );
   }
@@ -73,6 +74,7 @@ export default function Activities_View({ isNested = false }) {
         startEditing={data.startEditing}
         deleteActivity={data.deleteActivity}
         getCategoryColor={data.getCategoryColor}
+        activities={data.activities}
       />
 
       <ConfirmModal

@@ -9,7 +9,8 @@ export default function Activities_AddForm({
   categories,
   colorPresets,
   payoutGroups,
-  handleThbChange
+  handleThbChange,
+  activities = []
 }) {
   return (
     <div className="flex flex-col h-full bg-background overflow-auto px-1 py-4 sm:p-10">
@@ -69,8 +70,8 @@ export default function Activities_AddForm({
               </div>
             </div>
 
-            {/* FILA 2: PRECIOS Y CARABAO */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            {/* FILA 2: PRECIOS, CARABAO Y MAPEO SSI */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Precio Venta</label>
                 <div className="relative">
@@ -112,6 +113,25 @@ export default function Activities_AddForm({
                 >
                   <option value="">Ninguno</option>
                   {payoutGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-2 group relative">
+                <label className="text-[10px] font-black text-rose-300 uppercase tracking-widest ml-1 cursor-help">
+                  Mapear a Curso SSI
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full right-0 mb-2 w-64 bg-slate-800 text-white text-[12px] p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl z-50 border border-rose-500/30 font-medium leading-relaxed text-left normal-case tracking-normal">
+                    Si es una variante (ej: Scuba Diver 1 Day), selecciona el <b>curso oficial de SSI</b> al que debe sumar en el desglose mensual.
+                  </div>
+                </label>
+                <select
+                  value={formData.ssi_parent_id || ''} onChange={(e) => setFormData({ ...formData, ssi_parent_id: e.target.value })}
+                  className="w-full h-[46px] bg-surface border border-rose-500/20 rounded-2xl px-3 text-white font-bold text-xs focus:border-rose-400 focus:outline-none appearance-none"
+                >
+                  <option value="">Ninguno (Oficial)</option>
+                  {activities.filter(a => a.id !== formData.id && (a.is_ssi_active || ['Course', 'Pro'].includes(a.category))).map(a => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.acronym || 'SSI'})</option>
+                  ))}
                 </select>
               </div>
             </div>
