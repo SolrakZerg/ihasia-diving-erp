@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, AlertTriangle, Trash2, Unlink, Plus } from 'lucide-react';
+import { ChevronUp, AlertTriangle, Euro, Trash2, Unlink, Plus } from 'lucide-react';
 import Billing_GridRow_ItemRow from './Billing_GridRow_ItemRow';
 import { useBillingGridRow } from './useBillingGridRow';
 
@@ -60,6 +60,7 @@ export default function Billing_GridRow({
     gStyle,
     groupDisplayName,
     isAnyInstructorMissing,
+    hasPendingBizum,
     minDate,
   } = rowData;
 
@@ -192,7 +193,13 @@ export default function Billing_GridRow({
             </div>
           )}
         </td>
-        <td className={`w-[55px] min-w-[55px] ${tb}`}></td>
+        <td className={`w-[55px] min-w-[55px] ${tb}`}>
+          {!expanded && hasPendingBizum && (
+            <div className="flex items-center justify-center h-full">
+              <Euro className="w-4 h-4 text-red-500 animate-pulse" title="Bizum pendiente de devolución" />
+            </div>
+          )}
+        </td>
         <td className={`w-[45px] min-w-[45px] ${tb}`}></td>
         <td className={`w-auto ${tb}`}></td>
         <td className={`px-2 py-0 w-[80px] min-w-[80px] text-center ${rb} ${tb}`} onClick={e => e.stopPropagation()}>

@@ -12,6 +12,7 @@ import Nominas_View from './views/Nominas/Nominas_View';
 import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_View from './views/Carabao/Carabao_Header';
 import Bizums_View from './views/Bizums/Bizums_View';
+import Manual_View from './views/Manual/Manual_View';
 import { ChevronRight } from 'lucide-react';
 import { UndoProvider } from '../context/UndoContext';
 
@@ -58,6 +59,7 @@ export default function Dashboard({ user }) {
       case 'nominas': return <Nominas_View />;
       case 'crbt': return <CRBT_View />;
       case 'carabao': return <Carabao_View />;
+      case 'manual': return <Manual_View />;
 
       default: return <Dashboard_View />;
     }

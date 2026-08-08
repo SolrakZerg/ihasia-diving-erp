@@ -15,7 +15,8 @@ import {
   UsersRound,
   Ship,
   UserRoundSearch,
-  CreditCard
+  CreditCard,
+  BookOpen
 } from 'lucide-react';
 
 const SSIIcon = ({ className }) => (
@@ -191,6 +192,19 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
               <p className="text-sm font-bold text-white truncate">{user?.email}</p>
             </div>
           </div>
+          <button
+            onClick={() => onViewChange('manual')}
+            aria-label="Manual de Uso"
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center sm:justify-center' : 'gap-3'} p-3 rounded-xl transition-all font-bold text-sm border ${
+              activeView === 'manual'
+                ? 'bg-brand text-white shadow-lg shadow-brand/20 border-brand'
+                : 'text-brand-light hover:bg-brand/10 hover:text-white border-transparent'
+            }`}
+            title={isCollapsed ? 'Manual de Uso' : ''}
+          >
+            <BookOpen className="w-5 h-5 flex-shrink-0" />
+            <span className={`animate-in fade-in duration-300 ${isCollapsed ? 'hidden sm:hidden' : ''}`}>Manual de Uso</span>
+          </button>
           <button
             onClick={onLogout}
             aria-label="Cerrar Sesión"

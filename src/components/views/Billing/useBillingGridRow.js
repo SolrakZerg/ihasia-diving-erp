@@ -427,6 +427,8 @@ export function useBillingGridRow({
     return !item.instructor_id && categoryData?.requires_staff !== false && item.activity_id;
   });
 
+  const hasPendingBizum = items.some(item => Number(item.bizum_deposit_eur || 0) > 0);
+
   const dateList = items.map(it => it.date).filter(Boolean);
   const minDate = dateList.length ? dateList.sort()[0] : null;
 
@@ -453,6 +455,7 @@ export function useBillingGridRow({
     gStyle,
     groupDisplayName,
     isAnyInstructorMissing,
+    hasPendingBizum,
     minDate,
   };
 }
