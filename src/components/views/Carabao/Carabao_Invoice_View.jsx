@@ -16,52 +16,76 @@ const noSpinnerStyle = `
     -moz-appearance: textfield;
   }
   @media print {
-    /* RESET ABSOLUTO */
     @page { 
       margin: 0; 
-      size: auto;
+      size: A4 portrait;
     }
     
     html, body {
-      background: #fff !important;
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      color: #111827 !important;
       margin: 0 !important;
       padding: 0 !important;
+      height: 100% !important;
+      overflow: visible !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
 
-    /* OCULTAR TODO LO QUE NO SEA LA FACTURA */
-    nav, aside, header, footer, 
-    .no-print, .print-hidden, .print\\:hidden,
-    button, .actions-bar, .sidebar-container, .navbar-container { 
+    /* LIMPIAR CONTENEDORES PADRE DEL ERP */
+    #root, main, .carabao-main-container, .carabao-content-area {
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      color: #111827 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      box-shadow: none !important;
+    }
+
+    /* OCULTAR ELEMENTOS DE UI DE LA NAVEGACIÓN */
+    aside, nav, header, footer, 
+    .no-print, .print-hidden, .print\\:hidden, [class*="print:hidden"],
+    button, .actions-bar, .sidebar-container, .navbar-container,
+    .sidebar-collapse-btn { 
       display: none !important;
       visibility: hidden !important;
       height: 0 !important;
+      width: 0 !important;
       margin: 0 !important;
       padding: 0 !important;
     }
 
-    /* POSICIONAR LA FACTURA */
     main { 
       margin: 0 !important; 
       padding: 0 !important; 
       display: block !important;
     }
 
+    /* FACTURA IMPRIMIBLE: RÉPLICA EXACTA DE LA PANTALLA */
     .printable-invoice { 
       display: block !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
+      position: relative !important;
       width: 100% !important;
-      margin: 0 !important;
-      padding: 40px !important;
+      max-width: 210mm !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
       box-shadow: none !important;
+      border-radius: 0 !important;
       border: none !important;
-      background: white !important;
+      border-top: 12px solid #8a8e6b !important;
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      color: #111827 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
-    /* FORZAR COLORES EN TABLAS Y BLOQUES */
+    /* FORZAR COLORES EXACTOS EN TABLAS, FONDOS Y CABECERAS */
     .printable-invoice * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;

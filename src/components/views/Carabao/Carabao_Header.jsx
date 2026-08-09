@@ -146,9 +146,17 @@ export default function Carabao_Header() {
                   )}
                   {activeTab === 'invoice' && (
                     <button
-                      onClick={() => window.print()}
+                      onClick={() => {
+                        const originalTitle = document.title;
+                        const mm = String(month).padStart(2, '0');
+                        document.title = `Carabao Invoice ${mm}-${year}`;
+                        window.print();
+                        setTimeout(() => {
+                          document.title = originalTitle;
+                        }, 1000);
+                      }}
                       className="p-2.5 rounded-xl bg-surface-edge/10 border border-surface-edge/30 text-text-header hover:text-white hover:bg-surface-edge/30 transition-all group shrink-0"
-                      title="Imprimir"
+                      title="Imprimir Factura Carabao"
                     >
                       <Printer className="w-5 h-5" />
                     </button>

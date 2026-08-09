@@ -8,8 +8,18 @@ import {
   Lightbulb,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
   Info,
-  Layers
+  Layers,
+  Banknote,
+  Handshake,
+  DollarSign,
+  Receipt,
+  UserRoundSearch,
+  CreditCard,
+  ShieldCheck,
+  UsersRound,
+  BarChart3
 } from 'lucide-react';
 import { manualSections } from './sections';
 
@@ -50,19 +60,48 @@ const CarabaoIcon = ({ className }) => (
 );
 
 const ICON_MAP = {
+  BarChart3: BarChart3,
   SettingsIcon: SettingsIcon,
   Rows3: Rows3,
+  Handshake: Handshake,
+  DollarSign: DollarSign,
+  Banknote: Banknote,
+  Receipt: Receipt,
+  UserRoundSearch: UserRoundSearch,
+  CreditCard: CreditCard,
+  ShieldCheck: ShieldCheck,
+  UsersRound: UsersRound,
   SSIIcon: SSIIcon,
   CarabaoIcon: CarabaoIcon,
 };
 
 export default function Manual_View() {
-  const [selectedSectionId, setSelectedSectionId] = useState('actividades');
+  const [selectedSectionId, setSelectedSectionId] = useState('dashboard-cuentas-ingresos');
   const [searchQuery, setSearchQuery] = useState('');
+  const [openParents, setOpenParents] = useState({ dashboard: true, facturacion: true, gastos: true, depositos: true, carabao: true, crbt: true, configuracion: true });
+
+  const toggleParent = (parentId) => {
+    setOpenParents(prev => ({ ...prev, [parentId]: !prev[parentId] }));
+  };
+
+  // Obtener lista plana de subsecciones e ítems simples
+  const allFlatSections = useMemo(() => {
+    const flat = [];
+    manualSections.forEach(sec => {
+      if (sec.children && sec.children.length > 0) {
+        sec.children.forEach(child => {
+          flat.push({ ...child, parentId: sec.id, parentTitle: sec.title });
+        });
+      } else {
+        flat.push(sec);
+      }
+    });
+    return flat;
+  }, []);
 
   const activeSection = useMemo(() => {
-    return manualSections.find(s => s.id === selectedSectionId) || manualSections[0];
-  }, [selectedSectionId]);
+    return allFlatSections.find(s => s.id === selectedSectionId) || allFlatSections[0];
+  }, [allFlatSections, selectedSectionId]);
 
   // Filtrado de búsquedas
   const filteredTopics = useMemo(() => {
@@ -127,6 +166,73 @@ export default function Manual_View() {
           <nav className="space-y-2">
             {manualSections.map((sec) => {
               const IconComp = ICON_MAP[sec.icon] || HelpCircle;
+              const hasChildren = Boolean(sec.children && sec.children.length > 0);
+
+              if (hasChildren) {
+                const isParentOpen = Boolean(openParents[sec.id]);
+                const isAnyChildActive = sec.children.some(c => c.id === selectedSectionId);
+
+                return (
+                  <div key={sec.id} className="space-y-1">
+                    {/* Header del Padre (Configuración) */}
+                    <button
+                      onClick={() => toggleParent(sec.id)}
+                      className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left group ${
+                        isAnyChildActive
+                          ? 'bg-slate-800/90 border-brand/40 text-white'
+                          : 'bg-slate-900/80 border-white/10 text-gray-200 hover:bg-slate-800/80 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <IconComp className={`w-5 h-5 flex-shrink-0 ${isAnyChildActive ? 'text-brand' : 'text-gray-400 group-hover:text-brand-light'}`} />
+                        <div>
+                          <p className="text-sm font-black text-white">
+                            {sec.title}
+                          </p>
+                          <span className="text-[10px] font-black text-brand uppercase tracking-wider">
+                            {sec.badge}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isParentOpen ? 'rotate-180 text-brand' : ''}`} />
+                    </button>
+
+                    {/* Sub-items Hijos desplegables */}
+                    {isParentOpen && (
+                      <div className="pl-3 space-y-1 border-l-2 border-brand/30 ml-3.5 my-1">
+                        {sec.children.map((child) => {
+                          const isChildActive = child.id === selectedSectionId;
+
+                          return (
+                            <button
+                              key={child.id}
+                              onClick={() => {
+                                setSelectedSectionId(child.id);
+                                setSearchQuery('');
+                              }}
+                              className={`w-full flex items-center justify-between p-2.5 px-3 rounded-xl border transition-all text-left ${
+                                isChildActive
+                                  ? 'bg-brand/25 border-brand/60 text-white shadow-lg shadow-brand/10 font-bold'
+                                  : 'bg-slate-900/40 border-white/5 text-gray-300 hover:bg-slate-800/60 hover:text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-1.5 h-1.5 rounded-full ${isChildActive ? 'bg-brand animate-pulse' : 'bg-gray-500'}`} />
+                                <span className="text-xs font-bold">
+                                  {child.title}
+                                </span>
+                              </div>
+                              <ChevronRight className={`w-3.5 h-3.5 ${isChildActive ? 'text-brand' : 'text-gray-600'}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Sección standalone normal (ej: Facturación, SSI, Carabao)
               const isActive = sec.id === selectedSectionId;
 
               return (
@@ -162,6 +268,7 @@ export default function Manual_View() {
 
         {/* Columna Derecha: Visor de Contenidos */}
         <div className="md:col-span-8 lg:col-span-9 xl:col-span-10 space-y-8">
+
           
           {/* Cabecera del Módulo seleccionado */}
           <div className="bg-slate-900 border border-white/15 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
