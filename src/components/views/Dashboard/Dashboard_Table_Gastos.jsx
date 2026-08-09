@@ -1,6 +1,14 @@
 import { CheckCircle2 } from 'lucide-react';
 import EditableInput from '../../common/EditableInput';
 
+const formatWithDots = (val) => {
+  if (val === undefined || val === null || val === '') return '0';
+  const cleanStr = String(val).replace(/\./g, '').replace(',', '.').trim();
+  const num = Math.round(Number(cleanStr) || 0);
+  if (isNaN(num)) return val;
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
 export default function Dashboard_Table_Gastos({
   expenseData,
   incomeData,
@@ -33,7 +41,7 @@ export default function Dashboard_Table_Gastos({
               return (
                 <tr key={idx} className="group hover:bg-surface-edge transition-colors">
                   <td className="py-0.5 text-left pl-2"><span className={`text-[12px] font-black uppercase tracking-widest whitespace-nowrap ${e.color || 'text-white'}`}>{e.name}</span></td>
-                  <td className="py-0.5 text-right font-mono text-[16px] text-white/90 pr-2">{Math.round(e.value).toLocaleString()}</td>
+                  <td className="py-0.5 text-right font-mono text-[16px] text-white/90 pr-2">{formatWithDots(e.value)}</td>
                   <td className="py-0.5 text-center">
                     {e.isEditable || e.isGeneric ? (
                       <div className="flex justify-center">
@@ -53,14 +61,14 @@ export default function Dashboard_Table_Gastos({
                       }`}>
                       {e.isEditable || e.isGeneric ? (
                         <EditableInput
-                          defaultValue={e.pending}
-                          onSave={(val) => updateGenericPending(e.col, val)}
+                          defaultValue={formatWithDots(e.pending)}
+                          onSave={(val) => updateGenericPending(e.col, val.replace(/\./g, '').replace(',', '.').trim())}
                           type="text"
                           inputMode="decimal"
                           className={`bg-transparent border-none text-right font-mono text-[18px] font-black w-full outline-none focus:text-brand transition-colors no-spinner ${isPaid ? 'text-emerald-400/40' : 'text-white'}`}
                         />
                       ) : (
-                        <div className="text-right font-mono text-[18px] font-black">{Math.round(e.pending || 0).toLocaleString()}</div>
+                        <div className="text-right font-mono text-[18px] font-black">{formatWithDots(e.pending)}</div>
                       )}
                     </div>
                   </td>
@@ -75,11 +83,11 @@ export default function Dashboard_Table_Gastos({
             <tr className="h-10">
               <td className="text-[12px] font-black text-text-muted uppercase tracking-widest text-center">Total</td>
               <td className="text-[18px] font-black text-white text-right font-mono tracking-tighter pr-2">
-                {Math.round(expenseData.reduce((acc, e) => acc + e.value, 0)).toLocaleString()}
+                {formatWithDots(expenseData.reduce((acc, e) => acc + e.value, 0))}
               </td>
               <td className="text-center text-gray-700/50">-</td>
               <td className="text-[20px] font-black text-danger text-right font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(244,63,94,0.3)] pr-3">
-                {Math.round(expenseData.reduce((acc, e) => acc + (Number(e.pending) || 0), 0)).toLocaleString()}
+                {formatWithDots(expenseData.reduce((acc, e) => acc + (Number(String(e.pending).replace(/\./g, '').replace(',', '.')) || 0), 0))}
               </td>
               <td className="text-[12px] font-black text-text-muted text-center font-mono">
                 {incomeData.total > 0 ? ((expenseData.reduce((acc, e) => acc + e.value, 0) / incomeData.total) * 100).toFixed(1) : 0}<span className="ml-1 opacity-60">%</span>
