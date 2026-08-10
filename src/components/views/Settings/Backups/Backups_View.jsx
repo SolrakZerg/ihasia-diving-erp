@@ -11,7 +11,9 @@ import {
   HardDrive, 
   Users, 
   Receipt, 
-  ShieldCheck 
+  ShieldCheck,
+  CloudUpload,
+  GitBranch
 } from 'lucide-react';
 import { supabase } from '../../../../lib/supabaseClient';
 import { APP_VERSION } from '../../../../version';
@@ -64,6 +66,7 @@ export default function Backups_View() {
   const [exportProgress, setExportProgress] = useState(0);
   const [currentExportTable, setCurrentExportTable] = useState('');
   const [lastBackupDate, setLastBackupDate] = useState(null);
+  const [githubSyncDate, setGithubSyncDate] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -71,8 +74,7 @@ export default function Backups_View() {
     customers: 0,
     invoices: 0,
     bizums: 0,
-    totalRows: 0,
-    tableCounts: {}
+    totalRows: 0
   });
 
   useEffect(() => {
@@ -81,13 +83,16 @@ export default function Backups_View() {
     if (storedDate) {
       setLastBackupDate(new Date(storedDate));
     }
+    const storedGithubDate = localStorage.getItem('ihasia_last_github_sync_date');
+    if (storedGithubDate) {
+      setGithubSyncDate(new Date(storedGithubDate));
+    }
   }, []);
 
   const fetchMetrics = async () => {
     setLoadingMetrics(true);
     setErrorMessage('');
     try {
-      // Consultas livianas de conteo de las tablas principales
       const [custRes, invRes, bizRes] = await Promise.all([
         supabase.from('customers').select('id', { count: 'exact', head: true }),
         supabase.from('invoices').select('id', { count: 'exact', head: true }),
@@ -111,7 +116,6 @@ export default function Backups_View() {
     }
   };
 
-  // Función recursiva con paginación de 1000 filas para garantizar 100% de descarga
   const fetchAllRowsForTable = async (tableName) => {
     let allRows = [];
     let page = 0;
@@ -137,52 +141,59 @@ export default function Backups_View() {
     return allRows;
   };
 
-  const handleExportData = async (format = 'json') => {
+  const generateFullBackupPayload = async () => {
+    const fullData = {};
+    let totalRowsExported = 0;
+
+    for (let i = 0; i < ALL_TABLES.length; i++) {
+      const table = ALL_TABLES[i];
+      setCurrentExportTable(table);
+      const rows = await fetchAllRowsForTable(table);
+      fullData[table] = rows;
+      totalRowsExported += rows.length;
+      setExportProgress(Math.round(((i + 1) / ALL_TABLES.length) * 100));
+    }
+
+    return {
+      payload: {
+        metadata: {
+          project: 'IHASIA Diving ERP',
+          version: APP_VERSION,
+          export_date: new Date().toISOString(),
+          total_tables: ALL_TABLES.length,
+          total_rows: totalRowsExported
+        },
+        tables: fullData
+      },
+      totalRowsExported
+    };
+  };
+
+  const handleExportData = async (format = 'json', syncToGithub = true) => {
     setIsExporting(true);
     setExportProgress(0);
     setSuccessMessage('');
     setErrorMessage('');
 
     try {
-      const fullData = {};
-      let totalRowsExported = 0;
-
-      for (let i = 0; i < ALL_TABLES.length; i++) {
-        const table = ALL_TABLES[i];
-        setCurrentExportTable(table);
-        const rows = await fetchAllRowsForTable(table);
-        fullData[table] = rows;
-        totalRowsExported += rows.length;
-        setExportProgress(Math.round(((i + 1) / ALL_TABLES.length) * 100));
-      }
-
+      const { payload, totalRowsExported } = await generateFullBackupPayload();
       const todayStr = new Date().toISOString().split('T')[0];
+      const jsonPayloadString = JSON.stringify(payload, null, 2);
 
       if (format === 'json') {
-        const exportPayload = {
-          metadata: {
-            project: 'IHASIA Diving ERP',
-            version: APP_VERSION,
-            export_date: new Date().toISOString(),
-            total_tables: ALL_TABLES.length,
-            total_rows: totalRowsExported
-          },
-          tables: fullData
-        };
-
-        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-          JSON.stringify(exportPayload, null, 2)
-        )}`;
+        const jsonBlob = new Blob([jsonPayloadString], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(jsonBlob);
         const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute('href', jsonString);
+        downloadAnchor.setAttribute('href', url);
         downloadAnchor.setAttribute('download', `ihasia_erp_data_backup_${todayStr}.json`);
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
+        URL.revokeObjectURL(url);
       } else if (format === 'sql') {
         let sqlContent = `-- IHASIA ERP DATA BACKUP SNAPSHOT\n-- Date: ${new Date().toISOString()}\n-- App Version: ${APP_VERSION}\n-- Total Tables: ${ALL_TABLES.length}\n-- Total Rows: ${totalRowsExported}\n\n`;
 
-        for (const [table, rows] of Object.entries(fullData)) {
+        for (const [table, rows] of Object.entries(payload.tables)) {
           if (rows.length === 0) continue;
           sqlContent += `-- Table: public.${table} (${rows.length} rows)\n`;
           rows.forEach((row) => {
@@ -212,7 +223,25 @@ export default function Backups_View() {
       const now = new Date();
       setLastBackupDate(now);
       localStorage.setItem('ihasia_last_data_backup_date', now.toISOString());
-      setSuccessMessage(`¡Copia de seguridad completada con éxito! Se respaldaron ${totalRowsExported.toLocaleString()} filas de las 39 tablas.`);
+
+      let extraMsg = '';
+      if (syncToGithub) {
+        setCurrentExportTable('GitHub API Vault Sync...');
+        const { data: ghRes, error: ghErr } = await supabase.rpc('push_backup_to_github', {
+          p_file_content: jsonPayloadString
+        });
+
+        if (ghErr) {
+          console.error('Error al sincronizar con GitHub:', ghErr);
+          extraMsg = ' (Aviso: No se pudo conectar con GitHub, pero la descarga local se realizó con éxito)';
+        } else if (ghRes && ghRes.success) {
+          setGithubSyncDate(now);
+          localStorage.setItem('ihasia_last_github_sync_date', now.toISOString());
+          extraMsg = ` ☁️ ¡Respaldo sincronizado automáticamente en tu repositorio privado de GitHub! (Commit: ${ghRes.commit ? ghRes.commit.substring(0, 7) : 'OK'})`;
+        }
+      }
+
+      setSuccessMessage(`¡Copia completada! Se respaldaron ${totalRowsExported.toLocaleString()} filas de las 39 tablas.${extraMsg}`);
     } catch (err) {
       console.error('Error durante la exportación:', err);
       setErrorMessage(`Error al generar la copia de seguridad: ${err.message || 'Error de conexión'}`);
@@ -242,7 +271,7 @@ export default function Backups_View() {
               </span>
             </h2>
             <p className="text-sm text-text-muted mt-1">
-              Exporta un respaldo completo e instantáneo de las 39 tablas del sistema a tu ordenador.
+              Descarga local y sincronización automática cifrada con tu repositorio privado de GitHub.
             </p>
           </div>
         </div>
@@ -327,7 +356,7 @@ export default function Backups_View() {
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-brand-light flex items-center gap-2">
               <RefreshCw className="w-4 h-4 animate-spin" />
-              Descargando tabla: <code className="bg-brand/20 px-2 py-0.5 rounded text-white font-mono">{currentExportTable}</code>
+              Procesando: <code className="bg-brand/20 px-2 py-0.5 rounded text-white font-mono">{currentExportTable}</code>
             </span>
             <span className="font-bold text-white">{exportProgress}%</span>
           </div>
@@ -342,30 +371,35 @@ export default function Backups_View() {
 
       {/* Main Actions Panel */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* JSON Export Card */}
-        <div className="bg-surface-soft/20 border border-surface-edge p-6 rounded-2xl flex flex-col justify-between space-y-6 hover:border-brand/40 transition-all">
-          <div className="space-y-3">
+        {/* JSON Export + Auto GitHub Cloud Sync Card */}
+        <div className="bg-surface-soft/20 border border-surface-edge p-6 rounded-2xl flex flex-col justify-between space-y-6 hover:border-brand/40 transition-all relative overflow-hidden">
+          <div className="absolute top-3 right-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+            <GitBranch className="w-3.5 h-3.5" />
+            Auto-Sync GitHub
+          </div>
+
+          <div className="space-y-3 pt-2">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-brand/10 text-brand-light rounded-xl border border-brand/30">
-                <FileJson className="w-6 h-6" />
+                <CloudUpload className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Respaldo Formato JSON (Recomendado)</h3>
-                <p className="text-xs text-text-muted">Estructurado, ligero y fácil de importar o inspeccionar.</p>
+                <h3 className="text-lg font-bold text-white">Respaldo Completo (.JSON + GitHub)</h3>
+                <p className="text-xs text-text-muted">Descarga en tu equipo y subida automática cifrada a GitHub.</p>
               </div>
             </div>
             <p className="text-sm text-text-muted leading-relaxed">
-              Exporta un snapshot estructurado con metadata y arreglos de objetos de las 39 tablas de Supabase. Es el formato ideal para migraciones y restauración de datos.
+              Descarga el JSON en tu ordenador y simultáneamente ejecuta la función segura de Supabase Vault para actualizar <code>database/data_backups/backup_latest.json</code> en tu repositorio privado.
             </p>
           </div>
 
           <button
-            onClick={() => handleExportData('json')}
+            onClick={() => handleExportData('json', true)}
             disabled={isExporting}
             className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-brand hover:bg-brand-light text-white font-bold rounded-xl transition-all shadow-lg shadow-brand/20 disabled:opacity-50"
           >
-            <Download className="w-5 h-5" />
-            Descargar Copia Datos (.JSON)
+            <CloudUpload className="w-5 h-5" />
+            Descargar y Sincronizar en GitHub
           </button>
         </div>
 
@@ -382,12 +416,12 @@ export default function Backups_View() {
               </div>
             </div>
             <p className="text-sm text-text-muted leading-relaxed">
-              Genera un archivo de script SQL con sentencias <code>INSERT INTO ... ON CONFLICT DO NOTHING</code> ejecutable en el editor SQL de Supabase.
+              Genera un archivo de script SQL con sentencias <code>INSERT INTO ... ON CONFLICT DO NOTHING</code> ejecutable en el editor SQL de Supabase para restauración parcial o total.
             </p>
           </div>
 
           <button
-            onClick={() => handleExportData('sql')}
+            onClick={() => handleExportData('sql', false)}
             disabled={isExporting}
             className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-600/20 disabled:opacity-50"
           >
@@ -404,24 +438,24 @@ export default function Backups_View() {
             <Clock className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-base font-bold text-white">Frecuencia Recomendada de Respaldo</h4>
+            <h4 className="text-base font-bold text-white">Estado del Respaldo Nube en GitHub</h4>
             <p className="text-xs text-text-muted leading-relaxed">
-              • <strong>Temporada alta de buceo:</strong> 1 vez por semana (cada domingo al cierre de caja).<br />
-              • <strong>Temporada normal:</strong> 1 vez por mes (al generar cierres e informes de nóminas).
+              • <strong>Sincronización segura:</strong> Supabase Vault (Token cifrado AES-256 no visible en navegador).<br />
+              • <strong>Histórico de commits:</strong> Todos los cambios pasados se guardan de forma acumulativa e indestructible.
             </p>
           </div>
         </div>
 
         <div className="bg-surface-soft/40 border border-surface-edge px-4 py-3 rounded-xl text-right flex-shrink-0 w-full md:w-auto">
-          <p className="text-xs text-text-muted font-medium">Último respaldo local:</p>
+          <p className="text-xs text-text-muted font-medium">Última sincronización en GitHub:</p>
           <p className="text-sm font-bold text-white mt-0.5">
-            {lastBackupDate
-              ? `${lastBackupDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} (${lastBackupDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`
-              : 'No registrado aún en este navegador'}
+            {githubSyncDate
+              ? `${githubSyncDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} (${githubSyncDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`
+              : 'No registrada aún en este navegador'}
           </p>
           {daysSinceBackup !== null && (
             <p className={`text-xs mt-1 font-semibold ${daysSinceBackup > 14 ? 'text-rose-400' : 'text-emerald-400'}`}>
-              {daysSinceBackup === 0 ? '¡Respaldado hoy!' : `Hace ${daysSinceBackup} día(s)`}
+              {daysSinceBackup === 0 ? '¡Sincronizado hoy!' : `Hace ${daysSinceBackup} día(s)`}
             </p>
           )}
         </div>
