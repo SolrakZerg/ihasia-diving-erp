@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MessageSquare, Calendar, CheckCircle2, Sparkles, Loader2, ExternalLink, Users, BookOpen } from 'lucide-react';
+import { X, MessageSquare, Calendar, CheckCircle2, Sparkles, Loader2, ExternalLink, Users, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { 
   generateWhatsappLink, 
   generateWhatsappMessage, 
@@ -27,16 +27,27 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
   const [eventLink, setEventLink] = useState(null);
   const [calendarError, setCalendarError] = useState(null);
 
-  // Estados para desglose de actividades múltiples por Pax
+  // Estados para desglose de actividades múltiples por cantidad (ej: 3x OW + 1x SR)
   const [isMultipleActivities, setIsMultipleActivities] = useState(false);
-  const [paxActivities, setPaxActivities] = useState([]);
+  const [activityLines, setActivityLines] = useState([]);
 
   useEffect(() => {
     if (isOpen && data) {
       const defaultCode = getShortCodeFromActivityName(data.activity);
       const numPax = data.num_people || 1;
       setIsMultipleActivities(false);
-      setPaxActivities(Array.from({ length: numPax }, () => defaultCode));
+      
+      // Por defecto al desglosar: Línea 1 con numPax - 1, Línea 2 con 1 pax
+      if (numPax > 1) {
+        const secondaryCode = defaultCode === 'OW' ? 'SR' : 'OW';
+        setActivityLines([
+          { count: numPax - 1, code: defaultCode },
+          { count: 1, code: secondaryCode }
+        ]);
+      } else {
+        setActivityLines([{ count: 1, code: defaultCode }]);
+      }
+
       setCompletedList([]);
       setEventLink(null);
       setCalendarError(null);
@@ -48,44 +59,62 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
 
   const numPax = data.num_people || 1;
 
-  // 1. Manejador para cambiar la actividad individual de cada Pax
-  const handlePaxActivityChange = (index, newCode) => {
-    const updated = [...paxActivities];
-    updated[index] = newCode;
-    setPaxActivities(updated);
+  // Manejadores para añadir/eliminar/editar líneas de actividad
+  const handleAddLine = () => {
+    const defaultCode = getShortCodeFromActivityName(data.activity);
+    const unusedCode = defaultCode === 'DSD' ? 'OW' : 'DSD';
+    setActivityLines(prev => [...prev, { count: 1, code: unusedCode }]);
   };
 
-  // 2. Formato de Acrónimos para el Título de Google Calendar (ej: "DSD x4" o "OWx1 SRx1 DSDx2")
+  const handleRemoveLine = (index) => {
+    if (activityLines.length <= 1) return;
+    setActivityLines(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLineChange = (index, field, value) => {
+    setActivityLines(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        [field]: field === 'count' ? Math.max(1, parseInt(value) || 1) : value
+      };
+      return updated;
+    });
+  };
+
+  const totalAssignedPax = activityLines.reduce((sum, line) => sum + (parseInt(line.count) || 0), 0);
+
+  // Formato de Acrónimos para el Título de Google Calendar (ej: "DSD x4" o "OWx3 SRx1")
   const getAcronymsText = () => {
     if (!isMultipleActivities || numPax === 1) {
       const defaultCode = getShortCodeFromActivityName(data.activity);
       return `${defaultCode} x${numPax}`;
     }
 
-    const counts = {};
-    paxActivities.forEach(code => {
-      counts[code] = (counts[code] || 0) + 1;
-    });
-
-    return Object.entries(counts).map(([code, count]) => `${code}x${count}`).join(' ');
+    return activityLines
+      .filter(line => (line.count || 0) > 0)
+      .map(line => {
+        const acronym = getShortCodeFromActivityName(line.code);
+        return `${acronym}x${line.count}`;
+      })
+      .join(' ');
   };
 
-  // 3. Formato para el mensaje amigable de WhatsApp
+  // Formato para el mensaje amigable de WhatsApp (ej: "3 Open Water y 1 Refresh")
   const getCombinedActivitiesText = () => {
     if (!isMultipleActivities || numPax === 1) {
       const actName = data.activity || 'tu actividad de buceo';
       return numPax > 1 ? `${actName} x${numPax}` : actName;
     }
 
-    const counts = {};
-    paxActivities.forEach(code => {
-      const name = getActivitySpanishName(code);
-      counts[name] = (counts[name] || 0) + 1;
+    const validLines = activityLines.filter(line => (line.count || 0) > 0);
+    const parts = validLines.map(line => {
+      const name = getActivitySpanishName(line.code);
+      const cnt = line.count || 1;
+      return cnt > 1 ? `${cnt} ${name}` : `1 ${name}`;
     });
 
-    const parts = Object.entries(counts).map(([actName, count]) => 
-      count > 1 ? `${count} ${actName}` : `1 ${actName}`
-    );
+    if (parts.length === 0) return data.activity || 'tu actividad de buceo';
     if (parts.length === 1) return parts[0];
 
     const lastPart = parts.pop();
@@ -107,13 +136,11 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
   const formattedDate = formatSpanishDate(data.booking_date);
   const mainInfo = `${data.customer_name} - ${acronymsText}`;
 
-  // Ejecución de la API de Google Calendar manteniendo la nomenclatura solicitada
+  // Ejecución de la API de Google Calendar
   const executeCalendarCreation = async () => {
     if (!isMultipleActivities) {
-      // Si es actividad simple, llamamos al procedimiento estándar de Bizum
       return await createGoogleCalendarEvent(data);
     } else {
-      // Si hay desglose de actividades por persona, usamos la sobrecarga con acrónimos exactos
       return await createCustomGoogleCalendarEvent({
         customerName: data.customer_name,
         activity: acronymsText,
@@ -227,7 +254,7 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
             <span className="text-gray-300 text-sm sm:text-base block font-medium">({formattedDate})</span>
           </div>
 
-          {/* Selector de Actividades Múltiples por Pax */}
+          {/* Selector de Actividades Múltiples por Cantidad (Líneas una debajo de otra) */}
           {numPax > 1 && (
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
@@ -237,7 +264,7 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={() => setIsMultipleActivities(!isMultipleActivities)}
-                  className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5 cursor-pointer bg-amber-400/10 px-3 py-1 rounded-xl border border-amber-400/20 transition-all"
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5 cursor-pointer bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20 transition-all"
                 >
                   <Users className="w-4 h-4" />
                   {isMultipleActivities ? 'Misma actividad para todos' : '¿Actividades distintas?'}
@@ -245,18 +272,42 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
               </div>
 
               {isMultipleActivities && (
-                <div className="space-y-2.5 p-4 bg-surface-soft/60 border border-amber-500/30 rounded-2xl animate-in fade-in duration-200">
-                  <span className="text-xs font-black text-amber-300 uppercase tracking-wider block mb-2">
-                    Selecciona la actividad individual por Pax ({numPax}):
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {Array.from({ length: numPax }).map((_, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="text-xs font-black text-gray-300 shrink-0 w-12">Pax {idx + 1}:</span>
+                <div className="space-y-3 p-4 bg-surface-soft/60 border border-amber-500/30 rounded-2xl animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between pb-1 border-b border-surface-edge/40">
+                    <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                      Asigna la cantidad por actividad:
+                    </span>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                      totalAssignedPax === numPax 
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {totalAssignedPax} de {numPax} Pax
+                    </span>
+                  </div>
+
+                  {/* Lista de Líneas (Vertical, una debajo de otra) */}
+                  <div className="space-y-2.5">
+                    {activityLines.map((line, idx) => (
+                      <div key={idx} className="flex items-center gap-2.5 bg-surface/80 p-2.5 rounded-xl border border-surface-edge">
+                        {/* Input Cantidad */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-gray-400">Pax:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={numPax}
+                            value={line.count}
+                            onChange={(e) => handleLineChange(idx, 'count', e.target.value)}
+                            className="w-16 bg-surface-soft border border-surface-edge rounded-lg px-2.5 py-1.5 text-center text-sm font-black text-white focus:outline-none focus:border-brand font-mono"
+                          />
+                        </div>
+
+                        {/* Select Actividad */}
                         <select
-                          value={paxActivities[idx] || 'OW'}
-                          onChange={(e) => handlePaxActivityChange(idx, e.target.value)}
-                          className="w-full bg-surface border border-surface-edge rounded-xl p-2 text-xs sm:text-sm text-white focus:outline-none focus:border-brand font-bold cursor-pointer"
+                          value={line.code}
+                          onChange={(e) => handleLineChange(idx, 'code', e.target.value)}
+                          className="flex-1 bg-surface-soft border border-surface-edge rounded-lg px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-brand font-bold cursor-pointer"
                         >
                           {ACTIVITY_OPTIONS.map(opt => (
                             <option key={opt.code} value={opt.acronym}>
@@ -264,9 +315,31 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
                             </option>
                           ))}
                         </select>
+
+                        {/* Botón Eliminar Línea */}
+                        {activityLines.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLine(idx)}
+                            className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                            title="Eliminar línea"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
+
+                  {/* Botón Añadir Otra Actividad */}
+                  <button
+                    type="button"
+                    onClick={handleAddLine}
+                    className="w-full py-2 px-3 bg-surface hover:bg-surface-soft border border-surface-edge text-xs font-bold text-gray-300 hover:text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                  >
+                    <Plus className="w-4 h-4 text-brand" />
+                    <span>Añadir otra actividad</span>
+                  </button>
                 </div>
               )}
             </div>
