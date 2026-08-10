@@ -18,6 +18,8 @@ import Estadisticas_View from './Estadisticas/Estadisticas_View';
 import Activities from './Actividades/Activities_View';
 import General_View from './General/General_View';
 import GastosFijos_View from './GastosFijos/GastosFijos_View';
+import Backups_View from './Backups/Backups_View';
+import { ShieldCheck } from 'lucide-react';
 
 
 export default function SettingsView() {
@@ -32,6 +34,7 @@ export default function SettingsView() {
     { id: 'catalog', label: 'Catálogo', icon: DollarSign },
     { id: 'bote', label: 'Bote', icon: PiggyBank },
     { id: 'analytics', label: 'Estadísticas', icon: TrendingIcon },
+    { id: 'backups', label: 'Copias de Seguridad', icon: ShieldCheck },
   ];
 
   const activeIndex = tabs.findIndex(t => t.id === activeTab);
@@ -121,6 +124,7 @@ export default function SettingsView() {
           {activeTab === 'bote' && <Bote_View />}
           {activeTab === 'payout_rules' && <Staff_fee_View />}
           {activeTab === 'analytics' && <Estadisticas_View />}
+          {activeTab === 'backups' && <Backups_View />}
         </div>
       </div>
     </div>
