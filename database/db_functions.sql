@@ -1,14 +1,23 @@
 -- ################################################################################
--- DATABASE FUNCTIONS (Respaldo Literal Supabase Q3 2026)
+-- DATABASE FUNCTIONS (Respaldo Literal Documentado Supabase Q3 2026)
 -- Project: IHASIA ERP
--- Organization: public (API) and logic (Internal)
+-- Schemas: public (API cliente y utilidades) y logic (Motores financieros internos)
 -- Extraído literalmente vía PostgreSQL pg_get_functiondef()
 -- ################################################################################
 
 -- ================================================================================
--- SECTION 1: PUBLIC API FUNCTIONS (Accessible via PostgREST / Client)
+-- SECTION 1: PUBLIC API FUNCTIONS (Accesibles desde cliente PostgREST)
 -- ================================================================================
 
+-- --------------------------------------------------------------------------------
+-- Función: public.search_customers_v3(query_text text)
+-- Propósito: Búsqueda avanzada de clientes tokenizada e insensible a tildes (unaccent).
+--            Descompone la consulta por palabras clave y busca coincidencias en nombre,
+--            apellidos, correo electrónico y número de pasaporte.
+-- Parámetros: query_text (text) - Texto introducido en la barra de búsqueda.
+-- Retorna: TABLE con los 19 campos completos del perfil del cliente.
+-- ERP Módulo: Buscador global de clientes, modales de asignación y facturación.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.search_customers_v3(query_text text)
  RETURNS TABLE(id uuid, first_name text, last_name text, email text, phone text, gender text, passport_number text, birth_date date, emergency_contact text, address text, lead_source text, certification_level text, total_dives text, last_dive_date text, form_origin text, booked_activity text, booking_date date, insurance_expiry date, created_at timestamp with time zone)
  LANGUAGE plpgsql
@@ -54,6 +63,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.search_customers_v3(text) IS 'Buscador avanzado de clientes tokenizado e insensible a tildes (unaccent).';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.get_duplicate_customers()
+-- Propósito: Identifica registros de clientes duplicados comparando nombre, apellido y email
+--            con coincidencia exacta (normalizados sin espacios y minúsculas).
+-- Parámetros: Ninguno.
+-- Retorna: SETOF customers (Lista de registros de clientes duplicados).
+-- ERP Módulo: Herramientas de limpieza de base de datos y depuración de clientes.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_duplicate_customers()
  RETURNS SETOF customers
  LANGUAGE plpgsql
@@ -72,6 +92,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.get_duplicate_customers() IS 'Identifica clientes duplicados comparando nombre, apellido y email.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.sync_monthly_activity_logs(p_year integer, p_month integer, p_data jsonb)
+-- Propósito: Sincronización atómica de actividades mensuales. Resetea los conteos del mes,
+--            inserta/actualiza los valores del JSONB mediante UPSERT y limpia ceros.
+-- Parámetros: p_year (integer), p_month (integer), p_data (jsonb) - Array de objetos {activity_id, count}.
+-- Retorna: void
+-- ERP Módulo: Widget de estadísticas de actividades mensuales y métricas de producción.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.sync_monthly_activity_logs(p_year integer, p_month integer, p_data jsonb)
  RETURNS void
  LANGUAGE plpgsql
@@ -107,6 +138,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.sync_monthly_activity_logs(integer, integer, jsonb) IS 'Sincronización atómica de actividades mensuales para métricas ERP.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_clean_phone(p_phone text)
+-- Propósito: Función de utilidad inmutable para purgar y conservar únicamente los dígitos
+--            numéricos de un número telefónico.
+-- Parámetros: p_phone (text)
+-- Retorna: text (Cadena numérica pura)
+-- ERP Módulo: Algoritmos de coincidencia de depósitos Wise / Bizum y normalización de contactos.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_clean_phone(p_phone text)
  RETURNS text
  LANGUAGE plpgsql
@@ -117,6 +159,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_clean_phone(text) IS 'Extrae únicamente los dígitos numéricos de un número telefónico.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_normalize_name(p_name text)
+-- Propósito: Normaliza nombres para comparación eliminando tildes, símbolos especiales
+--            y convirtiendo todo el texto a minúsculas.
+-- Parámetros: p_name (text)
+-- Retorna: text (Nombre limpio para comparaciones difusas)
+-- ERP Módulo: Coincidencia inteligente de transferencias de reservas Bizum/Wise.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_normalize_name(p_name text)
  RETURNS text
  LANGUAGE plpgsql
@@ -127,6 +180,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_normalize_name(text) IS 'Normaliza nombres eliminando tildes y símbolos para búsqueda difusa.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_match_bizum_deposit(p_customer_id uuid)
+-- Propósito: Encuentra el depósito Bizum correspondiente a un cliente evaluando una ventana
+--            de ±3 días de la fecha de reserva, coincidencia telefónica o similitud de nombre (> 0.5).
+-- Parámetros: p_customer_id (uuid)
+-- Retorna: TABLE(bizum_id uuid, deposit_eur numeric, customer_name text)
+-- ERP Módulo: Facturación automática y conciliación de depósitos en euros.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_match_bizum_deposit(p_customer_id uuid)
  RETURNS TABLE(bizum_id uuid, deposit_eur numeric, customer_name text)
  LANGUAGE plpgsql
@@ -189,6 +253,18 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_match_bizum_deposit(uuid) IS 'Asocia un depósito Bizum a un cliente comparando fechas, teléfono o similitud de nombre.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_match_google_calendar_deposit(p_first_name text, p_last_name text, p_booking_date date)
+-- Sobrecarga: 3 parámetros (Búsqueda por nombre y fecha)
+-- Propósito: Conecta con la API de Google Calendar usando secretos de Vault para buscar la
+--            reserva del cliente en el calendario "IHASIA Llegadas New" e importar su depósito.
+-- Parámetros: p_first_name (text), p_last_name (text), p_booking_date (date)
+-- Retorna: jsonb con {success, matched, deposit_thb, num_people, payment_method}
+-- ERP Módulo: Importación automática de depósitos desde Google Calendar hacia facturación.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_match_google_calendar_deposit(p_first_name text, p_last_name text, p_booking_date date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -352,6 +428,18 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_match_google_calendar_deposit(text, text, date) IS 'Busca depósitos de reservas en Google Calendar por nombre y fecha.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_match_google_calendar_deposit(p_first_name text, p_last_name text, p_phone text, p_booking_date date)
+-- Sobrecarga: 4 parámetros (Prioridad por teléfono y prevención de falsos positivos)
+-- Propósito: Consulta Google Calendar evaluando primero el número telefónico WhatsApp y como
+--            fallback el nombre, evitando asignar depósitos pertenecientes a otros clientes.
+-- Parámetros: p_first_name (text), p_last_name (text), p_phone (text), p_booking_date (date)
+-- Retorna: jsonb con los datos formateados de la reserva encontrada.
+-- ERP Módulo: Auto-importación inteligente de depósitos Wise a partidas de facturas.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_match_google_calendar_deposit(p_first_name text, p_last_name text, p_phone text, p_booking_date date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -545,6 +633,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_match_google_calendar_deposit(text, text, text, date) IS 'Busca depósitos de reservas en Google Calendar priorizando teléfono sobre nombre.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.create_google_calendar_event(p_bizum_id uuid)
+-- Propósito: Publica un evento de reserva en Google Calendar usando la API v3 a partir de un
+--            registro de Bizum en la base de datos local. Genera además el enlace directo a WhatsApp.
+-- Parámetros: p_bizum_id (uuid)
+-- Retorna: jsonb {success, htmlLink, summary}
+-- ERP Módulo: Módulo de Bizums (Botón de sincronización a Google Calendar).
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.create_google_calendar_event(p_bizum_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -742,6 +841,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.create_google_calendar_event(uuid) IS 'Crea un evento de reserva en Google Calendar a partir de una reserva Bizum.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.create_custom_google_calendar_event(p_customer_name text, p_activity text, p_num_people integer, p_booking_date date, p_phone text, p_payment_method text)
+-- Sobrecarga: 6 parámetros (Creación genérica de reservas)
+-- Propósito: Crea eventos personalizados en Google Calendar aceptando métodos de pago arbitrarios.
+-- Parámetros: p_customer_name, p_activity, p_num_people, p_booking_date, p_phone, p_payment_method.
+-- Retorna: jsonb {success, htmlLink, summary}
+-- ERP Módulo: Formulario de adición manual de eventos al calendario.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.create_custom_google_calendar_event(p_customer_name text, p_activity text, p_num_people integer DEFAULT 1, p_booking_date date DEFAULT CURRENT_DATE, p_phone text DEFAULT ''::text, p_payment_method text DEFAULT 'WISE BT'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -863,6 +973,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.create_custom_google_calendar_event(text, text, integer, date, text, text) IS 'Crea eventos personalizados en Google Calendar con método de pago arbitrario.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.create_custom_google_calendar_event(p_customer_name, p_activity_codes, p_activity_full, p_num_people, p_booking_date, p_phone, p_amount_raw, p_currency, p_is_english, p_wa_message)
+-- Sobrecarga: 10 parámetros (Creación avanzada con cálculo de días y mensaje multi-idioma)
+-- Propósito: Construye eventos en Google Calendar agregando etiquetas dinámicas de días
+--            ("- in X days"), selección de idioma (ES/EN) y enlace dinámico a WhatsApp.
+-- Retorna: jsonb {success, htmlLink, summary}
+-- ERP Módulo: Módulo AddToCalendar / Generación avanzada de reservas.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.create_custom_google_calendar_event(p_customer_name text, p_activity_codes text, p_activity_full text, p_num_people integer DEFAULT 1, p_booking_date date DEFAULT CURRENT_DATE, p_phone text DEFAULT ''::text, p_amount_raw text DEFAULT ''::text, p_currency text DEFAULT 'THB'::text, p_is_english boolean DEFAULT true, p_wa_message text DEFAULT ''::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1017,6 +1138,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.create_custom_google_calendar_event(text, text, text, integer, date, text, text, text, boolean, text) IS 'Crea eventos avanzados en Google Calendar con etiquetas de días y plantilla WhatsApp.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.create_custom_google_calendar_event(p_customer_name, p_activity_codes, p_activity_full, p_num_people, p_booking_date, p_phone, p_amount_raw, p_currency, p_is_english, p_wa_message, p_sufijo_dias)
+-- Sobrecarga: 11 parámetros (Con sufijo personalizado de días y depósito en THB estándar)
+-- Propósito: Variante de AddToCalendar 5.1 que computa el depósito en formato THB estándar
+--            (Pax * 1000 THB) para garantizar que el lector de facturación lo reconozca.
+-- Retorna: jsonb {success, htmlLink, summary}
+-- ERP Módulo: AddToCalendar v5.1 / Generador de reservas para facturación en Koh Tao.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.create_custom_google_calendar_event(p_customer_name text, p_activity_codes text, p_activity_full text, p_num_people integer DEFAULT 1, p_booking_date date DEFAULT CURRENT_DATE, p_phone text DEFAULT ''::text, p_amount_raw text DEFAULT ''::text, p_currency text DEFAULT 'THB'::text, p_is_english boolean DEFAULT true, p_wa_message text DEFAULT ''::text, p_sufijo_dias text DEFAULT ''::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1159,6 +1291,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.create_custom_google_calendar_event(text, text, text, integer, date, text, text, text, boolean, text, text) IS 'Crea eventos en Google Calendar con formato THB estándar para facturación Koh Tao.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_trg_bizums_before_save()
+-- Propósito: Función trigger BEFORE para la tabla bizums. Calcula automáticamente la columna
+--            `has_retention` si la reserva está marcada como retenida o devuelta parcialmente.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Módulo de Gestión de Bizums y Retenciones.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_trg_bizums_before_save()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1169,6 +1311,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_trg_bizums_before_save() IS 'Calcula la columna has_retention en la tabla bizums antes de guardar.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_trg_sync_invoice_item_bizum()
+-- Propósito: Función trigger BEFORE para la tabla invoice_items. Al crear o modificar el
+--            customer_id de un ítem de factura, busca si existe un depósito Bizum aplicable.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Asignación automática de depósitos Bizum a partidas de factura.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_trg_sync_invoice_item_bizum()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1244,6 +1396,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_trg_sync_invoice_item_bizum() IS 'Busca y asigna depósitos Bizum a los ítems de factura al cambiar de cliente.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_trg_sync_bizum_to_invoice_item()
+-- Propósito: Función trigger AFTER para la tabla bizums. Sincroniza en tiempo real los cambios
+--            de estado en Bizum (pagado, devuelto o retenido) hacia las partidas de factura vinculadas.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Sincronización reactiva del estado de Bizums a la facturación activa.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_trg_sync_bizum_to_invoice_item()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1322,6 +1484,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_trg_sync_bizum_to_invoice_item() IS 'Sincroniza cambios en Bizums (pagos, devoluciones, retenciones) a las partidas de factura.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.fn_trg_billing_auto_import_calendar_deposit()
+-- Propósito: Función trigger AFTER para invoice_items. Si una partida recibe un cliente y no tiene
+--            depósito Bizum en euros, consulta a Google Calendar e inserta la línea de reserva automática.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Auto-importación automática de depósitos Wise desde Google Calendar.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_trg_billing_auto_import_calendar_deposit()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1441,11 +1613,20 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION public.fn_trg_billing_auto_import_calendar_deposit() IS 'Importa automáticamente reservas desde Google Calendar como ítems de factura.';
+
 
 -- ================================================================================
--- SECTION 2: INTERNAL LOGIC FUNCTIONS (Schema: logic)
+-- SECTION 2: INTERNAL LOGIC FUNCTIONS (Esquema: logic - Lógica de Negocio ERP)
 -- ================================================================================
 
+-- --------------------------------------------------------------------------------
+-- Función: logic.calc_total_xpagar()
+-- Propósito: Trigger BEFORE en monthly_reports. Recalcula el total a pagar del mes sumando
+--            proveedores, sueldos pendientes, gastos financieros, fijos y bote.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Motor de Informes Financieros Mensuales.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.calc_total_xpagar()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1503,6 +1684,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.calc_total_xpagar() IS 'Recalcula el total a pagar del mes en monthly_reports sumando todos los fijos y pendientes.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.func_calculate_bote_final_balance()
+-- Propósito: Trigger BEFORE en bote_monthly. Calcula el saldo final del bote mensual:
+--            final_balance = initial_balance + apartar_amount - pending_amount - expenses_total.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Módulo de Gestión de Bote Mensual.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.func_calculate_bote_final_balance()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1513,6 +1704,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.func_calculate_bote_final_balance() IS 'Calcula el saldo final del bote en función de ingresos, gastos y remanentes.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.func_cascade_bote_initial_balance()
+-- Propósito: Trigger AFTER en bote_monthly. Propaga en cascada el saldo final de un mes
+--            como saldo inicial del mes siguiente.
+-- Retorna: NULL
+-- ERP Módulo: Módulo de Bote Mensual (Arrastre intermensual de saldos).
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.func_cascade_bote_initial_balance()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1544,6 +1745,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.func_cascade_bote_initial_balance() IS 'Transfiere en cascada el saldo final del bote hacia el saldo inicial del mes siguiente.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.func_fill_ssi_breakdown_unit_cost()
+-- Propósito: Trigger BEFORE en ssi_monthly_breakdown. Asigna automáticamente el costo unitario
+--            desde la tabla `activities` si no se especificó un valor manual.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Módulo de Contabilidad de Cursos SSI.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.func_fill_ssi_breakdown_unit_cost()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1561,6 +1772,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.func_fill_ssi_breakdown_unit_cost() IS 'Rellena el costo unitario de SSI automáticamente desde el catálogo de actividades.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.func_recount_ssi_month(p_year integer, p_month integer)
+-- Propósito: Recalcula la liquidación mensual de SSI sumando las filas de `ssi_monthly_breakdown`
+--            y ajustando diferencias/adelantos del mes anterior y siguiente en `supplier_settlements`.
+-- Parámetros: p_year (integer), p_month (integer)
+-- Retorna: void
+-- ERP Módulo: Liquidación de Proveedores (SSI).
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.func_recount_ssi_month(p_year integer, p_month integer)
  RETURNS void
  LANGUAGE plpgsql
@@ -1614,6 +1836,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.func_recount_ssi_month(integer, integer) IS 'Recalcula atómicamente la factura mensual total del proveedor SSI.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.func_sync_bote_expenses_to_monthly()
+-- Propósito: Trigger AFTER en bote_expenses. Suma los gastos diarios del bote y actualiza
+--            `bote_monthly.expenses_total` para el mes correspondiente.
+-- Retorna: NULL
+-- ERP Módulo: Gastos del Bote Mensual.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.func_sync_bote_expenses_to_monthly()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1661,6 +1893,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.func_sync_bote_expenses_to_monthly() IS 'Sincroniza la suma de gastos del bote hacia el acumulado mensual de bote.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.func_trigger_invoice_to_ssi()
+-- Propósito: Trigger AFTER en invoice_items. Cuando se vende o modifica una actividad SSI,
+--            recalcula los conteos de `ssi_monthly_breakdown` para el mes de la factura.
+-- Retorna: trigger
+-- ERP Módulo: Sincronización automática de facturas vendidas con el consumo de materiales SSI.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.func_trigger_invoice_to_ssi()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1721,6 +1963,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.func_trigger_invoice_to_ssi() IS 'Sincroniza la venta de ítems SSI de facturas con el desglose mensual SSI.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.recalculate_bote_apartar(p_year integer, p_month integer)
+-- Propósito: Recalcula la cantidad de fondos a apartar para el bote mensual según camisetas
+--            incluidas en los cursos realizados y seguros contratados en el mes.
+-- Parámetros: p_year (integer), p_month (integer)
+-- Retorna: void
+-- ERP Módulo: Cálculo de fondos a apartar en el Bote Mensual.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.recalculate_bote_apartar(p_year integer, p_month integer)
  RETURNS void
  LANGUAGE plpgsql
@@ -1786,6 +2039,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.recalculate_bote_apartar(integer, integer) IS 'Calcula los fondos a apartar para el bote según camisetas e ingresos por seguros.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.sync_invoice_report()
+-- Propósito: Trigger AFTER en invoice_items. Sincroniza en `monthly_reports` las métricas de
+--            facturado, pendiente de cobro y cobrado del mes afectado.
+-- Retorna: trigger
+-- ERP Módulo: Informe Mensual de Ingresos y Facturación.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.sync_invoice_report()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1807,6 +2070,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.sync_invoice_report() IS 'Sincroniza facturado, pendiente y cobrado en los informes mensuales.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.sync_monthly_finances()
+-- Propósito: Trigger AFTER en daily_expenses e invoice_items. Recalcula comisiones de staff,
+--            costos de proveedor de snorkel y gastos diarios acumulados en `monthly_expenses`.
+-- Retorna: trigger
+-- ERP Módulo: Cuadro Financiero Mensual (Comisiones y Gastos Generales).
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.sync_monthly_finances()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1872,6 +2145,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.sync_monthly_finances() IS 'Sincroniza comisiones, gastos diarios y costo de snorkel en monthly_expenses.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.sync_staff_settlement()
+-- Propósito: Recalcula la liquidación mensual de salarios e incentivos de un instructor en
+--            `staff_settlements` sumando comisiones, adelantos, guardias/asistencias y ajustes.
+-- Retorna: trigger
+-- ERP Módulo: Módulo de Sueldos y Nóminas del Staff.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.sync_staff_settlement()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1906,6 +2189,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.sync_staff_settlement() IS 'Recalcula la liquidación mensual de comisiones, adelantos y bonos del staff.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.sync_total_courses_from_logs()
+-- Propósito: Trigger AFTER en monthly_activity_logs. Suma los cursos que tienen `widget_column = 1`
+--            y actualiza `monthly_reports.total_courses`.
+-- Retorna: trigger
+-- ERP Módulo: Conteo total de cursos impartidos en informes mensuales.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.sync_total_courses_from_logs()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1924,6 +2217,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.sync_total_courses_from_logs() IS 'Actualiza total_courses en monthly_reports desde los logs de actividades.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.sync_total_courses_trigger()
+-- Propósito: Trigger BEFORE en monthly_reports. Protege la métrica `total_courses` evitando
+--            que se restablezca a cero si ya contenía un valor válido registrado.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Protección de datos en informes mensuales.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.sync_total_courses_trigger()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1939,6 +2242,17 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.sync_total_courses_trigger() IS 'Evita sobreescribir total_courses con 0 en monthly_reports si ya existían datos.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.sync_total_gastos_to_report(p_year integer, p_month integer)
+-- Propósito: Recalcula de forma atómica `monthly_reports.total_gastos`, `sueldos_total` y
+--            `sueldos_pendiente` combinando proveedores, sueldos, bote, gastos fijos y financieros.
+-- Parámetros: p_year (integer), p_month (integer)
+-- Retorna: void
+-- ERP Módulo: Motor consolidado de Gastos Totales del ERP.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.sync_total_gastos_to_report(p_year integer, p_month integer)
  RETURNS void
  LANGUAGE plpgsql
@@ -1992,6 +2306,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.sync_total_gastos_to_report(integer, integer) IS 'Consolida y sincroniza la totalidad de gastos operativos y salarios en monthly_reports.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.trg_call_sync_fixed_expenses()
+-- Propósito: Trigger AFTER en fixed_expenses. Invoca `sync_total_gastos_to_report()` para el
+--            mes actual cuando se modifica la estructura de gastos fijos de la empresa.
+-- Retorna: trigger
+-- ERP Módulo: Re-calculador de gastos fijos.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.trg_call_sync_fixed_expenses()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2006,6 +2330,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.trg_call_sync_fixed_expenses() IS 'Re-dispara el cálculo de gastos totales cuando cambian los gastos fijos.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.trg_sync_total_gastos_to_report()
+-- Propósito: Trigger AFTER multitabla. Invoca `sync_total_gastos_to_report()` cuando hay cambios
+--            en `bote_monthly`, `monthly_expenses`, `staff_settlements` o `supplier_settlements`.
+-- Retorna: trigger
+-- ERP Módulo: Invocador reactivo de informes financieros agregados.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.trg_sync_total_gastos_to_report()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2023,6 +2357,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.trg_sync_total_gastos_to_report() IS 'Disparador reactivo para actualizar total_gastos en monthly_reports.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.trigger_recalculate_bote()
+-- Propósito: Trigger AFTER genérico para recalcular los fondos a apartar para el bote mensual
+--            utilizando la fecha de creación del registro afectado.
+-- Retorna: NULL
+-- ERP Módulo: Bote Mensual.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2038,6 +2382,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.trigger_recalculate_bote() IS 'Dispara la función recalculate_bote_apartar usando created_at.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.trigger_recalculate_bote_insurances()
+-- Propósito: Trigger AFTER en insurance_batches. Dispara el recálculo del bote mensual (75 THB
+--            por seguro) al crear, editar o borrar lotes de seguros.
+-- Retorna: NULL
+-- ERP Módulo: Módulo de Seguros / Bote Mensual.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote_insurances()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2053,6 +2407,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.trigger_recalculate_bote_insurances() IS 'Recalcula el bote mensual al modificar lotes de seguros.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.trigger_recalculate_bote_invoices()
+-- Propósito: Trigger AFTER en invoice_items. Detecta modificaciones o cambios de fecha en
+--            ítems de factura con camisetas incluidas para recalcular el bote de los meses involucrados.
+-- Retorna: trigger
+-- ERP Módulo: Camisetas / Bote Mensual.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.trigger_recalculate_bote_invoices()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2093,6 +2457,16 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.trigger_recalculate_bote_invoices() IS 'Recalcula el bote al modificar partidas de factura con camisetas.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.trigger_update_ssi_total_amount()
+-- Propósito: Trigger AFTER en ssi_monthly_breakdown. Invoca `func_recount_ssi_month()` para
+--            actualizar el total a pagar de SSI cuando cambia el desglose mensual de cursos.
+-- Retorna: trigger
+-- ERP Módulo: Módulo SSI / Proveedores.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.trigger_update_ssi_total_amount()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2121,6 +2495,15 @@ BEGIN
 END;
 $function$;
 
+COMMENT ON FUNCTION logic.trigger_update_ssi_total_amount() IS 'Actualiza la liquidación mensual de SSI tras cambios en el desglose.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: logic.update_updated_at_column()
+-- Propósito: Trigger BEFORE universal para actualizar automáticamente el campo `updated_at = now()`.
+-- Retorna: trigger (NEW)
+-- ERP Módulo: Auditoría y marcas temporales de modificación.
+-- --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION logic.update_updated_at_column()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2128,3 +2511,5 @@ CREATE OR REPLACE FUNCTION logic.update_updated_at_column()
 AS $function$
 BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $function$;
+
+COMMENT ON FUNCTION logic.update_updated_at_column() IS 'Establece automáticamente la columna updated_at a la hora actual.';

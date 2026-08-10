@@ -1,12 +1,12 @@
 -- ################################################################################
--- DATABASE TABLES STRUCTURE BACKUP (Respaldo Literal Supabase Q3 2026)
+-- DATABASE TABLES STRUCTURE BACKUP (Respaldo Literal Documentado Supabase Q3 2026)
 -- Project: IHASIA ERP
 -- Organization: public (API)
 -- Extraído literalmente vía PostgreSQL information_schema & pg_policies
 -- ################################################################################
 
 -- ================================================================================
--- 1. activities
+-- 1. activities (Catálogo de Cursos, Excursiones y Servicios de Buceo)
 -- ================================================================================
 CREATE TABLE public.activities (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -32,9 +32,10 @@ CREATE TABLE public.activities (
 );
 ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.activities FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.activities IS 'Catálogo completo de cursos, excursiones y servicios de buceo ofertados.';
 
 -- ================================================================================
--- 2. activity_categories
+-- 2. activity_categories (Categorías de Actividades)
 -- ================================================================================
 CREATE TABLE public.activity_categories (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -47,9 +48,10 @@ CREATE TABLE public.activity_categories (
 );
 ALTER TABLE public.activity_categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.activity_categories FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.activity_categories IS 'Categorías para agrupar actividades (Cursos, Fun Dives, Snorkel, etc.).';
 
 -- ================================================================================
--- 3. activity_logs
+-- 3. activity_logs (Registro Diario de Actividades Realizadas)
 -- ================================================================================
 CREATE TABLE public.activity_logs (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -64,9 +66,10 @@ CREATE TABLE public.activity_logs (
 );
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.activity_logs FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.activity_logs IS 'Registro detallado de actividades ejecutadas diariamente por cliente e instructor.';
 
 -- ================================================================================
--- 4. attendance
+-- 4. attendance (Control de Asistencia del Staff)
 -- ================================================================================
 CREATE TABLE public.attendance (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -78,9 +81,10 @@ CREATE TABLE public.attendance (
 );
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.attendance FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.attendance IS 'Registro de asistencia, turnos y guardias del personal del centro de buceo.';
 
 -- ================================================================================
--- 5. bizums
+-- 5. bizums (Gestión de Reservas y Transferencias Bizum en EUR)
 -- ================================================================================
 CREATE TABLE public.bizums (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -101,9 +105,10 @@ CREATE TABLE public.bizums (
 );
 ALTER TABLE public.bizums ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all operations for anon and authenticated users on bizums" ON public.bizums FOR ALL TO public USING (true) WITH CHECK (true);
+COMMENT ON TABLE public.bizums IS 'Reservas y depósitos recibidos vía Bizum en euros (25€/pax).';
 
 -- ================================================================================
--- 6. bote_expenses
+-- 6. bote_expenses (Gastos Operativos del Bote Diario)
 -- ================================================================================
 CREATE TABLE public.bote_expenses (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -115,9 +120,10 @@ CREATE TABLE public.bote_expenses (
 );
 ALTER TABLE public.bote_expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.bote_expenses FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.bote_expenses IS 'Registro de salidas de dinero e imprevistos pagados con el fondo del bote.';
 
 -- ================================================================================
--- 7. bote_monthly
+-- 7. bote_monthly (Contabilidad y Saldos del Bote Mensual)
 -- ================================================================================
 CREATE TABLE public.bote_monthly (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -135,9 +141,10 @@ CREATE TABLE public.bote_monthly (
 );
 ALTER TABLE public.bote_monthly ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.bote_monthly FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.bote_monthly IS 'Control mensual de fondos a apartar, saldo inicial, gastos y remanente del bote.';
 
 -- ================================================================================
--- 8. business_entities
+-- 8. business_entities (Entidades Comerciales e Información Legal)
 -- ================================================================================
 CREATE TABLE public.business_entities (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -162,9 +169,10 @@ CREATE TABLE public.business_entities (
 );
 ALTER TABLE public.business_entities ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.business_entities FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.business_entities IS 'Datos fiscales, marcas y logotipos de la empresa y proveedores.';
 
 -- ================================================================================
--- 9. cash_control_monthly
+-- 9. cash_control_monthly (Arqueo y Desglose Físico de Billetes en Caja)
 -- ================================================================================
 CREATE TABLE public.cash_control_monthly (
     year integer NOT NULL,
@@ -179,9 +187,10 @@ CREATE TABLE public.cash_control_monthly (
 );
 ALTER TABLE public.cash_control_monthly ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.cash_control_monthly FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.cash_control_monthly IS 'Arqueo mensual del conteo de billetes físicos en la caja de efectivo THB.';
 
 -- ================================================================================
--- 10. customers
+-- 10. customers (Base de Datos de Clientes y Buceadores)
 -- ================================================================================
 CREATE TABLE public.customers (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -206,9 +215,10 @@ CREATE TABLE public.customers (
 );
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.customers FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.customers IS 'Ficha completa de clientes, pasaportes, seguros y datos de certificación.';
 
 -- ================================================================================
--- 11. daily_expenses
+-- 11. daily_expenses (Gastos Operativos Diarios en Caja)
 -- ================================================================================
 CREATE TABLE public.daily_expenses (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -220,9 +230,10 @@ CREATE TABLE public.daily_expenses (
 );
 ALTER TABLE public.daily_expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.daily_expenses FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.daily_expenses IS 'Registro diario de compras menores y gastos operativos ordinarios.';
 
 -- ================================================================================
--- 12. exchange_rates
+-- 12. exchange_rates (Tasas de Cambio de Divisas EUR / THB)
 -- ================================================================================
 CREATE TABLE public.exchange_rates (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -233,9 +244,10 @@ CREATE TABLE public.exchange_rates (
 );
 ALTER TABLE public.exchange_rates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.exchange_rates FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.exchange_rates IS 'Histórico de tipos de cambio oficiales aplicados en facturación.';
 
 -- ================================================================================
--- 13. expense_categories
+-- 13. expense_categories (Categorías para Clasificación de Gastos)
 -- ================================================================================
 CREATE TABLE public.expense_categories (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -246,9 +258,10 @@ CREATE TABLE public.expense_categories (
 );
 ALTER TABLE public.expense_categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.expense_categories FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.expense_categories IS 'Categorías de gastos para ordenación y estadísticas financieras.';
 
 -- ================================================================================
--- 14. external_promoters
+-- 14. external_promoters (Promotores Externos y Comisionistas)
 -- ================================================================================
 CREATE TABLE public.external_promoters (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -258,9 +271,10 @@ CREATE TABLE public.external_promoters (
 );
 ALTER TABLE public.external_promoters ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.external_promoters FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.external_promoters IS 'Directorio de agentes externos que devengan comisiones por captación de clientes.';
 
 -- ================================================================================
--- 15. fixed_expenses
+-- 15. fixed_expenses (Gastos Mensuales Fijos de Operación)
 -- ================================================================================
 CREATE TABLE public.fixed_expenses (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -273,9 +287,10 @@ CREATE TABLE public.fixed_expenses (
 );
 ALTER TABLE public.fixed_expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.fixed_expenses FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.fixed_expenses IS 'Plantilla de costes recurrentes mensuales (alquiler oficina, suministros, licencias).';
 
 -- ================================================================================
--- 16. instructor_payouts
+-- 16. instructor_payouts (Tabla de Comisiones e Incentivos por Curso para Staff)
 -- ================================================================================
 CREATE TABLE public.instructor_payouts (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -287,9 +302,10 @@ CREATE TABLE public.instructor_payouts (
 );
 ALTER TABLE public.instructor_payouts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.instructor_payouts FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.instructor_payouts IS 'Baremo de pago en THB asignado a instructores por cada tipo de curso impartido.';
 
 -- ================================================================================
--- 17. insurance_batch_items
+-- 17. insurance_batch_items (Relación de Clientes por Lote de Seguro)
 -- ================================================================================
 CREATE TABLE public.insurance_batch_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -299,9 +315,10 @@ CREATE TABLE public.insurance_batch_items (
 );
 ALTER TABLE public.insurance_batch_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.insurance_batch_items FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.insurance_batch_items IS 'Desglose de clientes asegurados pertenecientes a un lote de emisión específico.';
 
 -- ================================================================================
--- 18. insurance_batches
+-- 18. insurance_batches (Lotes de Pólizas de Seguro Emitidas)
 -- ================================================================================
 CREATE TABLE public.insurance_batches (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -313,9 +330,10 @@ CREATE TABLE public.insurance_batches (
 );
 ALTER TABLE public.insurance_batches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.insurance_batches FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.insurance_batches IS 'Registro global de lotes de pólizas de seguro procesadas y enviadas.';
 
 -- ================================================================================
--- 19. insurance_config
+-- 19. insurance_config (Configuración y Balance Global de Seguros)
 -- ================================================================================
 CREATE TABLE public.insurance_config (
     id integer NOT NULL PRIMARY KEY,
@@ -327,9 +345,10 @@ CREATE TABLE public.insurance_config (
 );
 ALTER TABLE public.insurance_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.insurance_config FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.insurance_config IS 'Parámetros del contrato de seguro de buceo y saldo de pax disponibles.';
 
 -- ================================================================================
--- 20. invoice_items
+-- 20. invoice_items (Partidas y Líneas de Facturación)
 -- ================================================================================
 CREATE TABLE public.invoice_items (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -356,9 +375,10 @@ CREATE TABLE public.invoice_items (
 );
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all actions for authenticated users" ON public.invoice_items FOR ALL TO public USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.invoice_items IS 'Líneas individuales de venta, servicios contratados y depósito asignado.';
 
 -- ================================================================================
--- 21. invoices
+-- 21. invoices (Facturas Principales)
 -- ================================================================================
 CREATE TABLE public.invoices (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -374,9 +394,10 @@ CREATE TABLE public.invoices (
 );
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.invoices FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.invoices IS 'Cabeceras de facturas con resumen total en THB/EUR y estado de cobro.';
 
 -- ================================================================================
--- 22. monthly_activity_logs
+-- 22. monthly_activity_logs (Conteo Mensual Registrado de Actividades)
 -- ================================================================================
 CREATE TABLE public.monthly_activity_logs (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -390,9 +411,10 @@ CREATE TABLE public.monthly_activity_logs (
 );
 ALTER TABLE public.monthly_activity_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.monthly_activity_logs FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.monthly_activity_logs IS 'Conteo mensual agrupado por tipo de actividad ejecutada.';
 
 -- ================================================================================
--- 23. monthly_activity_summary (VIEW)
+-- 23. monthly_activity_summary (VISTA - Resumen de Métricas Mensuales)
 -- ================================================================================
 CREATE OR REPLACE VIEW public.monthly_activity_summary AS
 SELECT 
@@ -407,7 +429,7 @@ FROM (public.monthly_activity_logs l
 GROUP BY l.year, l.month;
 
 -- ================================================================================
--- 24. monthly_expenses
+-- 24. monthly_expenses (Consolidado Mensual de Comisiones y Gastos Generales)
 -- ================================================================================
 CREATE TABLE public.monthly_expenses (
     year integer NOT NULL,
@@ -424,9 +446,10 @@ CREATE TABLE public.monthly_expenses (
 );
 ALTER TABLE public.monthly_expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.monthly_expenses FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.monthly_expenses IS 'Resumen consolidado de gastos corrientes y comisiones pendientes por mes.';
 
 -- ================================================================================
--- 25. monthly_reports
+-- 25. monthly_reports (Informe Económico Consolidado y Balance Mensual)
 -- ================================================================================
 CREATE TABLE public.monthly_reports (
     year integer NOT NULL,
@@ -449,9 +472,10 @@ CREATE TABLE public.monthly_reports (
 );
 ALTER TABLE public.monthly_reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.monthly_reports FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.monthly_reports IS 'Reporte financiero principal con facturación, costes, nóminas y pasivos pendientes.';
 
 -- ================================================================================
--- 26. partner_adjustments
+-- 26. partner_adjustments (Ajustes Económicos a Socios)
 -- ================================================================================
 CREATE TABLE public.partner_adjustments (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -466,9 +490,10 @@ CREATE TABLE public.partner_adjustments (
 );
 ALTER TABLE public.partner_adjustments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.partner_adjustments FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.partner_adjustments IS 'Ajustes, penalizaciones o complementos en las liquidaciones a socios.';
 
 -- ================================================================================
--- 27. partner_advances
+-- 27. partner_advances (Adelantos Monetarios a Socios)
 -- ================================================================================
 CREATE TABLE public.partner_advances (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -481,9 +506,10 @@ CREATE TABLE public.partner_advances (
 );
 ALTER TABLE public.partner_advances ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.partner_advances FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.partner_advances IS 'Vales o adelantos de dinero entregados a los socios durante el mes.';
 
 -- ================================================================================
--- 28. partner_cash_payments
+-- 28. partner_cash_payments (Pagos en Efectivo Entregados a Socios)
 -- ================================================================================
 CREATE TABLE public.partner_cash_payments (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -496,9 +522,10 @@ CREATE TABLE public.partner_cash_payments (
 );
 ALTER TABLE public.partner_cash_payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.partner_cash_payments FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.partner_cash_payments IS 'Registro de entregas directas de efectivo a los socios.';
 
 -- ================================================================================
--- 29. partner_daily_activity
+-- 29. partner_daily_activity (Matriz Diaria de Trabajo de Socios)
 -- ================================================================================
 CREATE TABLE public.partner_daily_activity (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -516,9 +543,10 @@ CREATE TABLE public.partner_daily_activity (
 );
 ALTER TABLE public.partner_daily_activity ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.partner_daily_activity FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.partner_daily_activity IS 'Actividad diaria impartida por cada socio (OWE, AA, DSD, FUN, asistencias).';
 
 -- ================================================================================
--- 30. partner_daily_log
+-- 30. partner_daily_log (Diario Operativo de Socios)
 -- ================================================================================
 CREATE TABLE public.partner_daily_log (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -533,9 +561,10 @@ CREATE TABLE public.partner_daily_log (
 );
 ALTER TABLE public.partner_daily_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.partner_daily_log FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.partner_daily_log IS 'Bitácora operativa consolidada por fecha para el trabajo de socios.';
 
 -- ================================================================================
--- 31. partner_settlements
+-- 31. partner_settlements (Liquidación Mensual de Socios)
 -- ================================================================================
 CREATE TABLE public.partner_settlements (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -561,9 +590,10 @@ CREATE TABLE public.partner_settlements (
 );
 ALTER TABLE public.partner_settlements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.partner_settlements FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.partner_settlements IS 'Liquidación final mensual de salarios y ganancias para socios.';
 
 -- ================================================================================
--- 32. ssi_monthly_breakdown
+-- 32. ssi_monthly_breakdown (Desglose de Consumo de Materiales SSI)
 -- ================================================================================
 CREATE TABLE public.ssi_monthly_breakdown (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -581,9 +611,10 @@ CREATE TABLE public.ssi_monthly_breakdown (
 );
 ALTER TABLE public.ssi_monthly_breakdown ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir todo a usuarios autenticados" ON public.ssi_monthly_breakdown FOR ALL TO authenticated USING (true) WITH CHECK (true);
+COMMENT ON TABLE public.ssi_monthly_breakdown IS 'Desglose detallado de unidades vendidas y costo por curso expedido de SSI.';
 
 -- ================================================================================
--- 33. staff
+-- 33. staff (Directorio de Empleados e Instructores)
 -- ================================================================================
 CREATE TABLE public.staff (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -598,9 +629,10 @@ CREATE TABLE public.staff (
 );
 ALTER TABLE public.staff ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.staff FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.staff IS 'Ficha del personal, instructores, iniciales únicas y roles del centro.';
 
 -- ================================================================================
--- 34. staff_adjustments
+-- 34. staff_adjustments (Ajustes en Nómina del Staff)
 -- ================================================================================
 CREATE TABLE public.staff_adjustments (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -615,9 +647,10 @@ CREATE TABLE public.staff_adjustments (
 );
 ALTER TABLE public.staff_adjustments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.staff_adjustments FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.staff_adjustments IS 'Ajustes manuales y compensaciones adicionales en la nómina del personal.';
 
 -- ================================================================================
--- 35. staff_advances
+-- 35. staff_advances (Adelantos de Sueldo al Staff)
 -- ================================================================================
 CREATE TABLE public.staff_advances (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -630,9 +663,10 @@ CREATE TABLE public.staff_advances (
 );
 ALTER TABLE public.staff_advances ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.staff_advances FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.staff_advances IS 'Adelantos a cuenta de nómina otorgados al personal.';
 
 -- ================================================================================
--- 36. staff_daily_activity
+-- 36. staff_daily_activity (Control Diario de Asistencias del Staff)
 -- ================================================================================
 CREATE TABLE public.staff_daily_activity (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -646,9 +680,10 @@ CREATE TABLE public.staff_daily_activity (
 );
 ALTER TABLE public.staff_daily_activity ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.staff_daily_activity FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.staff_daily_activity IS 'Conteo diario de guardias/asistencias de instructores para cálculo de bonos.';
 
 -- ================================================================================
--- 37. staff_settlements
+-- 37. staff_settlements (Nómina y Liquidación Mensual del Staff)
 -- ================================================================================
 CREATE TABLE public.staff_settlements (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -666,9 +701,10 @@ CREATE TABLE public.staff_settlements (
 );
 ALTER TABLE public.staff_settlements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.staff_settlements FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.staff_settlements IS 'Liquidación mensual consolidada de nóminas de instructores (PDF / Email).';
 
 -- ================================================================================
--- 38. supplier_settlements
+-- 38. supplier_settlements (Liquidaciones de Gastos con Proveedores)
 -- ================================================================================
 CREATE TABLE public.supplier_settlements (
     id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -685,9 +721,10 @@ CREATE TABLE public.supplier_settlements (
 );
 ALTER TABLE public.supplier_settlements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated full access" ON public.supplier_settlements FOR ALL TO authenticated USING (auth.role() = 'authenticated'::text) WITH CHECK (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.supplier_settlements IS 'Control de pagos acumulados y saldos pendientes a proveedores (SSI, etc.).';
 
 -- ================================================================================
--- 39. ui_config
+-- 39. ui_config (Configuraciones de la Interfaz de Usuario)
 -- ================================================================================
 CREATE TABLE public.ui_config (
     id text DEFAULT 'global'::text NOT NULL PRIMARY KEY,
@@ -698,9 +735,10 @@ CREATE TABLE public.ui_config (
 ALTER TABLE public.ui_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir lectura pública de ui_config" ON public.ui_config FOR SELECT TO public USING (true);
 CREATE POLICY "Permitir actualización a usuarios autenticados" ON public.ui_config FOR UPDATE TO public USING (auth.role() = 'authenticated'::text);
+COMMENT ON TABLE public.ui_config IS 'Preferencias y filtros activos guardados de la interfaz del ERP.';
 
 -- ================================================================================
--- 40. wise_payments
+-- 40. wise_payments (Transferencias y Pagos Recibidos por Wise)
 -- ================================================================================
 CREATE TABLE public.wise_payments (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
@@ -716,3 +754,4 @@ CREATE TABLE public.wise_payments (
 );
 ALTER TABLE public.wise_payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all operations for anon and authenticated users on wise_p" ON public.wise_payments FOR ALL TO public USING (true) WITH CHECK (true);
+COMMENT ON TABLE public.wise_payments IS 'Registro de depósitos recibidos vía transferencia Wise en bahts tailandeses.';
