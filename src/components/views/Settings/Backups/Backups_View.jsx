@@ -378,18 +378,18 @@ export default function Backups_View() {
               <div className="p-3.5 bg-brand/20 text-brand-light rounded-2xl border border-brand/40 group-hover:scale-105 transition-transform flex-shrink-0">
                 <CloudUpload className="w-8 h-8" />
               </div>
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h3 className="text-xl font-extrabold text-white">Respaldo Completo (.JSON)</h3>
-                  <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-xs font-black flex items-center gap-1.5 uppercase tracking-wider">
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-white">Respaldo Completo (.JSON)</h3>
+                <p className="text-sm font-semibold text-gray-400 leading-snug">Descarga en tu equipo y subida automática cifrada a GitHub.</p>
+                <div className="pt-0.5">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
                     <GitBranch className="w-3.5 h-3.5 text-emerald-400" />
                     Auto-Sync GitHub
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-gray-400">Descarga en tu equipo y subida automática cifrada a GitHub.</p>
               </div>
             </div>
-            <p className="text-base text-gray-300 font-normal leading-relaxed">
+            <p className="text-base text-gray-300 font-normal leading-relaxed pt-1">
               Descarga el JSON en tu ordenador y simultáneamente ejecuta la función segura de Supabase Vault para actualizar <code>database/data_backups/backup_latest.json</code> en tu repositorio privado.
             </p>
           </div>
@@ -413,10 +413,10 @@ export default function Backups_View() {
               </div>
               <div className="space-y-1.5">
                 <h3 className="text-xl font-extrabold text-white">Respaldo Formato SQL (INSERTs)</h3>
-                <p className="text-sm font-semibold text-gray-400">Sentencias SQL de inserción directa para PostgreSQL.</p>
+                <p className="text-sm font-semibold text-gray-400 leading-snug">Sentencias SQL de inserción directa para PostgreSQL.</p>
               </div>
             </div>
-            <p className="text-base text-gray-300 font-normal leading-relaxed">
+            <p className="text-base text-gray-300 font-normal leading-relaxed pt-1">
               Genera un archivo de script SQL con sentencias <code>INSERT INTO ... ON CONFLICT DO NOTHING</code> ejecutable en el editor SQL de Supabase para restauración parcial o total de datos.
             </p>
           </div>
