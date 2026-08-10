@@ -226,18 +226,18 @@ export default function Backups_View() {
 
       let extraMsg = '';
       if (syncToGithub) {
-        setCurrentExportTable('GitHub API Vault Sync...');
-        const { data: ghRes, error: ghErr } = await supabase.rpc('push_backup_to_github', {
-          p_file_content: jsonPayloadString
-        });
+        setCurrentExportTable('Servidor Supabase Vault -> GitHub API...');
+        const { data: ghRes, error: ghErr } = await supabase.rpc('generate_and_push_github_backup');
 
         if (ghErr) {
           console.error('Error al sincronizar con GitHub:', ghErr);
-          extraMsg = ' (Aviso: No se pudo conectar con GitHub, pero la descarga local se realizó con éxito)';
+          extraMsg = ` (Aviso: ${ghErr.message || 'Error de conexión con GitHub'})`;
         } else if (ghRes && ghRes.success) {
           setGithubSyncDate(now);
           localStorage.setItem('ihasia_last_github_sync_date', now.toISOString());
           extraMsg = ` ☁️ ¡Respaldo sincronizado automáticamente en tu repositorio privado de GitHub! (Commit: ${ghRes.commit ? ghRes.commit.substring(0, 7) : 'OK'})`;
+        } else if (ghRes && !ghRes.success) {
+          extraMsg = ` (Aviso GitHub API: ${ghRes.error || 'Error en respuesta de GitHub'})`;
         }
       }
 
