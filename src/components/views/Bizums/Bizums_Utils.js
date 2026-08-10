@@ -1,3 +1,13 @@
+export const BIZUM_ACTIVITY_OPTIONS = [
+  { code: 'OW 2', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'OW', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'AA', acronym: 'AA', nameEs: 'Curso Avanzado', nameEn: 'Advanced Adventurer Course' },
+  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo de Buceo', nameEn: 'Discover Scuba Diving' },
+  { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Scuba Refresh' },
+  { code: 'FD', acronym: 'FD', nameEs: 'Fun Dives', nameEn: 'Fun Dives' },
+  { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue Diver', nameEn: 'Rescue Diver' }
+];
+
 // Visual color badges for activities in Bizums table (matching exact billing colors)
 export const BIZUM_ACTIVITY_COLORS = {
   BAUTIZO: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' },
@@ -34,21 +44,18 @@ export function cleanPhone(phone) {
   if (!phone) return '';
   let cleaned = phone.toString().trim().replace(/\s+/g, '').replace(/[^\d+]/g, '');
 
-  // Si empieza por +00 o 00, convertirlo a +
   if (cleaned.startsWith('+00')) {
     cleaned = '+' + cleaned.slice(3);
   } else if (cleaned.startsWith('00')) {
     cleaned = '+' + cleaned.slice(2);
   }
 
-  // Si no tiene +, añadir +34 si tiene 9 o más dígitos
   if (!cleaned.startsWith('+')) {
     if (cleaned.length >= 9) {
       cleaned = '+34' + cleaned;
     }
   }
 
-  // Limpiar duplicaciones típicas del usuario como +340034..., +3434..., +3400...
   cleaned = cleaned.replace(/^\+34(?:00)?34/, '+34');
   cleaned = cleaned.replace(/^\+3400/, '+34');
 
@@ -96,16 +103,6 @@ export function formatShortDate(dateStr) {
   }
 }
 
-export const BIZUM_ACTIVITY_OPTIONS = [
-  { code: 'OW 2', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
-  { code: 'OW', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
-  { code: 'AA', acronym: 'AA', nameEs: 'Curso Avanzado', nameEn: 'Advanced Adventurer Course' },
-  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo de Buceo', nameEn: 'Discover Scuba Diving' },
-  { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Scuba Refresh' },
-  { code: 'FD', acronym: 'FD', nameEs: 'Fun Dives', nameEn: 'Fun Dives' },
-  { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue Diver', nameEn: 'Rescue Diver' }
-];
-
 export function getShortCodeFromActivityName(activityName) {
   if (!activityName) return 'OW';
   const upper = activityName.toUpperCase().replace(/\s+/g, '');
@@ -150,4 +147,3 @@ export function generateWhatsappLink(phone, customerName, numPeople, activityTex
   const message = generateWhatsappMessage(customerName, numPeople, activityText, bookingDate);
   return `https://wa.me/${cleanedPhone}?text=${encodeURIComponent(message)}`;
 }
-

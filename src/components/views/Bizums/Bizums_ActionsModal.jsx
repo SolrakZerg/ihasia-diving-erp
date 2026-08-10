@@ -10,6 +10,16 @@ import {
 } from './Bizums_Utils';
 import { createGoogleCalendarEvent, createCustomGoogleCalendarEvent } from './googleCalendarApi';
 
+const ACTIVITY_OPTIONS = BIZUM_ACTIVITY_OPTIONS || [
+  { code: 'OW 2', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'OW', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'AA', acronym: 'AA', nameEs: 'Curso Avanzado', nameEn: 'Advanced Adventurer Course' },
+  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo de Buceo', nameEn: 'Discover Scuba Diving' },
+  { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Scuba Refresh' },
+  { code: 'FD', acronym: 'FD', nameEs: 'Fun Dives', nameEn: 'Fun Dives' },
+  { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue Diver', nameEn: 'Rescue Diver' }
+];
+
 export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
   const [completedList, setCompletedList] = useState([]);
   const [isDoneView, setIsDoneView] = useState(false);
@@ -248,7 +258,7 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose }) {
                           onChange={(e) => handlePaxActivityChange(idx, e.target.value)}
                           className="w-full bg-surface border border-surface-edge rounded-xl p-2 text-xs sm:text-sm text-white focus:outline-none focus:border-brand font-bold cursor-pointer"
                         >
-                          {BIZUM_ACTIVITY_OPTIONS.map(opt => (
+                          {ACTIVITY_OPTIONS.map(opt => (
                             <option key={opt.code} value={opt.acronym}>
                               {opt.nameEs} ({opt.acronym})
                             </option>
