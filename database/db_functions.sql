@@ -644,7 +644,7 @@ COMMENT ON FUNCTION public.fn_match_google_calendar_deposit(text, text, text, da
 -- Retorna: jsonb {success, htmlLink, summary}
 -- ERP Módulo: Módulo de Bizums (Botón de sincronización a Google Calendar).
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.create_google_calendar_event(p_bizum_id uuid)
+CREATE OR REPLACE FUNCTION public.create_google_calendar_event(p_bizum_id uuid, p_custom_title text DEFAULT NULL)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -698,9 +698,16 @@ BEGIN
   v_num_people := COALESCE(v_bizum.num_people, 1);
   IF v_num_people <= 0 THEN v_num_people := 1; END IF;
 
-  -- Mapear código corto de actividad
-  IF upper(COALESCE(v_bizum.activity, '')) LIKE '%BAUTIZO%' OR upper(COALESCE(v_bizum.activity, '')) LIKE '%DSD%' THEN
+  -- Usar p_custom_title si fue proporcionado por el modal sin sobreescribir la BD
+  IF p_custom_title IS NOT NULL AND length(trim(p_custom_title)) > 0 THEN
+    v_title := COALESCE(v_bizum.customer_name, 'Cliente') || ' ' || p_custom_title;
+  ELSIF COALESCE(v_bizum.activity, '') ~* '[a-z]+\s*x\s*\d+' 
+     OR COALESCE(v_bizum.activity, '') ~* '\d+x[a-z]+' 
+     OR COALESCE(v_bizum.activity, '') ~* 'en 2 d' THEN
+    v_title := COALESCE(v_bizum.customer_name, 'Cliente') || ' ' || v_bizum.activity;
+  ELSIF upper(COALESCE(v_bizum.activity, '')) LIKE '%BAUTIZO%' OR upper(COALESCE(v_bizum.activity, '')) LIKE '%DSD%' THEN
     v_short_code := 'DSD';
+    v_title := COALESCE(v_bizum.customer_name, 'Cliente') || ' ' || v_short_code || ' x' || v_num_people::text;
   ELSIF upper(COALESCE(v_bizum.activity, '')) LIKE '%OPEN%' OR upper(COALESCE(v_bizum.activity, '')) LIKE '%OWE%' THEN
     v_short_code := 'OWE';
   ELSIF upper(COALESCE(v_bizum.activity, '')) LIKE '%AVANZADO%' OR upper(COALESCE(v_bizum.activity, '')) LIKE '%AA%' THEN

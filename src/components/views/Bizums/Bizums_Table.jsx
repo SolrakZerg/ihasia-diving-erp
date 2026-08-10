@@ -69,7 +69,7 @@ export default function Bizums_Table({
           <th className="py-3 px-2 text-center">REPARTIDO</th>
         ) : (
           <>
-            <th className="py-3 px-2 text-center">PAGADO</th>
+            <th className="py-3 px-2 text-center">RECIBIDO</th>
             <th className="py-3 px-2 text-center">DEVUELTO</th>
             <th className="py-3 px-2 text-center">RETENIDO</th>
           </>
@@ -141,7 +141,7 @@ export default function Bizums_Table({
               </div>
             </div>
             <span className="text-[11px] text-amber-400/80 font-medium hidden sm:inline">
-              Comprueba el pago en la app del banco y marca la casilla "PAGADO"
+              Comprueba el pago en la app del banco y marca la casilla "RECIBIDO"
             </span>
           </div>
 
@@ -155,14 +155,14 @@ export default function Bizums_Table({
           </div>
         </div>
 
-        {/* SECCIÓN 2: PAGADAS (PENDIENTES DE DEVOLUCIÓN) */}
+        {/* SECCIÓN 2: RECIBIDAS (PENDIENTES DE DEVOLUCIÓN) */}
         <div className="flex-1 flex flex-col min-h-0 bg-surface-soft/40 border border-emerald-500/20 rounded-2xl overflow-hidden shadow-xl">
           <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2.5 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-extrabold text-emerald-300 uppercase tracking-wider">
-                  Pagadas (Pendientes de Devolución en la Actividad)
+                  Recibidas (Pendientes de Devolución en la Actividad)
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   {paidBizums.length} {paidBizums.length === 1 ? 'reserva' : 'reservas'}

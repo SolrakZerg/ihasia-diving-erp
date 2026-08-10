@@ -103,31 +103,53 @@ export default function useBizumsData() {
     setCurrentPage(0);
   };
 
-  // --- Toggle Paid ---
-  const handleTogglePaid = async (bizumRow) => {
+  // --- Toggle Paid / Recibido ---
+  const handleTogglePaid = (bizumRow) => {
     const newPaidStatus = !bizumRow.is_paid;
+    if (newPaidStatus) {
+      // Abrir el modal SIN cambiar is_paid en la base de datos todavía
+      setActionsModalData(bizumRow);
+      setIsActionsModalOpen(true);
+    } else {
+      // Si desmarcan una reserva ya recibida (volver a pendiente)
+      handleUnmarkPaid(bizumRow.id);
+    }
+  };
+
+  const handleUnmarkPaid = async (bizumId) => {
     try {
       const { error } = await supabase
         .from('bizums')
-        .update({ is_paid: newPaidStatus })
-        .eq('id', bizumRow.id);
+        .update({ is_paid: false })
+        .eq('id', bizumId);
 
       if (error) throw error;
 
-      // Update local state
-      setBizums(prev => prev.map(b => b.id === bizumRow.id ? { ...b, is_paid: newPaidStatus } : b));
-
-      if (newPaidStatus) {
-        // Trigger actions modal
-        setActionsModalData({ ...bizumRow, is_paid: true });
-        setIsActionsModalOpen(true);
-      } else {
-        setToastMsg('Reserva marcada como pendiente de pago.');
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
-      }
+      fetchBizums();
+      setToastMsg('Reserva marcada como pendiente de recepción.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
-      alert('Error al actualizar estado de pago: ' + err.message);
+      alert('Error al desmarcar reserva: ' + err.message);
+    }
+  };
+
+  const handleConfirmPaid = async (bizumId) => {
+    try {
+      const { error } = await supabase
+        .from('bizums')
+        .update({ is_paid: true })
+        .eq('id', bizumId);
+
+      if (error) throw error;
+
+      fetchBizums();
+      setToastMsg('Reserva marcada como RECIBIDA.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      console.error('Error al confirmar recepción de la reserva:', err);
+      alert('Error al actualizar estado en la base de datos: ' + err.message);
     }
   };
 
@@ -192,17 +214,21 @@ export default function useBizumsData() {
   };
 
   // --- Delete ---
-  const handleDelete = (e, id, name) => {
-    e.stopPropagation();
+  const handleDelete = (e, target, name) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    
+    const bizumId = typeof target === 'object' && target !== null ? target.id : target;
+    const bizumName = typeof target === 'object' && target !== null ? target.customer_name : (name || 'Cliente');
+
     setConfirmConfig({
       show: true,
       title: 'Eliminar Reserva Bizum',
-      message: `¿Estás seguro de que quieres eliminar la reserva a nombre de "${name}"? Esta acción no se puede deshacer.`,
+      message: `¿Estás seguro de que quieres eliminar la reserva a nombre de "${bizumName}"? Esta acción no se puede deshacer.`,
       type: 'danger',
       onConfirm: async () => {
         setConfirmConfig(prev => ({ ...prev, show: false }));
         try {
-          const { error } = await supabase.from('bizums').delete().eq('id', id);
+          const { error } = await supabase.from('bizums').delete().eq('id', bizumId);
           if (error) throw error;
           fetchBizums();
           setToastMsg('Reserva eliminada correctamente.');
@@ -277,6 +303,7 @@ export default function useBizumsData() {
 
     // Handlers
     handleTogglePaid,
+    handleConfirmPaid,
     handleToggleReturned,
     handleToggleRetained,
     handleToggleSettled,

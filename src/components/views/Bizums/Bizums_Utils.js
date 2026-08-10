@@ -1,11 +1,11 @@
 export const BIZUM_ACTIVITY_OPTIONS = [
-  { code: 'OW 2', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'OW 2', acronym: 'OW 2', nameEs: 'Open Water en 2 días', nameEn: 'Open Water Course (in 2 days)' },
   { code: 'OW', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
-  { code: 'AA', acronym: 'AA', nameEs: 'Curso Avanzado', nameEn: 'Advanced Adventurer Course' },
-  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo de Buceo', nameEn: 'Discover Scuba Diving' },
-  { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Scuba Refresh' },
+  { code: 'AA', acronym: 'AA', nameEs: 'Avanzado', nameEn: 'Advanced' },
+  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo', nameEn: 'Discover Scuba Diving' },
+  { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Refresh' },
   { code: 'FD', acronym: 'FD', nameEs: 'Fun Dives', nameEn: 'Fun Dives' },
-  { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue Diver', nameEn: 'Rescue Diver' }
+  { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue', nameEn: 'Rescue' }
 ];
 
 // Visual color badges for activities in Bizums table (matching exact billing colors)
@@ -107,7 +107,8 @@ export function getShortCodeFromActivityName(activityName) {
   if (!activityName) return 'OW';
   const upper = activityName.toUpperCase().replace(/\s+/g, '');
   if (upper.includes('BAUTIZO') || upper.includes('DSD') || upper.includes('TRY')) return 'DSD';
-  if (upper.includes('OPEN') || upper.includes('OWE') || upper.includes('OW2') || upper.includes('OW')) return 'OW';
+  if (upper.includes('OW2') || upper.includes('2DIA') || upper.includes('2DAY') || upper.includes('EN2')) return 'OW 2';
+  if (upper.includes('OPEN') || upper.includes('OWE') || upper.includes('OW')) return 'OW';
   if (upper.includes('AVANZADO') || upper.includes('ADVANCED') || upper.includes('AA')) return 'AA';
   if (upper.includes('REFRESH') || upper.includes('SR')) return 'SR';
   if (upper.includes('FUN') || upper.includes('FD')) return 'FD';
@@ -116,17 +117,18 @@ export function getShortCodeFromActivityName(activityName) {
 }
 
 export function getActivitySpanishName(codeOrName) {
-  if (!codeOrName) return 'actividad de buceo';
+  if (!codeOrName) return 'tu actividad de buceo';
   const match = BIZUM_ACTIVITY_OPTIONS.find(o => o.code === codeOrName || o.acronym === codeOrName);
   if (match) return match.nameEs;
 
   const upper = codeOrName.toUpperCase();
-  if (upper.includes('BAUTIZO') || upper.includes('DSD')) return 'Bautizo de Buceo';
+  if (upper.includes('OW 2') || upper.includes('OW2')) return 'Open Water en 2 días';
+  if (upper.includes('BAUTIZO') || upper.includes('DSD')) return 'Bautizo';
   if (upper.includes('OPEN') || upper.includes('OW')) return 'Open Water';
-  if (upper.includes('AVANZADO') || upper.includes('AA')) return 'Curso Avanzado';
+  if (upper.includes('AVANZADO') || upper.includes('AA')) return 'Avanzado';
   if (upper.includes('REFRESH') || upper.includes('SR')) return 'Refresh';
   if (upper.includes('FUN') || upper.includes('FD')) return 'Fun Dives';
-  if (upper.includes('RESCUE')) return 'Rescue Diver';
+  if (upper.includes('RESCUE')) return 'Rescue';
   return codeOrName;
 }
 

@@ -3,13 +3,14 @@ import { supabase } from '../../../lib/supabaseClient';
 /**
  * Llama a la función de base de datos cifrada RPC 'create_google_calendar_event' en Supabase para Bizums.
  */
-export async function createGoogleCalendarEvent(bizumRow) {
+export async function createGoogleCalendarEvent(bizumRow, customTitle = null) {
   if (!bizumRow || !bizumRow.id) {
     throw new Error('Identificador de reserva inválido para crear el evento');
   }
 
   const { data, error } = await supabase.rpc('create_google_calendar_event', {
     p_bizum_id: bizumRow.id,
+    p_custom_title: customTitle || null
   });
 
   if (error) {

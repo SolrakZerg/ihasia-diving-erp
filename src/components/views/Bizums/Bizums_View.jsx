@@ -36,6 +36,7 @@ export default function Bizums_View() {
 
     // Handlers
     handleTogglePaid,
+    handleConfirmPaid,
     handleToggleReturned,
     handleToggleRetained,
     handleToggleSettled,
@@ -156,6 +157,7 @@ export default function Bizums_View() {
         data={actionsModalData}
         isOpen={isActionsModalOpen}
         onClose={() => setIsActionsModalOpen(false)}
+        onConfirmPaid={handleConfirmPaid}
       />
 
       {/* Edit Modal (al crear o editar) */}

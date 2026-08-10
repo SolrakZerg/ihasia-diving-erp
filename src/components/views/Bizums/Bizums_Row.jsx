@@ -178,11 +178,11 @@ export default function Bizums_Row({
         </td>
       ) : (
         <>
-          {/* Checkbox PAGADO */}
+          {/* Checkbox RECIBIDO */}
           <td className="py-2.5 px-2 text-center">
             <button
               onClick={() => onTogglePaid(row)}
-              title={row.is_paid ? 'Marcado como Pagado (clic para desmarcar)' : 'Marcar como Pagado'}
+              title={row.is_paid ? 'Marcado como Recibido (clic para desmarcar)' : 'Marcar como Recibido'}
               className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all mx-auto cursor-pointer ${
                 row.is_paid
                   ? 'bg-brand border-brand-light text-white shadow-md shadow-brand/20'
@@ -236,7 +236,7 @@ export default function Bizums_Row({
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={(e) => onDelete(e, row)}
+            onClick={(e) => onDelete(e, row.id, row.customer_name)}
             className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
             title="Eliminar reserva"
           >
