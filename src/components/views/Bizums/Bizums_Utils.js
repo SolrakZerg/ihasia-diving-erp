@@ -96,20 +96,58 @@ export function formatShortDate(dateStr) {
   }
 }
 
-export function generateWhatsappMessage(customerName, numPeople, activity, bookingDate) {
+export const BIZUM_ACTIVITY_OPTIONS = [
+  { code: 'OW 2', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'OW', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
+  { code: 'AA', acronym: 'AA', nameEs: 'Curso Avanzado', nameEn: 'Advanced Adventurer Course' },
+  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo de Buceo', nameEn: 'Discover Scuba Diving' },
+  { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Scuba Refresh' },
+  { code: 'FD', acronym: 'FD', nameEs: 'Fun Dives', nameEn: 'Fun Dives' },
+  { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue Diver', nameEn: 'Rescue Diver' }
+];
+
+export function getShortCodeFromActivityName(activityName) {
+  if (!activityName) return 'OW';
+  const upper = activityName.toUpperCase().replace(/\s+/g, '');
+  if (upper.includes('BAUTIZO') || upper.includes('DSD') || upper.includes('TRY')) return 'DSD';
+  if (upper.includes('OPEN') || upper.includes('OWE') || upper.includes('OW2') || upper.includes('OW')) return 'OW';
+  if (upper.includes('AVANZADO') || upper.includes('ADVANCED') || upper.includes('AA')) return 'AA';
+  if (upper.includes('REFRESH') || upper.includes('SR')) return 'SR';
+  if (upper.includes('FUN') || upper.includes('FD')) return 'FD';
+  if (upper.includes('RESCUE')) return 'Rescue';
+  return 'OW';
+}
+
+export function getActivitySpanishName(codeOrName) {
+  if (!codeOrName) return 'actividad de buceo';
+  const match = BIZUM_ACTIVITY_OPTIONS.find(o => o.code === codeOrName || o.acronym === codeOrName);
+  if (match) return match.nameEs;
+
+  const upper = codeOrName.toUpperCase();
+  if (upper.includes('BAUTIZO') || upper.includes('DSD')) return 'Bautizo de Buceo';
+  if (upper.includes('OPEN') || upper.includes('OW')) return 'Open Water';
+  if (upper.includes('AVANZADO') || upper.includes('AA')) return 'Curso Avanzado';
+  if (upper.includes('REFRESH') || upper.includes('SR')) return 'Refresh';
+  if (upper.includes('FUN') || upper.includes('FD')) return 'Fun Dives';
+  if (upper.includes('RESCUE')) return 'Rescue Diver';
+  return codeOrName;
+}
+
+export function generateWhatsappMessage(customerName, numPeople, activityText, bookingDate) {
   const firstName = customerName ? customerName.trim().split(' ')[0] : 'Cliente';
   const formattedDate = formatSpanishDate(bookingDate);
   const peopleText = `${numPeople || 1} persona(s)`;
-  const actText = activity || 'tu actividad de buceo';
+  const actText = activityText || 'tu actividad de buceo';
 
   return `Hola ${firstName}, gracias por tu reserva de ${peopleText} para ${actText} el ${formattedDate}.\n\n` +
          `Ya puedes realizar los registros necesarios en https://ihasiadivingkohtao.com/registro\n\n` +
          `Ahí encontrarás las instrucciones para hacerlo, cualquier duda nos comentas. Saludos y hasta pronto.`;
 }
 
-export function generateWhatsappLink(phone, customerName, numPeople, activity, bookingDate) {
+export function generateWhatsappLink(phone, customerName, numPeople, activityText, bookingDate) {
   const cleanedPhone = cleanPhone(phone);
   if (!cleanedPhone || !cleanedPhone.startsWith('+')) return null;
-  const message = generateWhatsappMessage(customerName, numPeople, activity, bookingDate);
+  const message = generateWhatsappMessage(customerName, numPeople, activityText, bookingDate);
   return `https://wa.me/${cleanedPhone}?text=${encodeURIComponent(message)}`;
 }
+
