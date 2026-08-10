@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Handshake, Search, Check, ChevronDown } from 'lucide-react';
+import { Handshake, Search, Check, ChevronDown, Printer, Download, Eye, Mail, FolderDown } from 'lucide-react';
 import MonthYearSelector from '../../common/MonthYearSelector';
 
 export default function Nominas_Header({
@@ -7,9 +7,14 @@ export default function Nominas_Header({
   year, setYear,
   selectedMember,
   staff, activeStaffIds,
-  selectedStaffId, setSelectedStaffId
+  selectedStaffId, setSelectedStaffId,
+  onDownloadPDF,
+  onDownloadIndividualPDFs,
+  onPreviewPDF,
+  onOpenEmailModal
 }) {
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+  const [showPdfDropdown, setShowPdfDropdown] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -37,7 +42,7 @@ export default function Nominas_Header({
           </div>
         </div>
 
-        {/* Right Side: Instructor Selector Separated */}
+        {/* Right Side: Instructor Selector & Printer Icon */}
         <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl border border-surface-edge shadow-inner relative w-full md:w-auto justify-center md:justify-end shrink-0">
           <div className="relative w-full md:w-auto">
             <button 
@@ -101,6 +106,73 @@ export default function Nominas_Header({
                       </button>
                     ))}
                   </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Printer Icon Button for PDF Report */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowPdfDropdown(!showPdfDropdown)}
+              title="Informe PDF / Nómina"
+              className="p-3 bg-surface-soft/50 hover:bg-brand/20 text-gray-300 hover:text-brand rounded-xl border border-surface-edge/50 transition-all flex items-center justify-center group relative shadow-sm"
+              aria-label="Informe PDF / Nómina"
+            >
+              <Printer className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+            </button>
+
+            {showPdfDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowPdfDropdown(false)} />
+                <div className="absolute top-full right-0 mt-2 w-60 bg-[#1a1c2d]/95 backdrop-blur-xl border border-surface-edge rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-3 py-2 border-b border-surface-edge/50 bg-white/5">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                      {selectedStaffId === 'TODOS' ? 'Informe Masivo (Todos)' : 'Informe de Nómina'}
+                    </p>
+                  </div>
+
+                  {selectedStaffId === 'TODOS' ? (
+                    <>
+                      <button 
+                        onClick={() => { onDownloadIndividualPDFs?.(); setShowPdfDropdown(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 text-gray-200 hover:text-white transition-colors text-left text-xs font-bold border-b border-surface-edge/30"
+                      >
+                        <FolderDown className="w-4 h-4 text-brand" />
+                        PDFs Individuales (Por Instructor)
+                      </button>
+                      <button 
+                        onClick={() => { onDownloadPDF?.(); setShowPdfDropdown(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 text-gray-200 hover:text-white transition-colors text-left text-xs font-bold border-b border-surface-edge/30"
+                      >
+                        <Download className="w-4 h-4 text-brand" />
+                        PDF Completo Unificado
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={() => { onDownloadPDF?.(); setShowPdfDropdown(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 text-gray-200 hover:text-white transition-colors text-left text-xs font-bold border-b border-surface-edge/30"
+                    >
+                      <Download className="w-4 h-4 text-brand" />
+                      Descargar PDF
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={() => { onPreviewPDF?.(); setShowPdfDropdown(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 text-gray-200 hover:text-white transition-colors text-left text-xs font-bold border-b border-surface-edge/30"
+                  >
+                    <Eye className="w-4 h-4 text-brand" />
+                    Vista Previa / Imprimir
+                  </button>
+                  <button 
+                    onClick={() => { onOpenEmailModal?.(); setShowPdfDropdown(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand/10 text-gray-200 hover:text-white transition-colors text-left text-xs font-bold"
+                  >
+                    <Mail className="w-4 h-4 text-brand" />
+                    Enviar por Email
+                  </button>
                 </div>
               </>
             )}

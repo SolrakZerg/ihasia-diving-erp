@@ -51,7 +51,7 @@ export function useNominasData() {
   }, [selectedStaffId, month, year]);
 
   const fetchStaff = async () => {
-    const { data } = await supabase.from('staff').select('id, first_name, last_name, initials, role, commission_rate').order('first_name');
+    const { data } = await supabase.from('staff').select('id, first_name, last_name, initials, role, commission_rate, email').order('first_name');
     if (data) {
       setStaff(data);
     }
@@ -455,21 +455,26 @@ export function useNominasData() {
       const tComm = Object.values(mData).reduce((acc, d) => acc + d.total, 0);
       const tAssists = Object.values(assistMap).reduce((acc, val) => acc + (val * 2000), 0);
       const tAdj = Object.values(adjMap).reduce((acc, val) => acc + (val.amount || 0), 0);
-      const tAdvances = rawAdvances.filter(a => a.staff_id === staffId).reduce((acc, a) => acc + a.amount, 0);
+      const staffAdvancesList = rawAdvances.filter(a => a.staff_id === staffId);
+      const tAdvances = staffAdvancesList.reduce((acc, a) => acc + a.amount, 0);
       const fBalance = tComm + tAssists + tAdj - tAdvances;
 
       return {
         matrixData: mData,
+        fixedColumns,
         dynamicActivities: dynActs,
         attendanceData: attData,
         assists: assistMap,
         manualAdj: adjMap,
+        advances: staffAdvancesList,
         totalComm: tComm,
         totalAssists: tAssists,
         totalAdj: tAdj,
         totalAdvances: tAdvances,
         finalBalance: fBalance,
-        selectedMember: member
+        selectedMember: member,
+        month,
+        year
       };
     };
   }, [invoiceItems, staff, fixedColumns, allActivities, rawActivity, rawAdjustments, rawAdvances, payoutRules, month, year]);

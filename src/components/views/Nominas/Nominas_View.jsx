@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNominasData } from './useNominasData';
 import Nominas_Header from './Nominas_Header';
 import Nominas_Table from './Nominas_Table';
 import Nominas_Sidebar from './Nominas_Sidebar';
 import Nominas_AdjModal from './Nominas_AdjModal';
+import Nominas_EmailModal from './Nominas_EmailModal';
+import {
+  downloadInstructorPDF,
+  previewInstructorPDF,
+  downloadAllInstructorsPDF,
+  previewAllInstructorsPDF,
+  downloadIndividualPDFs
+} from './generateNominasPDF';
 
 export default function Nominas_View() {
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+
   const {
     selectedStaffId, setSelectedStaffId,
     month, setMonth,
@@ -22,6 +32,87 @@ export default function Nominas_View() {
     handleAdjUpdate, handleAssChange, handleAttendanceToggle, addAdvance, removeAdvance, updateAdvance
   } = useNominasData();
 
+  const handleDownloadPDF = () => {
+    if (selectedStaffId === 'TODOS') {
+      const activeMembersData = staff
+        .filter(s => activeStaffIds.has(s.id))
+        .map(member => getPayrollDataForStaff(member.id))
+        .filter(Boolean);
+      downloadAllInstructorsPDF(activeMembersData, month, year);
+    } else {
+      const currentPayrollData = {
+        selectedMember,
+        month,
+        year,
+        matrixData,
+        fixedColumns,
+        dynamicActivities,
+        assists,
+        manualAdj,
+        advances,
+        totalComm,
+        totalAssists,
+        totalAdj,
+        totalAdvances,
+        finalBalance
+      };
+      downloadInstructorPDF(currentPayrollData);
+    }
+  };
+
+  const handleDownloadIndividualPDFs = () => {
+    const activeMembersData = staff
+      .filter(s => activeStaffIds.has(s.id))
+      .map(member => getPayrollDataForStaff(member.id))
+      .filter(Boolean);
+    downloadIndividualPDFs(activeMembersData);
+  };
+
+  const handlePreviewPDF = () => {
+    if (selectedStaffId === 'TODOS') {
+      const activeMembersData = staff
+        .filter(s => activeStaffIds.has(s.id))
+        .map(member => getPayrollDataForStaff(member.id))
+        .filter(Boolean);
+      previewAllInstructorsPDF(activeMembersData);
+    } else {
+      const currentPayrollData = {
+        selectedMember,
+        month,
+        year,
+        matrixData,
+        fixedColumns,
+        dynamicActivities,
+        assists,
+        manualAdj,
+        advances,
+        totalComm,
+        totalAssists,
+        totalAdj,
+        totalAdvances,
+        finalBalance
+      };
+      previewInstructorPDF(currentPayrollData);
+    }
+  };
+
+  const currentPayrollData = {
+    selectedMember,
+    month,
+    year,
+    matrixData,
+    fixedColumns,
+    dynamicActivities,
+    assists,
+    manualAdj,
+    advances,
+    totalComm,
+    totalAssists,
+    totalAdj,
+    totalAdvances,
+    finalBalance
+  };
+
   return (
     <div className="nominas-main-container h-auto md:h-full flex flex-col bg-surface md:overflow-hidden overflow-y-auto relative animate-in fade-in duration-700">
       <Nominas_Header 
@@ -30,6 +121,10 @@ export default function Nominas_View() {
         selectedMember={selectedMember}
         staff={staff} activeStaffIds={activeStaffIds}
         selectedStaffId={selectedStaffId} setSelectedStaffId={setSelectedStaffId}
+        onDownloadPDF={handleDownloadPDF}
+        onDownloadIndividualPDFs={handleDownloadIndividualPDFs}
+        onPreviewPDF={handlePreviewPDF}
+        onOpenEmailModal={() => setEmailModalOpen(true)}
       />
 
       {selectedStaffId === 'TODOS' ? (
@@ -110,6 +205,18 @@ export default function Nominas_View() {
         handleAdjUpdate={handleAdjUpdate}
         month={month}
         year={year}
+      />
+
+      <Nominas_EmailModal 
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        payrollData={currentPayrollData}
+        month={month}
+        year={year}
+        selectedStaffId={selectedStaffId}
+        staff={staff}
+        activeStaffIds={activeStaffIds}
+        getPayrollDataForStaff={getPayrollDataForStaff}
       />
     </div>
   );
