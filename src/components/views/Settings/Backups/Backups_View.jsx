@@ -178,9 +178,9 @@ export default function Backups_View() {
     try {
       const { payload, totalRowsExported } = await generateFullBackupPayload();
       const todayStr = new Date().toISOString().split('T')[0];
-      const jsonPayloadString = JSON.stringify(payload, null, 2);
 
       if (format === 'json') {
+        const jsonPayloadString = JSON.stringify(payload, null, 2);
         const jsonBlob = new Blob([jsonPayloadString], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(jsonBlob);
         const downloadAnchor = document.createElement('a');
@@ -256,22 +256,22 @@ export default function Backups_View() {
     : null;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 animate-fadeIn">
+    <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 animate-fadeIn text-white">
       {/* Header Info Banner */}
-      <div className="bg-surface-soft/40 backdrop-blur-xl border border-surface-edge p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-brand/20 border border-brand/40 rounded-xl text-brand-light">
-            <ShieldCheck className="w-8 h-8" />
+      <div className="bg-surface-soft/60 backdrop-blur-xl border border-surface-edge p-6 md:p-8 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-brand/20 border border-brand/40 rounded-2xl text-brand-light shadow-inner">
+            <ShieldCheck className="w-10 h-10" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
               Gestión de Copias de Seguridad de Datos Reales
-              <span className="text-xs bg-brand/20 border border-brand/40 text-brand-light px-2 py-0.5 rounded-full font-mono font-semibold">
+              <span className="text-xs bg-brand/20 border border-brand/40 text-brand-light px-3 py-1 rounded-full font-mono font-bold">
                 v{APP_VERSION}
               </span>
             </h2>
-            <p className="text-sm text-text-muted mt-1">
-              Descarga local y sincronización automática cifrada con tu repositorio privado de GitHub.
+            <p className="text-base text-gray-300 font-medium mt-1">
+              Descarga local y sincronización automática cifrada servidor-a-servidor con tu repositorio privado de GitHub.
             </p>
           </div>
         </div>
@@ -279,90 +279,90 @@ export default function Backups_View() {
         <button
           onClick={fetchMetrics}
           disabled={loadingMetrics || isExporting}
-          className="flex items-center gap-2 px-4 py-2.5 bg-surface-edge/30 hover:bg-surface-edge/60 border border-surface-edge text-sm font-semibold text-text-light hover:text-white rounded-xl transition-all disabled:opacity-50"
+          className="flex items-center gap-2.5 px-5 py-3 bg-surface-edge/40 hover:bg-surface-edge/80 border border-surface-edge/80 text-base font-bold text-gray-200 hover:text-white rounded-xl transition-all shadow-md disabled:opacity-50"
         >
-          <RefreshCw className={`w-4 h-4 ${loadingMetrics ? 'animate-spin text-brand-light' : ''}`} />
+          <RefreshCw className={`w-5 h-5 ${loadingMetrics ? 'animate-spin text-brand-light' : ''}`} />
           Actualizar Estadísticas
         </button>
       </div>
 
       {/* Metric Cards - Panel de Salud */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-surface-soft/30 border border-surface-edge p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
-            <Users className="w-6 h-6" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-surface-soft/40 border border-surface-edge/80 p-6 rounded-2xl flex items-center gap-5 shadow-lg">
+          <div className="p-3.5 bg-blue-500/20 text-blue-400 rounded-2xl border border-blue-500/30">
+            <Users className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-wider">Clientes Registrados</p>
-            <p className="text-2xl font-black text-white mt-0.5">
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Clientes Registrados</p>
+            <p className="text-3xl font-black text-white mt-1">
               {loadingMetrics ? '...' : metrics.customers.toLocaleString()}
             </p>
           </div>
         </div>
 
-        <div className="bg-surface-soft/30 border border-surface-edge p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-            <Receipt className="w-6 h-6" />
+        <div className="bg-surface-soft/40 border border-surface-edge/80 p-6 rounded-2xl flex items-center gap-5 shadow-lg">
+          <div className="p-3.5 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
+            <Receipt className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-wider">Facturas Emitidas</p>
-            <p className="text-2xl font-black text-white mt-0.5">
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Facturas Emitidas</p>
+            <p className="text-3xl font-black text-white mt-1">
               {loadingMetrics ? '...' : metrics.invoices.toLocaleString()}
             </p>
           </div>
         </div>
 
-        <div className="bg-surface-soft/30 border border-surface-edge p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
-            <Database className="w-6 h-6" />
+        <div className="bg-surface-soft/40 border border-surface-edge/80 p-6 rounded-2xl flex items-center gap-5 shadow-lg">
+          <div className="p-3.5 bg-purple-500/20 text-purple-400 rounded-2xl border border-purple-500/30">
+            <Database className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-wider">Depósitos Bizum</p>
-            <p className="text-2xl font-black text-white mt-0.5">
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Depósitos Bizum</p>
+            <p className="text-3xl font-black text-white mt-1">
               {loadingMetrics ? '...' : metrics.bizums.toLocaleString()}
             </p>
           </div>
         </div>
 
-        <div className="bg-surface-soft/30 border border-surface-edge p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-            <HardDrive className="w-6 h-6" />
+        <div className="bg-surface-soft/40 border border-surface-edge/80 p-6 rounded-2xl flex items-center gap-5 shadow-lg">
+          <div className="p-3.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30">
+            <HardDrive className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-wider">Tablas Respaldadas</p>
-            <p className="text-2xl font-black text-white mt-0.5">39 Tablas</p>
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Tablas Respaldadas</p>
+            <p className="text-3xl font-black text-white mt-1">39 Tablas</p>
           </div>
         </div>
       </div>
 
       {/* Feedback Messages */}
       {successMessage && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl flex items-center gap-3 text-emerald-400 text-sm font-medium animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-          <span>{successMessage}</span>
+        <div className="bg-emerald-500/15 border border-emerald-500/40 p-5 rounded-2xl flex items-center gap-4 text-emerald-300 text-base font-semibold shadow-lg animate-fadeIn">
+          <CheckCircle2 className="w-6 h-6 flex-shrink-0 text-emerald-400" />
+          <span className="leading-relaxed">{successMessage}</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center gap-3 text-rose-400 text-sm font-medium animate-fadeIn">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <span>{errorMessage}</span>
+        <div className="bg-rose-500/15 border border-rose-500/40 p-5 rounded-2xl flex items-center gap-4 text-rose-300 text-base font-semibold shadow-lg animate-fadeIn">
+          <AlertCircle className="w-6 h-6 flex-shrink-0 text-rose-400" />
+          <span className="leading-relaxed">{errorMessage}</span>
         </div>
       )}
 
       {/* Active Exporting Progress Bar */}
       {isExporting && (
-        <div className="bg-brand/10 border border-brand/30 p-6 rounded-2xl space-y-3 animate-pulse">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-brand-light flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              Procesando: <code className="bg-brand/20 px-2 py-0.5 rounded text-white font-mono">{currentExportTable}</code>
+        <div className="bg-brand/15 border border-brand/40 p-6 rounded-2xl space-y-4 animate-pulse shadow-xl">
+          <div className="flex items-center justify-between text-base">
+            <span className="font-bold text-brand-light flex items-center gap-2.5">
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              Procesando: <code className="bg-brand/30 px-2.5 py-1 rounded-lg text-white font-mono text-base">{currentExportTable}</code>
             </span>
-            <span className="font-bold text-white">{exportProgress}%</span>
+            <span className="font-black text-xl text-white">{exportProgress}%</span>
           </div>
-          <div className="w-full bg-surface-edge rounded-full h-3 overflow-hidden p-0.5">
+          <div className="w-full bg-surface-edge rounded-full h-4 overflow-hidden p-0.5 shadow-inner">
             <div
-              className="bg-gradient-to-r from-brand to-brand-light h-full rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-brand via-brand-light to-cyan-300 h-full rounded-full transition-all duration-300 shadow-md"
               style={{ width: `${exportProgress}%` }}
             />
           </div>
@@ -370,25 +370,26 @@ export default function Backups_View() {
       )}
 
       {/* Main Actions Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* JSON Export + Auto GitHub Cloud Sync Card */}
-        <div className="bg-surface-soft/20 border border-surface-edge p-6 rounded-2xl flex flex-col justify-between space-y-6 hover:border-brand/40 transition-all relative overflow-hidden">
-          <div className="absolute top-3 right-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-            <GitBranch className="w-3.5 h-3.5" />
-            Auto-Sync GitHub
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-brand/10 text-brand-light rounded-xl border border-brand/30">
-                <CloudUpload className="w-6 h-6" />
+        <div className="bg-surface-soft/40 border border-surface-edge/80 p-7 rounded-2xl flex flex-col justify-between space-y-6 hover:border-brand/60 transition-all shadow-xl group">
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3.5 bg-brand/20 text-brand-light rounded-2xl border border-brand/40 group-hover:scale-105 transition-transform flex-shrink-0">
+                <CloudUpload className="w-8 h-8" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Respaldo Completo (.JSON + GitHub)</h3>
-                <p className="text-xs text-text-muted">Descarga en tu equipo y subida automática cifrada a GitHub.</p>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="text-xl font-extrabold text-white">Respaldo Completo (.JSON)</h3>
+                  <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-xs font-black flex items-center gap-1.5 uppercase tracking-wider">
+                    <GitBranch className="w-3.5 h-3.5 text-emerald-400" />
+                    Auto-Sync GitHub
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-gray-400">Descarga en tu equipo y subida automática cifrada a GitHub.</p>
               </div>
             </div>
-            <p className="text-sm text-text-muted leading-relaxed">
+            <p className="text-base text-gray-300 font-normal leading-relaxed">
               Descarga el JSON en tu ordenador y simultáneamente ejecuta la función segura de Supabase Vault para actualizar <code>database/data_backups/backup_latest.json</code> en tu repositorio privado.
             </p>
           </div>
@@ -396,65 +397,65 @@ export default function Backups_View() {
           <button
             onClick={() => handleExportData('json', true)}
             disabled={isExporting}
-            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-brand hover:bg-brand-light text-white font-bold rounded-xl transition-all shadow-lg shadow-brand/20 disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-brand hover:bg-brand-light text-white text-base font-extrabold rounded-xl transition-all shadow-xl shadow-brand/25 active:scale-[0.99] disabled:opacity-50"
           >
-            <CloudUpload className="w-5 h-5" />
+            <CloudUpload className="w-6 h-6" />
             Descargar y Sincronizar en GitHub
           </button>
         </div>
 
         {/* SQL Export Card */}
-        <div className="bg-surface-soft/20 border border-surface-edge p-6 rounded-2xl flex flex-col justify-between space-y-6 hover:border-purple-500/40 transition-all">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/30">
-                <FileCode className="w-6 h-6" />
+        <div className="bg-surface-soft/40 border border-surface-edge/80 p-7 rounded-2xl flex flex-col justify-between space-y-6 hover:border-purple-500/60 transition-all shadow-xl group">
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3.5 bg-purple-500/20 text-purple-300 rounded-2xl border border-purple-500/40 group-hover:scale-105 transition-transform flex-shrink-0">
+                <FileCode className="w-8 h-8" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Respaldo Formato SQL (INSERTs)</h3>
-                <p className="text-xs text-text-muted">Sentencias SQL de inserción directa para PostgreSQL.</p>
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-extrabold text-white">Respaldo Formato SQL (INSERTs)</h3>
+                <p className="text-sm font-semibold text-gray-400">Sentencias SQL de inserción directa para PostgreSQL.</p>
               </div>
             </div>
-            <p className="text-sm text-text-muted leading-relaxed">
-              Genera un archivo de script SQL con sentencias <code>INSERT INTO ... ON CONFLICT DO NOTHING</code> ejecutable en el editor SQL de Supabase para restauración parcial o total.
+            <p className="text-base text-gray-300 font-normal leading-relaxed">
+              Genera un archivo de script SQL con sentencias <code>INSERT INTO ... ON CONFLICT DO NOTHING</code> ejecutable en el editor SQL de Supabase para restauración parcial o total de datos.
             </p>
           </div>
 
           <button
             onClick={() => handleExportData('sql', false)}
             disabled={isExporting}
-            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-600/20 disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-purple-600 hover:bg-purple-500 text-white text-base font-extrabold rounded-xl transition-all shadow-xl shadow-purple-600/25 active:scale-[0.99] disabled:opacity-50"
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-6 h-6" />
             Descargar Script Datos (.SQL)
           </button>
         </div>
       </div>
 
       {/* Backup Frequency & History Advice Banner */}
-      <div className="bg-surface-soft/20 border border-surface-edge p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-surface-soft/40 border border-surface-edge/80 p-7 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20 mt-1 md:mt-0">
-            <Clock className="w-6 h-6" />
+          <div className="p-3.5 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30 mt-1 md:mt-0">
+            <Clock className="w-7 h-7" />
           </div>
-          <div className="space-y-1">
-            <h4 className="text-base font-bold text-white">Estado del Respaldo Nube en GitHub</h4>
-            <p className="text-xs text-text-muted leading-relaxed">
-              • <strong>Sincronización segura:</strong> Supabase Vault (Token cifrado AES-256 no visible en navegador).<br />
-              • <strong>Histórico de commits:</strong> Todos los cambios pasados se guardan de forma acumulativa e indestructible.
-            </p>
+          <div className="space-y-1.5">
+            <h4 className="text-lg font-bold text-white">Estado del Respaldo Nube en GitHub</h4>
+            <div className="text-base text-gray-300 font-normal space-y-1 leading-relaxed">
+              <p>• <strong>Sincronización segura:</strong> Supabase Vault (Token cifrado AES-256 no visible en navegador).</p>
+              <p>• <strong>Histórico de commits:</strong> Todos los cambios pasados se guardan de forma acumulativa e indestructible.</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-surface-soft/40 border border-surface-edge px-4 py-3 rounded-xl text-right flex-shrink-0 w-full md:w-auto">
-          <p className="text-xs text-text-muted font-medium">Última sincronización en GitHub:</p>
-          <p className="text-sm font-bold text-white mt-0.5">
+        <div className="bg-surface-soft/60 border border-surface-edge px-5 py-4 rounded-2xl text-right flex-shrink-0 w-full md:w-auto shadow-inner">
+          <p className="text-sm font-semibold text-gray-400">Última sincronización en GitHub:</p>
+          <p className="text-base font-extrabold text-white mt-1">
             {githubSyncDate
               ? `${githubSyncDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} (${githubSyncDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`
               : 'No registrada aún en este navegador'}
           </p>
           {daysSinceBackup !== null && (
-            <p className={`text-xs mt-1 font-semibold ${daysSinceBackup > 14 ? 'text-rose-400' : 'text-emerald-400'}`}>
+            <p className={`text-sm mt-1.5 font-bold ${daysSinceBackup > 14 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {daysSinceBackup === 0 ? '¡Sincronizado hoy!' : `Hace ${daysSinceBackup} día(s)`}
             </p>
           )}
