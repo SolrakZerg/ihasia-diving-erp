@@ -256,7 +256,7 @@ export default function Backups_View() {
     : null;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 animate-fadeIn text-white">
+    <div className="max-w-[1400px] mx-auto p-6 md:p-8 space-y-8 animate-fadeIn text-white">
       {/* Header Info Banner */}
       <div className="bg-surface-soft/60 backdrop-blur-xl border border-surface-edge p-6 md:p-8 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
         <div className="flex items-center gap-5">
@@ -370,7 +370,7 @@ export default function Backups_View() {
       )}
 
       {/* Main Actions Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* JSON Export + Auto GitHub Cloud Sync Card */}
         <div className="bg-surface-soft/40 border border-surface-edge/80 p-7 rounded-2xl flex flex-col justify-between space-y-6 hover:border-brand/60 transition-all shadow-xl group">
           <div className="space-y-4">
@@ -378,9 +378,9 @@ export default function Backups_View() {
               <div className="p-3.5 bg-brand/20 text-brand-light rounded-2xl border border-brand/40 group-hover:scale-105 transition-transform flex-shrink-0">
                 <CloudUpload className="w-8 h-8" />
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <h3 className="text-xl font-extrabold text-white">Respaldo Completo (.JSON)</h3>
+              <div className="space-y-1 w-full">
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <h3 className="text-xl font-extrabold text-white whitespace-nowrap">Respaldo Completo (.JSON)</h3>
                   <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-xs font-black flex items-center gap-1 uppercase tracking-wider whitespace-nowrap">
                     <GitBranch className="w-3.5 h-3.5 text-emerald-400" />
                     GitHub
@@ -411,9 +411,9 @@ export default function Backups_View() {
               <div className="p-3.5 bg-purple-500/20 text-purple-300 rounded-2xl border border-purple-500/40 group-hover:scale-105 transition-transform flex-shrink-0">
                 <FileCode className="w-8 h-8" />
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <h3 className="text-xl font-extrabold text-white">Respaldo Formato SQL (INSERTs)</h3>
+              <div className="space-y-1 w-full">
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <h3 className="text-xl font-extrabold text-white whitespace-nowrap">Respaldo de Datos (.SQL)</h3>
                   <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2.5 py-0.5 rounded-full text-xs font-black flex items-center gap-1 uppercase tracking-wider whitespace-nowrap">
                     <Database className="w-3.5 h-3.5 text-purple-400" />
                     PostgreSQL
