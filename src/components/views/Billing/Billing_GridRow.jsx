@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, AlertTriangle, Euro, Trash2, Unlink, Plus } from 'lucide-react';
+import { ChevronUp, AlertTriangle, Euro, Trash2, Unlink, Plus, Calendar } from 'lucide-react';
 import Billing_GridRow_ItemRow from './Billing_GridRow_ItemRow';
 import { useBillingGridRow } from './useBillingGridRow';
 
@@ -61,6 +61,7 @@ export default function Billing_GridRow({
     groupDisplayName,
     isAnyInstructorMissing,
     hasPendingBizum,
+    isAnyDateMissing,
     minDate,
   } = rowData;
 
@@ -155,10 +156,21 @@ export default function Billing_GridRow({
           </div>
         </td>
         <td className={`px-1 py-0 text-center ${tb} w-[110px] min-w-[110px]`}>
-          {!expanded && minDate && (
-            <span className={`text-[15px] font-black tracking-wider ${groupTitleClass}`}>
-              {minDate.split('-')[2]}
-            </span>
+          {!expanded && (
+            <div className="flex items-center justify-center h-full">
+              {isAnyDateMissing ? (
+                <div className="flex items-center justify-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-red-400 animate-pulse shrink-0" />
+                  <span className="text-[12px] font-black text-red-300 bg-red-500/30 border border-red-500/40 px-1.5 py-0.5 rounded animate-pulse uppercase tracking-tight">
+                    FECHA
+                  </span>
+                </div>
+              ) : minDate ? (
+                <span className={`text-[15px] font-black tracking-wider ${groupTitleClass}`}>
+                  {minDate.split('-')[2]}
+                </span>
+              ) : null}
+            </div>
           )}
         </td>
         <td colSpan={3} className={`px-2 py-0 text-left overflow-hidden ${tb}`}>

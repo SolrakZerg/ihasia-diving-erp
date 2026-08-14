@@ -429,6 +429,8 @@ export function useBillingGridRow({
 
   const hasPendingBizum = items.some(item => Number(item.bizum_deposit_eur || 0) > 0);
 
+  const isAnyDateMissing = items.some(item => !item.date);
+
   const dateList = items.map(it => it.date).filter(Boolean);
   const minDate = dateList.length ? dateList.sort()[0] : null;
 
@@ -456,6 +458,7 @@ export function useBillingGridRow({
     groupDisplayName,
     isAnyInstructorMissing,
     hasPendingBizum,
+    isAnyDateMissing,
     minDate,
   };
 }
