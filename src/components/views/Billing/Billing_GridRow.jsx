@@ -161,7 +161,7 @@ export default function Billing_GridRow({
               {isAnyDateMissing ? (
                 <div className="flex items-center justify-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-red-500 animate-pulse shrink-0" />
-                  <span className="text-[12px] font-black text-red-600 bg-red-50 border border-red-300 px-1.5 py-0.5 rounded animate-pulse uppercase tracking-tight shadow-sm">
+                  <span className="text-[12px] font-black text-red-500 animate-pulse uppercase tracking-tight">
                     FECHA
                   </span>
                 </div>
