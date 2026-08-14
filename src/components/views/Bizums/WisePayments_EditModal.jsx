@@ -70,18 +70,18 @@ export default function WisePayments_EditModal({ payment, isOpen, onClose, onSav
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-surface-edge pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center text-brand">
-              <FileText className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center text-brand">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-base">Editar Pago de Wise</h3>
-              <p className="text-[11px] text-gray-400 font-mono">ID: #{payment.id}</p>
+              <h3 className="font-bold text-white text-lg leading-snug">Editar Pago de Wise</h3>
+              <p className="text-xs text-gray-400 font-mono">ID: #{payment.id}</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-white cursor-pointer transition-colors"
+            className="text-gray-400 hover:text-white cursor-pointer transition-colors p-1.5 rounded-lg hover:bg-surface-edge/50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -89,36 +89,36 @@ export default function WisePayments_EditModal({ payment, isOpen, onClose, onSav
 
         <form onSubmit={handleSave} className="space-y-4">
           {/* Readonly Info Box */}
-          <div className="bg-surface/50 border border-surface-edge rounded-xl p-3.5 space-y-2 text-xs">
+          <div className="bg-surface/50 border border-surface-edge rounded-xl p-4 space-y-2.5 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-gray-400 flex items-center gap-1.5 font-medium">
-                <User className="w-3.5 h-3.5 text-brand" /> Remitente:
+              <span className="text-gray-400 flex items-center gap-2 font-medium">
+                <User className="w-4 h-4 text-brand shrink-0" /> Remitente:
               </span>
-              <strong className="text-white capitalize">{payment.sender_name}</strong>
+              <strong className="text-white capitalize text-sm">{payment.sender_name}</strong>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-gray-400 flex items-center gap-1.5 font-medium">
-                <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400" /> Importe:
+              <span className="text-gray-400 flex items-center gap-2 font-medium">
+                <ArrowDownLeft className="w-4 h-4 text-emerald-400 shrink-0" /> Importe:
               </span>
-              <strong className="text-emerald-400 font-black">
+              <strong className="text-emerald-400 font-black text-sm sm:text-base">
                 {payment.amount_raw} {payment.currency} ({payment.num_people} Pax)
               </strong>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-gray-400 flex items-center gap-1.5 font-medium">
-                <Calendar className="w-3.5 h-3.5 text-cyan-400" /> Fecha:
+              <span className="text-gray-400 flex items-center gap-2 font-medium">
+                <Calendar className="w-4 h-4 text-cyan-400 shrink-0" /> Fecha:
               </span>
-              <span className="text-gray-300 font-mono">{formatDate(payment.created_at)}</span>
+              <span className="text-gray-300 font-mono text-sm">{formatDate(payment.created_at)}</span>
             </div>
 
             {payment.reference && (
-              <div className="flex items-center justify-between border-t border-surface-edge/40 pt-1.5">
-                <span className="text-gray-400 flex items-center gap-1.5 font-medium">
-                  <Hash className="w-3.5 h-3.5 text-gray-400" /> Referencia:
+              <div className="flex items-center justify-between border-t border-surface-edge/40 pt-2">
+                <span className="text-gray-400 flex items-center gap-2 font-medium">
+                  <Hash className="w-4 h-4 text-gray-400 shrink-0" /> Referencia:
                 </span>
-                <span className="text-gray-300 truncate max-w-[220px]" title={payment.reference}>
+                <span className="text-gray-300 font-mono text-sm truncate max-w-[240px]" title={payment.reference}>
                   {payment.reference}
                 </span>
               </div>
@@ -129,45 +129,45 @@ export default function WisePayments_EditModal({ payment, isOpen, onClose, onSav
           <div className="space-y-3.5 pt-1">
             
             {/* Control: Procesado */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface border border-surface-edge">
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-surface border border-surface-edge">
               <div>
-                <label className="text-xs font-bold text-white flex items-center gap-2">
-                  <Check className="w-4 h-4 text-blue-400" /> Marcar como Procesado
+                <label className="text-sm font-bold text-white flex items-center gap-2">
+                  <Check className="w-4.5 h-4.5 text-blue-400" /> Marcar como Procesado
                 </label>
-                <p className="text-[10px] text-gray-400">Transferencia verificada en la app o contabilidad</p>
+                <p className="text-xs text-gray-400 mt-0.5">Transferencia verificada en la app o contabilidad</p>
               </div>
               <input 
                 type="checkbox"
                 checked={isProcessed}
                 onChange={(e) => setIsProcessed(e.target.checked)}
-                className="w-4 h-4 rounded border-surface-edge bg-surface-soft text-brand focus:ring-brand accent-brand cursor-pointer"
+                className="w-5 h-5 rounded border-surface-edge bg-surface-soft text-brand focus:ring-brand accent-brand cursor-pointer"
               />
             </div>
 
             {/* Control: Retención */}
-            <div className="p-3 rounded-xl bg-surface border border-surface-edge space-y-3">
+            <div className="p-3.5 rounded-xl bg-surface border border-surface-edge space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-bold text-white flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400" /> Depósito Retenido (No presentado)
+                  <label className="text-sm font-bold text-white flex items-center gap-2">
+                    <AlertTriangle className="w-4.5 h-4.5 text-amber-400" /> Depósito Retenido (No presentado)
                   </label>
-                  <p className="text-[10px] text-gray-400">Mueve el depósito a la pestaña de Depósitos Retenidos</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Mueve el depósito a la pestaña de Depósitos Retenidos</p>
                 </div>
                 <input 
                   type="checkbox"
                   checked={isRetained}
                   onChange={(e) => setIsRetained(e.target.checked)}
-                  className="w-4 h-4 rounded border-surface-edge bg-surface-soft text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                  className="w-5 h-5 rounded border-surface-edge bg-surface-soft text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
                 />
               </div>
 
               {/* Opciones adicionales si está retenido */}
               {isRetained && (
-                <div className="pt-2 border-t border-surface-edge/60 space-y-3 animate-in fade-in duration-200">
+                <div className="pt-3 border-t border-surface-edge/60 space-y-3 animate-in fade-in duration-200">
                   {/* Selector de Pax Retenidos si tiene más de 1 Pax */}
                   {payment.num_people > 1 && (
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-300 mb-1.5">
+                      <label className="block text-xs font-bold text-gray-300 mb-1.5">
                         Personas Retenidas (Pax):
                       </label>
                       <div className="grid grid-cols-2 gap-2">
@@ -179,14 +179,14 @@ export default function WisePayments_EditModal({ payment, isOpen, onClose, onSav
                               key={paxVal}
                               type="button"
                               onClick={() => setRetainedPeople(paxVal)}
-                              className={`p-2 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                              className={`p-2.5 rounded-xl border text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                 isSelected
                                   ? 'bg-amber-500/20 border-amber-500 text-amber-300'
                                   : 'bg-surface-soft border-surface-edge text-gray-400 hover:text-white'
                               }`}
                             >
                               <span>{paxVal} Pax</span>
-                              <span className="text-[10px] opacity-75">
+                              <span className="text-xs opacity-75">
                                 {paxVal === payment.num_people ? '(Total)' : '(Parcial)'}
                               </span>
                             </button>
@@ -198,13 +198,13 @@ export default function WisePayments_EditModal({ payment, isOpen, onClose, onSav
 
                   {/* Estado de Reparto entre Socios */}
                   <div className="flex items-center justify-between pt-1">
-                    <label className="text-[11px] font-semibold text-gray-300">
+                    <label className="text-xs font-bold text-gray-300">
                       Repartido entre socios:
                     </label>
                     <button
                       type="button"
                       onClick={() => setIsSettled(!isSettled)}
-                      className={`px-3 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-3.5 py-1.5 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                         isSettled
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                           : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
@@ -219,32 +219,32 @@ export default function WisePayments_EditModal({ payment, isOpen, onClose, onSav
 
             {/* Campo: Notas */}
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1">
+              <label className="block text-sm font-bold text-gray-300 mb-1.5">
                 Notas Internas / Observaciones:
               </label>
               <textarea
-                rows={2}
+                rows={3}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Añade notas aclaratorias sobre este pago..."
-                className="w-full bg-surface border border-surface-edge rounded-xl p-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand/50 transition-all resize-none"
+                className="w-full bg-surface border border-surface-edge rounded-xl p-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand/50 transition-all resize-none"
               />
             </div>
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-surface-edge">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-edge">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white cursor-pointer transition-colors"
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-300 hover:text-white cursor-pointer transition-colors hover:bg-surface"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-brand text-white shadow-lg shadow-brand/20 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-white shadow-lg shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
             >
               {saving ? 'Guardando...' : 'Guardar Cambios'}
             </button>
