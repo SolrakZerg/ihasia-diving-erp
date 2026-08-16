@@ -102,7 +102,7 @@ export default function Billing_GridRow({
         className="font-bold bg-white hover:bg-gray-50 group h-[30px] leading-none relative border-b border-gray-100 focus-within:z-[100]"
         style={{ '--group-color': mainGroupColor }}
       >
-        <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 relative cursor-default" onClick={(e) => e.stopPropagation()}>
+        <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 border-b-2 border-b-gray-200 relative cursor-default" onClick={(e) => e.stopPropagation()}>
           <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
           <div className="flex justify-center items-center h-full pl-1">
             <input
@@ -114,14 +114,14 @@ export default function Billing_GridRow({
             />
           </div>
         </td>
-        <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100">
+        <td className="px-0 py-0 w-[35px] min-w-[35px] border-r border-gray-100 border-b-2 border-b-gray-200">
           <div className="flex justify-center items-center">
             <button onClick={(e) => handleAddChildItem(e, item)} className="p-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded transition-all">
               <Plus className="w-4 h-4" />
             </button>
           </div>
         </td>
-        <Billing_GridRow_ItemRow item={item} isHybridRow={true} bLine="" {...sharedItemRowProps} />
+        <Billing_GridRow_ItemRow item={item} isHybridRow={true} bLine="border-b-2 border-b-gray-200" {...sharedItemRowProps} />
       </tr>
     );
   }
