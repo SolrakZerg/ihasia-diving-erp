@@ -11,6 +11,13 @@ const PAGE_SIZE = 50;
 export { ACTIVITY_COLORS, getActivityColor, shortenLastDive, normalizeLevel } from './Customers_Utils';
 
 
+// ─── Utilidad de fecha ───────────────────────────────────────────────────────
+const getThailandDate = (offset = 0) => {
+  const date = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().split('T')[0];
+};
+
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export default function useCustomersData() {
@@ -30,6 +37,7 @@ export default function useCustomersData() {
   // --- Estado de filtros y ordenación ---
   const [sortConfig, setSortConfig]     = useState({ key: 'created_at', direction: 'desc' });
   const [activeDateFilter, setActiveDateFilter] = useState('all');
+  const [selectedExactDate, setSelectedExactDate] = useState(() => getThailandDate(0));
   const [showDuplicates, setShowDuplicates]     = useState(false);
   const [isFilterOpen, setIsFilterOpen]         = useState(false);
 
@@ -54,14 +62,6 @@ export default function useCustomersData() {
   const [confirmConfig, setConfirmConfig] = useState({
     show: false, title: '', message: '', type: 'danger', onConfirm: null,
   });
-
-  // ─── Utilidades internas ─────────────────────────────────────────────────
-
-  const getThailandDate = (offset = 0) => {
-    const date = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-    date.setDate(date.getDate() + offset);
-    return date.toISOString().split('T')[0];
-  };
 
   // ─── Fetching ────────────────────────────────────────────────────────────
 
@@ -116,6 +116,8 @@ export default function useCustomersData() {
             endOfWeek.setDate(endOfWeek.getDate() + 6);
             q = q.gte('booking_date', startOfWeek.toISOString().split('T')[0])
                  .lte('booking_date', endOfWeek.toISOString().split('T')[0]);
+          } else if (activeDateFilter === 'exact' && selectedExactDate) {
+            q = q.eq('booking_date', selectedExactDate);
           }
         }
 
@@ -155,7 +157,7 @@ export default function useCustomersData() {
       setLoading(false);
       setIsSearching(false);
     }
-  }, [currentPage, sortConfig, debouncedSearch, activeDateFilter, showDuplicates]);
+  }, [currentPage, sortConfig, debouncedSearch, activeDateFilter, selectedExactDate, showDuplicates]);
 
   useEffect(() => {
     fetchCustomers();
@@ -183,8 +185,11 @@ export default function useCustomersData() {
     setCurrentPage(0);
   };
 
-  const handleDateFilterChange = (filter) => {
+  const handleDateFilterChange = (filter, dateVal = null) => {
     setActiveDateFilter(filter);
+    if (filter === 'exact' && dateVal) {
+      setSelectedExactDate(dateVal);
+    }
     setShowDuplicates(false);
     setCurrentPage(0);
     setIsFilterOpen(false);
@@ -437,6 +442,7 @@ export default function useCustomersData() {
     isFilterOpen,
     setIsFilterOpen,
     activeDateFilter,
+    selectedExactDate,
     showDuplicates,
     handleDateFilterChange,
     toggleDuplicates,

@@ -25,6 +25,7 @@ export default function Customers_View({ onNavigate }) {
     isFilterOpen,
     setIsFilterOpen,
     activeDateFilter,
+    selectedExactDate,
     showDuplicates,
     handleDateFilterChange,
     toggleDuplicates,
@@ -105,6 +106,7 @@ export default function Customers_View({ onNavigate }) {
         isFilterOpen={isFilterOpen}
         setIsFilterOpen={setIsFilterOpen}
         activeDateFilter={activeDateFilter}
+        selectedExactDate={selectedExactDate}
         showDuplicates={showDuplicates}
         handleDateFilterChange={handleDateFilterChange}
         toggleDuplicates={toggleDuplicates}

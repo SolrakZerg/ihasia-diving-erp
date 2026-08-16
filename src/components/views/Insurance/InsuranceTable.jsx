@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Calendar, ShieldCheck, Download, UserPlus, Loader2, Check, X, Edit2, Trash2, AlertCircle, Send, CreditCard } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Download, UserPlus, Loader2, Check, X, Edit2, Trash2, AlertCircle, Send, CreditCard, Filter } from 'lucide-react';
 import EditableInput from '../../common/EditableInput';
 
 const getActivityBadgeClasses = (activity) => {
@@ -43,6 +43,7 @@ export default function InsuranceTable({
   loading,
   filteredCustomers,
   loadTodayCustomers,
+  loadCustomersByDate,
   processing,
   onNavigate,
   editingId,
@@ -54,6 +55,14 @@ export default function InsuranceTable({
   setConfirmSend
 }) {
   const [sendToBilling, setSendToBilling] = React.useState(false);
+  const [showLoadModal, setShowLoadModal] = React.useState(false);
+  const [targetLoadDate, setTargetLoadDate] = React.useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const offset = tomorrow.getTimezoneOffset();
+    return new Date(tomorrow.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+  });
+  const [targetLoadActivity, setTargetLoadActivity] = React.useState('Fun Dive');
   const duplicateIds = React.useMemo(() => {
     const dups = new Set();
     
@@ -230,18 +239,30 @@ export default function InsuranceTable({
           <div className="h-full flex flex-col items-center justify-center text-text-muted pt-8">
             <ShieldCheck className="w-12 h-12 opacity-20 mb-4" />
             <p>No tienes a nadie preparado en la bandeja de salida de seguros.</p>
-            <div className="flex gap-4 mt-6">
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
               <button
                 onClick={loadTodayCustomers}
                 disabled={processing}
-                className="flex items-center gap-2 bg-surface border border-emerald-500/50 text-emerald-400 px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-500/10 transition-colors"
+                className="flex items-center gap-2 bg-surface border border-emerald-500/50 text-emerald-400 px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-500/10 transition-colors cursor-pointer"
               >
                 {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 Cargar Reservas para Hoy
               </button>
+
+              <button
+                type="button"
+                onClick={() => setShowLoadModal(true)}
+                disabled={processing || loading}
+                title="Seleccionar fecha y actividad para cargar reservas"
+                className="flex items-center gap-2 bg-surface border border-cyan-500/50 text-cyan-400 px-4 py-2 rounded-xl text-sm font-bold hover:bg-cyan-500/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                <span>Cargar por Fecha</span>
+              </button>
+
               <button
                 onClick={() => onNavigate('customers')}
-                className="flex items-center gap-2 bg-surface border border-surface-edge text-text-muted px-4 py-2 rounded-xl text-sm font-bold hover:bg-surface-edge transition-colors"
+                className="flex items-center gap-2 bg-surface border border-surface-edge text-text-muted px-4 py-2 rounded-xl text-sm font-bold hover:bg-surface-edge transition-colors cursor-pointer"
               >
                 <UserPlus className="w-4 h-4" />
                 Buscador Avanzado
@@ -384,15 +405,28 @@ export default function InsuranceTable({
       </div>
 
       <div className="p-4 border-t border-surface-edge bg-surface/50 flex justify-between items-center flex-none gap-3 flex-wrap sm:flex-nowrap">
-        <button
-          onClick={loadTodayCustomers}
-          disabled={processing || loading}
-          title="Añadir a la lista todos los registrados para hoy"
-          className="flex items-center gap-1 bg-surface border border-emerald-500/50 text-emerald-400 px-3 py-2 rounded-xl text-sm font-bold hover:bg-emerald-500/10 transition-colors"
-        >
-          {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          Reservas Hoy
-        </button>
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={loadTodayCustomers}
+            disabled={processing || loading}
+            title="Añadir a la lista todos los registrados para hoy"
+            className="flex items-center gap-1.5 bg-surface border border-emerald-500/50 text-emerald-400 px-3 py-2 rounded-xl text-sm font-bold hover:bg-emerald-500/10 transition-colors cursor-pointer"
+          >
+            {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Reservas Hoy
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowLoadModal(true)}
+            disabled={processing || loading}
+            title="Añadir reservas de una fecha y actividad personalizada"
+            className="flex items-center gap-1.5 bg-surface border border-cyan-500/50 text-cyan-400 px-3 py-2 rounded-xl text-sm font-bold hover:bg-cyan-500/10 transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+            <span>Cargar por Fecha</span>
+          </button>
+        </div>
 
         <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
           <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest cursor-pointer select-none hover:text-white transition-colors">
@@ -425,6 +459,80 @@ export default function InsuranceTable({
           </button>
         </div>
       </div>
+
+      {/* ── Modal de Carga por Fecha y Actividad ── */}
+      {showLoadModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-surface border border-surface-edge shadow-brand/10 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-surface-edge pb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-cyan-400" />
+                Cargar Reservas por Fecha
+              </h3>
+              <button
+                onClick={() => setShowLoadModal(false)}
+                className="text-text-muted hover:text-white transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-text-muted font-bold mb-2 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-cyan-400" /> Fecha de Reserva
+                </label>
+                <input
+                  type="date"
+                  value={targetLoadDate}
+                  onChange={(e) => setTargetLoadDate(e.target.value)}
+                  className="w-full bg-surface-soft border border-surface-edge rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 transition-colors shadow-inner"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-text-muted font-bold mb-2 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-cyan-400" /> Actividad Reservada
+                </label>
+                <select
+                  value={targetLoadActivity}
+                  onChange={(e) => setTargetLoadActivity(e.target.value)}
+                  className="w-full bg-surface-soft border border-surface-edge rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 transition-colors shadow-inner cursor-pointer"
+                >
+                  <option value="Fun Dive">🌊 Fun Dives (Por defecto)</option>
+                  <option value="ALL">🤿 Todas las Actividades</option>
+                  <option value="Open Water">🟢 Open Water</option>
+                  <option value="Advanced">🔵 Advanced</option>
+                  <option value="Try Dive">🔴 Try Dive / Bautizo</option>
+                  <option value="Refresh">🟡 Refresher</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-surface-edge">
+              <button
+                onClick={() => setShowLoadModal(false)}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-text-muted hover:bg-surface-edge hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (targetLoadDate) {
+                    loadCustomersByDate(targetLoadDate, targetLoadActivity);
+                    setShowLoadModal(false);
+                  }
+                }}
+                disabled={processing || loading || !targetLoadDate}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 transition-all shadow-lg shadow-cyan-900/20 disabled:opacity-50 cursor-pointer"
+              >
+                {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Cargar Reservas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -94,30 +94,64 @@ export const useInsuranceData = (initialSelectedIds) => {
     }
   };
 
-  const loadTodayCustomers = async () => {
+  const loadCustomersByDate = async (targetDateStr = null, activityFilter = 'ALL') => {
     setProcessing(true);
     try {
-      const todayTemp = new Date();
-      const offset = todayTemp.getTimezoneOffset();
-      const today = new Date(todayTemp.getTime() - (offset*60*1000)).toISOString().split('T')[0];
+      let dateToFetch = targetDateStr;
+      if (!dateToFetch) {
+        const todayTemp = new Date();
+        const offset = todayTemp.getTimezoneOffset();
+        dateToFetch = new Date(todayTemp.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+      }
 
-      const data = await insuranceService.fetchTodayCustomers(today);
+      let data = await insuranceService.fetchTodayCustomers(dateToFetch);
       
+      if (activityFilter && activityFilter !== 'ALL') {
+        const filterLower = activityFilter.toLowerCase();
+        data = (data || []).filter(c => {
+          if (!c.booked_activity) return false;
+          const act = c.booked_activity.toLowerCase();
+          if (filterLower === 'fun dive') {
+            return act.includes('fun') || act.includes('ocio');
+          }
+          if (filterLower === 'open water') {
+            return act.includes('open water') || act.includes('owd');
+          }
+          if (filterLower === 'advanced') {
+            return act.includes('advanced') || act.includes('aowd');
+          }
+          if (filterLower === 'try dive') {
+            return act.includes('try dive') || act.includes('bautizo');
+          }
+          if (filterLower === 'refresh') {
+            return act.includes('refresh') || act.includes('refresher');
+          }
+          return act.includes(filterLower);
+        });
+      }
+
       const newCustomers = [...customers];
       let changes = 0;
-      data.forEach(d => {
+      (data || []).forEach(d => {
         if (!newCustomers.find(c => c.id === d.id)) {
           newCustomers.push(d);
           changes++;
         }
       });
       
+      const formattedDate = dateToFetch.split('-').reverse().join('/');
+      const actLabel = activityFilter === 'ALL' ? '' : ` (${activityFilter})`;
+
       if (changes > 0) {
         setCustomers([...newCustomers]);
         localStorage.setItem('antigravity_insurance_queue', JSON.stringify(newCustomers.map(c => c.id)));
-        showToast(`Se añadieron ${changes} buceadores nuevos de hoy.`);
+        showToast(`Se añadieron ${changes} buceadores${actLabel} del ${formattedDate}.`);
       } else {
-        showToast('Todos los buceadores de hoy ya están en la lista.', 'success');
+        if (!data || data.length === 0) {
+          showToast(`No hay reservas${actLabel} para el ${formattedDate}.`, 'error');
+        } else {
+          showToast(`Todos los buceadores${actLabel} del ${formattedDate} ya están en la lista.`, 'success');
+        }
       }
     } catch (error) {
       showToast('Error cargando reservas: ' + error.message, 'error');
@@ -125,6 +159,8 @@ export const useInsuranceData = (initialSelectedIds) => {
       setProcessing(false);
     }
   };
+
+  const loadTodayCustomers = () => loadCustomersByDate(null, 'ALL');
 
   const syncToLocalStorage = (newCustomers) => {
     setCustomers(newCustomers);
@@ -283,6 +319,7 @@ export const useInsuranceData = (initialSelectedIds) => {
     addResults,
     isSearching,
     loadTodayCustomers,
+    loadCustomersByDate,
     updateCustomerField,
     handleSaveSettings,
     handleRemoveCustomer,

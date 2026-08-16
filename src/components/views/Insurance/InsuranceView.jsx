@@ -32,6 +32,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
     addResults,
     isSearching,
     loadTodayCustomers,
+    loadCustomersByDate,
     handleSaveSettings,
     handleRemoveCustomer,
     handleGenerateAndSend,
@@ -75,6 +76,7 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
           loading={loading}
           filteredCustomers={filteredCustomers}
           loadTodayCustomers={loadTodayCustomers}
+          loadCustomersByDate={loadCustomersByDate}
           processing={processing}
           onNavigate={onNavigate}
           editingId={editingId}

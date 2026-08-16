@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch, UserPlus, ChevronDown } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Search, Filter, LayoutList, LayoutGrid, UserRoundSearch, UserPlus, ChevronDown, Calendar } from 'lucide-react';
 
 export default function Customers_Header({
   totalCount,
@@ -13,12 +13,14 @@ export default function Customers_Header({
   isFilterOpen,
   setIsFilterOpen,
   activeDateFilter,
+  selectedExactDate,
   showDuplicates,
   handleDateFilterChange,
   toggleDuplicates,
   onAddClick,
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const dateInputRef = useRef(null);
 
   return (
     <div className={`flex-shrink-0 bg-surface/80 backdrop-blur-xl border-b border-surface-edge/50 z-[50] md:sticky top-0 transition-all duration-300 py-6 px-3 sm:px-6 lg:px-8 relative ${isExpanded ? 'header-expanded' : 'header-collapsed'}`}>
@@ -126,6 +128,50 @@ export default function Customers_Header({
                     active={activeDateFilter === 'week'}
                     onClick={() => handleDateFilterChange('week')}
                   />
+                  <div className="relative w-full">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (dateInputRef.current) {
+                          if (typeof dateInputRef.current.showPicker === 'function') {
+                            dateInputRef.current.showPicker();
+                          } else {
+                            dateInputRef.current.click();
+                          }
+                        }
+                      }}
+                      className={`w-full px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-between gap-2 border cursor-pointer ${
+                        activeDateFilter === 'exact'
+                          ? 'bg-brand text-white border-brand/50 shadow-md shadow-brand/20'
+                          : 'border-transparent text-text-muted hover:bg-surface-edge hover:text-white'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-current shrink-0" />
+                        <span>Día Exacto</span>
+                      </span>
+                      <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-all ${
+                        activeDateFilter === 'exact'
+                          ? 'bg-white/20 border-white/40 text-white'
+                          : 'bg-surface-soft border-surface-edge text-gray-300'
+                      }`}>
+                        {selectedExactDate ? formatDateDisplay(selectedExactDate) : 'Seleccionar'}
+                      </span>
+                    </button>
+
+                    <input
+                      ref={dateInputRef}
+                      type="date"
+                      value={selectedExactDate || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          handleDateFilterChange('exact', val);
+                        }
+                      }}
+                      className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
+                    />
+                  </div>
                 </div>
                 {(activeDateFilter !== 'all' || showDuplicates) && (
                   <div className="p-3 bg-brand/5 border-t border-brand/10">
@@ -193,4 +239,11 @@ function FilterButton({ label, active, onClick }) {
       {label}
     </button>
   );
+}
+
+function formatDateDisplay(dateStr) {
+  if (!dateStr) return 'Seleccionar';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
