@@ -1,4 +1,5 @@
-import { X, Phone, Mail, MapPin, Calendar, Award, Activity, Heart, Globe, CreditCard, Hash, Receipt, Loader2 } from 'lucide-react';
+import { X, Phone, Mail, MapPin, Calendar, Award, Activity, Heart, Globe, CreditCard, Hash, Receipt, Loader2, Shirt } from 'lucide-react';
+import { getRosterSizeColor, getRosterFinsColor } from '../../../utils/rosterUtils';
 
 export default function Customer_Details({ customer, isOpen, onClose }) {
   const normalizeLevel = (level) => {
@@ -148,6 +149,34 @@ export default function Customer_Details({ customer, isOpen, onClose }) {
               </div>
               <div className="pt-4 border-t border-amber-500/10">
                 <DetailItem label="Nivel / Certificación" value={normalizeLevel(customer.certification_level)} fullWidth />
+              </div>
+            </div>
+          </section>
+
+          {/* Section: Equipamiento y Tallas (Roster) */}
+          <section>
+            <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Shirt className="w-4 h-4 text-emerald-400" />
+              Equipamiento y Tallas (Roster)
+            </h3>
+            <div className="grid grid-cols-3 gap-4 bg-emerald-500/5 p-4 sm:p-6 rounded-2xl border border-emerald-500/20 text-center">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Talla BCD</p>
+                <span className={`inline-block px-3 py-1.5 rounded-xl text-sm font-extrabold shadow-sm ${getRosterSizeColor(customer.bcd_size || customer.bcd)}`}>
+                  {customer.bcd_size || customer.bcd || '--'}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Talla Traje</p>
+                <span className={`inline-block px-3 py-1.5 rounded-xl text-sm font-extrabold shadow-sm ${getRosterSizeColor(customer.suit_size || customer.suit)}`}>
+                  {customer.suit_size || customer.suit || '--'}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Aletas (Fins)</p>
+                <span className={`inline-block px-3 py-1.5 rounded-xl text-sm font-extrabold shadow-sm ${getRosterFinsColor(customer.fins_size || customer.fins)}`}>
+                  {customer.fins_size || customer.fins || '--'}
+                </span>
               </div>
             </div>
           </section>

@@ -1,4 +1,4 @@
-import { ChevronDown, Coins, Trash2, LogOut } from 'lucide-react';
+import { ChevronDown, Coins, Trash2, LogOut, Calendar } from 'lucide-react';
 import Billing_GridRow_DateCell from './Billing_GridRow_DateCell';
 import Billing_GridRow_SmartActivitySelect from './Billing_GridRow_SmartActivitySelect';
 import Billing_GridRow_CustomerSearchInput from './Billing_GridRow_CustomerSearchInput';
@@ -42,6 +42,7 @@ export default function Billing_GridRow_ItemRow({
   // Parent callbacks
   onSelectItem,
   onExtractItem,
+  onSendSingleToRoster,
   setConfirmConfig,
   // Needed for extract button visibility check
   itemsCount,
@@ -318,6 +319,16 @@ export default function Billing_GridRow_ItemRow({
       {/* Acciones */}
       <td className={`px-1 py-0 text-center ${bLine} ${isHybridRow ? '' : rb}`}>
         <div className="flex items-center justify-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSendSingleToRoster) onSendSingleToRoster(item);
+            }}
+            className="p-1 hover:bg-sky-100 text-sky-600/70 hover:text-sky-700 rounded transition-colors"
+            title="Mandar a Roster"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+          </button>
           {(!isHybridRow || (isHybridRow && itemsCount > 1)) && (
             <button
               onClick={(e) => { e.stopPropagation(); onExtractItem(item.id, item.customer_id); }}

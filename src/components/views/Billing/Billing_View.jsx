@@ -6,6 +6,8 @@ import Billing_ActionBar from './Billing_ActionBar';
 import Billing_GridRow from './Billing_GridRow';
 import { useColumnResize, MIN_WIDTHS } from './useBilling_ColumnResize';
 import ConfirmModal from '../../common/ConfirmModal';
+import SendToRosterModal from '../Customers/SendToRosterModal';
+import { useBillingRoster } from './useBillingRoster';
 
 // Resize handle rendered inside each <th>
 const ResizeHandle = ({ onMouseDown }) => (
@@ -103,6 +105,15 @@ export default function Billing_View({ isSidebarCollapsed }) {
     handleDeleteInvoice, handleExtractItem, handleDissolveGroup,
     handleApplyBulkChanges, handleCopyEmails, handleDeleteItems,
   } = billing;
+
+  // ── Hook de integración con Roster ──
+  const {
+    isRosterModalOpen,
+    setIsRosterModalOpen,
+    rosterTargetCustomers,
+    handleOpenRosterBulk,
+    handleSendSingleToRoster,
+  } = useBillingRoster({ invoices, staff, activities, selectedItemIds, setSelectedItemIds });
 
   return (
     <div className="billing-main-container h-full flex flex-col animate-in fade-in duration-500 bg-surface overflow-hidden relative">
@@ -275,6 +286,7 @@ export default function Billing_View({ isSidebarCollapsed }) {
                     handleDissolveGroup={handleDissolveGroup}
                     setConfirmConfig={billing.setConfirmConfig}
                     uiConfig={billing.uiConfig}
+                    onSendSingleToRoster={handleSendSingleToRoster}
                   />
                 ))}
               </tbody>
@@ -327,6 +339,15 @@ export default function Billing_View({ isSidebarCollapsed }) {
         handleApplyBulkChanges={handleApplyBulkChanges}
         handleCopyEmails={handleCopyEmails}
         handleDeleteItems={handleDeleteItems}
+        onOpenRoster={handleOpenRosterBulk}
+      />
+
+      {/* ── Modal Roster en Facturación ── */}
+      <SendToRosterModal
+        isOpen={isRosterModalOpen}
+        onClose={() => setIsRosterModalOpen(false)}
+        customers={rosterTargetCustomers}
+        onSuccess={() => setSelectedItemIds(new Set())}
       />
     </div>
   );

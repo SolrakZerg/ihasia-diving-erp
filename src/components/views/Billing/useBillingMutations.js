@@ -75,10 +75,10 @@ export function useBillingMutations({
 
       // Filtrar facturas que tengan items en el periodo seleccionado o sin fecha asignada (date is null)
       const { data, error } = await supabase.from('invoices').select(`
-        *, customers!invoices_customer_id_fkey(first_name, last_name, email),
+        *, customers!invoices_customer_id_fkey(id, first_name, last_name, email, bcd_size, suit_size, fins_size),
         invoice_items!inner(id, invoice_id, quantity, total_thb, unit_price_thb, date, status, payment_method, notes, activity_id, instructor_id, bizum_deposit_eur, customer_id, temporary_name, is_comm,
           activities(name, category, color, acronym), staff(first_name, initials),
-          customers!invoice_items_customer_id_fkey(first_name, last_name, email))
+          customers!invoice_items_customer_id_fkey(id, first_name, last_name, email, bcd_size, suit_size, fins_size))
       `)
       .or(`date.is.null,and(date.gte.${startDate},date.lte.${endDate})`, { foreignTable: 'invoice_items' })
       .order('created_at', { ascending: false });

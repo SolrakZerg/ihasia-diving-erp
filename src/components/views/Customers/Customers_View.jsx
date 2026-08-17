@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import useCustomersData from './useCustomersData';
 import Customers_Header from './Customers_Header';
@@ -6,6 +7,7 @@ import Customers_ActionBar from './Customers_ActionBar';
 import Customer_Details from './Customer_Details';
 import Customer_Edit from './Customer_Edit';
 import ConfirmModal from '../../common/ConfirmModal';
+import SendToRosterModal from './SendToRosterModal';
 
 export default function Customers_View({ onNavigate }) {
   const {
@@ -80,6 +82,16 @@ export default function Customers_View({ onNavigate }) {
     fetchCustomers,
   } = useCustomersData();
 
+  // ── Estado de Modal Roster ──
+  const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
+  const [rosterTargetCustomers, setRosterTargetCustomers] = useState([]);
+
+  const handleOpenRosterBulk = () => {
+    const selectedCustomers = customers.filter(c => selectedIds.has(c.id));
+    setRosterTargetCustomers(selectedCustomers);
+    setIsRosterModalOpen(true);
+  };
+
   // ── Loading inicial (sin datos aún) ──────────────────────────────────────
   if (loading && customers.length === 0) {
     return (
@@ -142,6 +154,7 @@ export default function Customers_View({ onNavigate }) {
         selectedCount={selectedIds.size}
         onClear={clearSelection}
         onSend={() => onNavigate('insurance', Array.from(selectedIds))}
+        onRoster={handleOpenRosterBulk}
         onBilling={handleSendToBilling}
         onDelete={handleDeleteMultiple}
         isProcessing={isProcessingBilling}
@@ -179,7 +192,20 @@ export default function Customers_View({ onNavigate }) {
         customer={editingCustomer}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSaved={() => fetchCustomers()}
+        onSaved={() => {
+          fetchCustomers();
+          if (editingCustomer && selectedCustomer && editingCustomer.id === selectedCustomer.id) {
+            handleRowClick(editingCustomer);
+          }
+        }}
+      />
+
+      {/* ── Modal de envío a Roster ── */}
+      <SendToRosterModal
+        isOpen={isRosterModalOpen}
+        onClose={() => setIsRosterModalOpen(false)}
+        customers={rosterTargetCustomers}
+        onSuccess={() => clearSelection()}
       />
 
     </div>

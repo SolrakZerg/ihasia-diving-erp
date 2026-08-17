@@ -21,6 +21,7 @@ export default function Billing_GridRow({
   handleDissolveGroup,
   setConfirmConfig,
   uiConfig,
+  onSendSingleToRoster,
 }) {
   // Instanciamos el gancho personalizado especializado
   const rowData = useBillingGridRow({
@@ -88,7 +89,7 @@ export default function Billing_GridRow({
     selectedMonth, selectedYear, setToast,
     searchingId, setSearchingId,
     handleItemUpdate, handleDeleteItem, handleAddChildItem, formatSmartDate,
-    onSelectItem, onExtractItem, setConfirmConfig,
+    onSelectItem, onExtractItem, onSendSingleToRoster, setConfirmConfig,
     itemsCount: items.length,
   };
 

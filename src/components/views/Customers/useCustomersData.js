@@ -313,17 +313,16 @@ export default function useCustomersData() {
     setIsDrawerOpen(true);
 
     try {
-      let fullCustomerData = customer;
-      if (!('address' in customer)) {
-        const { data, error } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('id', customer.id)
-          .single();
-        if (error) throw error;
-        fullCustomerData = data;
-      }
+      // 1. Obtenemos siempre los datos completos y frescos del cliente (incluyendo bcd_size, suit_size, fins_size)
+      const { data: fullCustomerData, error: custErr } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customer.id)
+        .single();
 
+      const freshCustomer = (!custErr && fullCustomerData) ? fullCustomerData : customer;
+
+      // 2. Cargar actividades asociadas
       const { data: items, error: itemsErr } = await supabase
         .from('invoice_items')
         .select(`
@@ -347,7 +346,7 @@ export default function useCustomersData() {
       if (itemsErr) throw itemsErr;
 
       setSelectedCustomer({
-        ...fullCustomerData,
+        ...freshCustomer,
         activities: items || [],
       });
     } catch (err) {

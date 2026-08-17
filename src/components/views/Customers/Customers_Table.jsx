@@ -4,6 +4,7 @@ import {
   Pencil, Trash2, Receipt,
 } from 'lucide-react';
 import { getActivityColor, shortenLastDive, normalizeLevel } from './Customers_Utils';
+import { getRosterSizeColor, getRosterFinsColor } from '../../../utils/rosterUtils';
 
 export default function Customers_Table({
   customers,
@@ -30,7 +31,7 @@ export default function Customers_Table({
     >
       {/* Scrollable table area */}
       <div className="overflow-auto flex-1 relative">
-        <table className={`w-full text-left table-fixed ${isExtendedView ? 'min-w-[2200px]' : 'min-w-[520px] md:min-w-[1000px]'}`}>
+        <table className={`w-full text-left table-fixed ${isExtendedView ? 'min-w-[2450px]' : 'min-w-[520px] md:min-w-[1000px]'}`}>
           {/* ── Sticky Header ── */}
           <thead className="sticky top-0 z-20">
             <tr className="border-b border-surface-edge bg-table-header/98 backdrop-blur-xl shadow-sm">
@@ -55,7 +56,14 @@ export default function Customers_Table({
               )}
               <SortableHeader label="Act." colKey="booked_activity" sortConfig={sortConfig} onSort={handleSort} compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[120px]' : 'w-[90px] md:w-[120px]'} />
               <SortableHeader label="Reserva" colKey="booking_date" sortConfig={sortConfig} onSort={handleSort} center compact={isExtendedView} width={isExtendedView ? 'w-[90px] max-w-[90px]' : 'hidden md:table-cell w-[100px]'} />
-              {isExtendedView && <SortableHeader label="Teléfono" colKey="phone" sortConfig={sortConfig} onSort={handleSort} compact width="w-[90px] max-w-[100px]" />}
+              {isExtendedView && (
+                <>
+                  <SortableHeader label="BCD" colKey="bcd_size" sortConfig={sortConfig} onSort={handleSort} center compact width="w-[60px] max-w-[65px]" />
+                  <SortableHeader label="Traje" colKey="suit_size" sortConfig={sortConfig} onSort={handleSort} center compact width="w-[60px] max-w-[65px]" />
+                  <SortableHeader label="Aletas" colKey="fins_size" sortConfig={sortConfig} onSort={handleSort} center compact width="w-[80px] max-w-[90px]" />
+                  <SortableHeader label="Teléfono" colKey="phone" sortConfig={sortConfig} onSort={handleSort} compact width="w-[90px] max-w-[100px]" />
+                </>
+              )}
 
               <th className={`${isExtendedView ? 'px-2 w-[60px] max-w-[80px]' : 'px-2 w-[60px] md:w-[80px]'} py-2 text-xs font-bold text-text-header uppercase tracking-wider text-center`}>
                 WhatsApp
@@ -239,11 +247,28 @@ export default function Customers_Table({
                     </div>
                   </td>
 
-                  {/* Teléfono (extended) */}
+                  {/* Columnas de Tallas (extended) */}
                   {isExtendedView && (
-                    <td className="px-2 py-2 whitespace-nowrap text-xs text-brand font-bold">
-                      {customer.phone || '---'}
-                    </td>
+                    <>
+                      <td className="px-1 py-2 text-center">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold min-w-[32px] text-center shadow-sm ${getRosterSizeColor(customer.bcd_size || customer.bcd)}`}>
+                          {customer.bcd_size || customer.bcd || '--'}
+                        </span>
+                      </td>
+                      <td className="px-1 py-2 text-center">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold min-w-[32px] text-center shadow-sm ${getRosterSizeColor(customer.suit_size || customer.suit)}`}>
+                          {customer.suit_size || customer.suit || '--'}
+                        </span>
+                      </td>
+                      <td className="px-1 py-2 text-center">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold min-w-[32px] text-center shadow-sm ${getRosterFinsColor(customer.fins_size || customer.fins)}`}>
+                          {customer.fins_size || customer.fins || '--'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs text-brand font-bold">
+                        {customer.phone || '---'}
+                      </td>
+                    </>
                   )}
 
                   {/* WhatsApp */}

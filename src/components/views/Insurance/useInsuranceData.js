@@ -261,6 +261,8 @@ export const useInsuranceData = (initialSelectedIds) => {
         await addCustomersToBilling(customers);
       }
 
+      const sentCustomers = [...customers];
+
       // 7. Limpiar UI
       syncToLocalStorage([]);
       setPaxBalance(newBalance);
@@ -271,9 +273,12 @@ export const useInsuranceData = (initialSelectedIds) => {
         showToast('✅ ¡Seguros generados, guardados y descontados correctamente!', 'success');
       }
 
+      return { success: true, customers: sentCustomers };
+
     } catch (error) {
       showToast('Error: ' + error.message, 'error');
       console.error(error);
+      return { success: false, error };
     } finally {
       setProcessing(false);
     }

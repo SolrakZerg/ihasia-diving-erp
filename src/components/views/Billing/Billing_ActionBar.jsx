@@ -11,7 +11,7 @@ export default function BillingActionBar({
   bulkActivity, setBulkActivity,
   activities, categories,
   staff, loadingInvoices,
-  handleApplyBulkChanges, handleCopyEmails, handleDeleteItems,
+  handleApplyBulkChanges, handleCopyEmails, handleDeleteItems, onOpenRoster,
 }) {
   const selectedAct = activities.find(a => String(a.id) === String(bulkActivity));
   const categoryData = categories.find(c => c.name === selectedAct?.category);
@@ -29,7 +29,7 @@ export default function BillingActionBar({
     <div className="fixed bottom-1 lg:bottom-4 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-10 duration-300 max-w-[95vw] lg:max-w-none">
       <div className="bg-white border border-slate-200/80 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl p-1 flex flex-col md:flex-row items-center gap-1.5 md:gap-1">
         
-        {/* FILA 1: Estado y Acciones Generales (Confirmación, Cancelación, Grupo, Copiar, Borrar) */}
+        {/* FILA 1: Estado y Acciones Generales (Confirmación, Cancelación, Grupo, Copiar, Borrar, Roster) */}
         <div className="flex items-center gap-1 md:gap-1.5 justify-center w-full md:w-auto">
           {/* Contador */}
           <div className="px-2 md:px-3.5 py-1 md:py-2 flex items-center justify-center border-r border-slate-200 mr-0.5 md:mr-1">
@@ -67,8 +67,12 @@ export default function BillingActionBar({
             </button>
           </div>
 
-          {/* Tools (Copy / Delete) */}
+          {/* Tools (Copy / Delete / Mandar a Roster) */}
           <div className="flex items-center gap-1">
+            <button onClick={onOpenRoster} className="flex items-center gap-1 px-2.5 py-1.5 md:py-2 md:px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md shadow-sky-900/30 font-black text-[11px] md:text-xs uppercase tracking-tight" title="Mandar seleccionados al Roster">
+              <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Roster</span>
+            </button>
             <button onClick={handleCopyEmails} className="p-2 bg-slate-50 hover:bg-slate-200 border border-slate-200/60 text-slate-600 hover:text-slate-800 rounded-xl transition-all hover:scale-105 active:scale-95 cursor-pointer" title="Copiar emails"><Copy className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
             <button onClick={handleDeleteItems} className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-500 hover:text-rose-700 rounded-xl transition-all hover:scale-105 active:scale-95 cursor-pointer" title="Eliminar seleccionados"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
           </div>

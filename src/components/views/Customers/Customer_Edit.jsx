@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, Calendar, Award, Shield, MapPin, Hash, MessageSquare, UserPlus } from 'lucide-react';
+import { X, Save, User, Mail, Phone, Calendar, Award, Shield, MapPin, Hash, MessageSquare, UserPlus, Shirt } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
+import { ROSTER_BCD_SIZES, ROSTER_SUIT_SIZES, ROSTER_FINS_SIZES, getRosterSizeColor, getRosterFinsColor, getRosterOptionStyle } from '../../../utils/rosterUtils';
 
 export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
   const [formData, setFormData] = useState({});
@@ -60,6 +61,9 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
       delete updateData.created_at;
       delete updateData.hasBilling;
       delete updateData.activities;
+      delete updateData.bcd;
+      delete updateData.suit;
+      delete updateData.fins;
 
       // 3. Sanitizamos campos de fecha vacíos opcionales convirtiéndolos a null
       dateFields.forEach(field => {
@@ -166,6 +170,89 @@ export default function Customer_Edit({ customer, isOpen, onClose, onSaved }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InputGroup label="Contacto Emergencia" name="emergency_contact" value={formData.emergency_contact || ''} onChange={handleChange} icon={Phone} />
                 <InputGroup label="Vencimiento Seguro" name="insurance_expiry" value={formData.insurance_expiry || ''} onChange={handleChange} type="date" />
+              </div>
+            </div>
+
+            {/* Section: Tallas de Equipamiento (Roster) */}
+            <div className="space-y-4 md:col-span-2 border-t border-surface-edge pt-6">
+              <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 px-1 flex items-center gap-1.5">
+                <Shirt className="w-3.5 h-3.5 text-emerald-400" /> Tallas de Equipamiento (Roster)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* BCD Size */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5 px-1">
+                    Talla BCD
+                  </label>
+                  <select
+                    name="bcd_size"
+                    value={formData.bcd_size || formData.bcd || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => {
+                        const copy = { ...prev, bcd_size: val };
+                        delete copy.bcd;
+                        return copy;
+                      });
+                    }}
+                    className={`w-full border border-surface-edge rounded-xl px-3 py-2.5 text-sm font-mono font-bold focus:outline-none transition-all cursor-pointer ${getRosterSizeColor(formData.bcd_size || formData.bcd)}`}
+                  >
+                    <option value="" style={getRosterOptionStyle('')}>-- (Sin especificar)</option>
+                    {ROSTER_BCD_SIZES.map(s => (
+                      <option key={s} value={s} style={getRosterOptionStyle(s)} className="font-mono py-1 font-bold">{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Traje / Suit Size */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5 px-1">
+                    Talla Traje (Suit)
+                  </label>
+                  <select
+                    name="suit_size"
+                    value={formData.suit_size || formData.suit || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => {
+                        const copy = { ...prev, suit_size: val };
+                        delete copy.suit;
+                        return copy;
+                      });
+                    }}
+                    className={`w-full border border-surface-edge rounded-xl px-3 py-2.5 text-sm font-mono font-bold focus:outline-none transition-all cursor-pointer ${getRosterSizeColor(formData.suit_size || formData.suit)}`}
+                  >
+                    <option value="" style={getRosterOptionStyle('')}>-- (Sin especificar)</option>
+                    {ROSTER_SUIT_SIZES.map(s => (
+                      <option key={s} value={s} style={getRosterOptionStyle(s)} className="font-mono py-1 font-bold">{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Aletas / Fins Size */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5 px-1">
+                    Talla / Tipo Aletas (Fins)
+                  </label>
+                  <select
+                    name="fins_size"
+                    value={formData.fins_size || formData.fins || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => {
+                        const copy = { ...prev, fins_size: val };
+                        delete copy.fins;
+                        return copy;
+                      });
+                    }}
+                    className={`w-full border border-surface-edge rounded-xl px-3 py-2.5 text-sm font-mono font-bold focus:outline-none transition-all cursor-pointer ${getRosterFinsColor(formData.fins_size || formData.fins)}`}
+                  >
+                    <option value="" style={getRosterOptionStyle('')}>-- (Sin especificar)</option>
+                    {ROSTER_FINS_SIZES.map(s => (
+                      <option key={s} value={s} style={getRosterOptionStyle(s)} className="font-mono py-1 font-bold">{s}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>

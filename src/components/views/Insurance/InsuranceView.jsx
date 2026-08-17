@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useInsuranceData } from './useInsuranceData';
 import InsuranceHeader from './InsuranceHeader';
 import InsuranceTable from './InsuranceTable';
@@ -6,8 +6,12 @@ import InsuranceSidebar from './InsuranceSidebar';
 import { Settings, Mail, ShieldCheck, Calendar, Loader2, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import ConfirmModal from '../../common/ConfirmModal';
+import SendToRosterModal from '../Customers/SendToRosterModal';
 
 export default function InsuranceView({ initialSelectedIds, onNavigate }) {
+  const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
+  const [rosterTargetCustomers, setRosterTargetCustomers] = useState([]);
+
   const {
     loading,
     processing,
@@ -86,6 +90,14 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
           handleGenerateAndSend={handleGenerateAndSend}
           confirmSend={confirmSend}
           setConfirmSend={setConfirmSend}
+          onSendSingleToRoster={(cust) => {
+            setRosterTargetCustomers([cust]);
+            setIsRosterModalOpen(true);
+          }}
+          onSendSelectedToRoster={(selectedCusts) => {
+            setRosterTargetCustomers(selectedCusts);
+            setIsRosterModalOpen(true);
+          }}
         />
 
         <InsuranceSidebar 
@@ -199,18 +211,41 @@ export default function InsuranceView({ initialSelectedIds, onNavigate }) {
 
       <ConfirmModal
         show={confirmSend.show}
-        title={confirmSend.sendToBilling ? "Enviar Seguros y a Facturación" : "Enviar Seguros"}
+        title={
+          confirmSend.sendToRoster && confirmSend.sendToBilling
+            ? "Enviar Seguros, Facturación y Abrir Roster"
+            : confirmSend.sendToRoster
+            ? "Enviar Seguros y Abrir Roster"
+            : confirmSend.sendToBilling
+            ? "Enviar Seguros y a Facturación"
+            : "Enviar Seguros"
+        }
         message={
           confirmSend.sendToBilling
             ? `¿Estás seguro de que quieres tramitar el alta de seguros de los ${customers.length} clientes Y además agregarlos a facturación?`
             : `¿Estás seguro de que quieres tramitar el alta de seguros de los ${customers.length} clientes?`
         }
         type="info"
-        onConfirm={() => {
-          handleGenerateAndSend(confirmSend.sendToBilling);
-          setConfirmSend({ show: false, sendToBilling: false });
+        onConfirm={async () => {
+          const currentCustomers = [...customers];
+          const shouldSendToRoster = confirmSend.sendToRoster;
+          
+          setConfirmSend({ show: false, sendToBilling: false, sendToRoster: false });
+
+          const result = await handleGenerateAndSend(confirmSend.sendToBilling);
+          if (result && result.success && shouldSendToRoster) {
+            setRosterTargetCustomers(currentCustomers);
+            setIsRosterModalOpen(true);
+          }
         }}
-        onCancel={() => setConfirmSend({ show: false, sendToBilling: false })}
+        onCancel={() => setConfirmSend({ show: false, sendToBilling: false, sendToRoster: false })}
+      />
+
+      {/* Modal de envío a Roster desde Seguros */}
+      <SendToRosterModal
+        isOpen={isRosterModalOpen}
+        onClose={() => setIsRosterModalOpen(false)}
+        customers={rosterTargetCustomers}
       />
 
       {/* Modern Toast Notification */}
