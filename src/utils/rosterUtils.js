@@ -22,52 +22,61 @@ export function formatRosterName(firstName = '', lastName = '') {
 export function mapActivityCode(rawActivity = '') {
   const act = (rawActivity || '').toLowerCase().trim();
 
-  if (act.includes('fun dive') || act.includes('fun-dive') || act === 'fd') return 'FD';
-  if (act.includes('try dive') || act.includes('bautizo') || act.includes('dsd') || act.includes('discover scuba')) return 'DSD';
-  if (act.includes('open water') || act === 'ow') return 'OW';
+  // 1. Cursos y Certificaciones (Mayor jerarquía cuando hay selección múltiple en registro)
+  if (act.includes('open water') || act === 'ow' || act.includes('openwater')) return 'OW';
+  if (act.includes('advanced') || act.includes('aow') || act.includes('avanzado')) return 'AOW';
   if (act.includes('scuba diver') || act === 'sd') return 'SD';
-  if (act.includes('advanced') || act.includes('aow')) return 'AOW';
-  if (act.includes('refresher') || act.includes('refresh') || act === 'ref' || act === 'sr') return 'SR';
+
+  // 2. Bautizos e Iniciaciones (Prevalece sobre Fun Dives si marcaron ambas opciones)
+  if (act.includes('try dive') || act.includes('bautizo') || act.includes('dsd') || act.includes('discover scuba') || act.includes('try-dive')) return 'DSD';
+
+  // 3. Reciclajes
+  if (act.includes('refresher') || act.includes('refresh') || act === 'ref' || act === 'sr' || act.includes('reciclaje')) return 'SR';
+
+  // 4. Buceos Guiados Certificados
+  if (act.includes('fun dive') || act.includes('fun-dive') || act === 'fd' || act.includes('fundive')) return 'FD';
 
   return rawActivity ? rawActivity.trim().toUpperCase() : 'FD';
 }
 
 /**
  * Normaliza el nivel de certificación para el Roster.
- * REGLA:
- * - Si dice "I'm not Certified", "Uncertified", "No certificado", "None", etc. -> Queda VACÍO ("").
- * - Si la actividad no es FD (ej. DSD, OW, SD) -> Queda VACÍO ("") porque no requiere nivel previo.
- * - Solo se asigna el nivel (OW, AA, PRO, etc.) si el cliente REALMENTE tiene una titulación Y la actividad es FD.
+ * REGLA ESTRICTA:
+ * - SOLO se asigna nivel si la actividad es FD (Fun Dives) o SR (Scuba Refresh).
+ * - Para todas las demás actividades (CONF, 1+2, 3+4, OW, SD, DSD, DMT, etc.) -> SIEMPRE VACÍO ("").
+ * - Filtra cualquier variante de "no certificado" / "no estoy certificado" en inglés y español.
  */
 export function normalizeRosterLevel(rawLevel = '', activityCode = '') {
   if (!rawLevel) return '';
-  
+
+  const act = (activityCode || '').toLowerCase().trim();
+  const isFdOrSr = act === 'fd' || act === 'sr' || act.includes('fun dive') || act.includes('refresh') || act.includes('reciclaje');
+  if (!isFdOrSr) {
+    return '';
+  }
+
   const levelStr = rawLevel.trim();
   const lower = levelStr.toLowerCase();
 
   // 1. Filtrar cadenas no certificadas
   if (
     lower.includes("not certified") ||
+    lower.includes("no estoy") ||
     lower.includes("no certificado") ||
     lower.includes("uncertified") ||
     lower.includes("none") ||
     lower.includes("sin nivel") ||
     lower.includes("bautizo") ||
-    lower.includes("sin titulación")
+    lower.includes("sin titulación") ||
+    lower.includes("sin titulacion")
   ) {
     return '';
   }
 
-  // 2. Si la actividad es un curso de iniciación (DSD, OW, SD), no escribir nivel previo
-  const code = mapActivityCode(activityCode);
-  if (code === 'DSD' || code === 'OW' || code === 'SD') {
-    return '';
-  }
-
-  // 3. Mapear niveles estándar del Roster (OW, AA, PRO)
-  if (lower.includes("open water") || lower === "ow") return "OW";
-  if (lower.includes("advanced") || lower.includes("aow") || lower === "aa") return "AA";
-  if (lower.includes("pro") || lower.includes("instructor") || lower.includes("dm") || lower.includes("divemaster")) return "PRO";
+  // 2. Mapear niveles estándar del Roster (OW, AA, PRO)
+  if (lower.includes("open water") || lower === "ow" || lower.includes("openwater")) return "OW";
+  if (lower.includes("advanced") || lower.includes("aow") || lower === "aa" || lower.includes("avanzado")) return "AA";
+  if (lower.includes("pro") || lower.includes("instructor") || lower.includes("dm") || lower.includes("divemaster") || lower.includes("dive master")) return "PRO";
 
   return levelStr;
 }
