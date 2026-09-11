@@ -67,7 +67,7 @@ export default function Nominas_Header({
                 <div className="absolute top-full left-0 mt-2 w-full bg-[#1a1c2d]/95 backdrop-blur-xl border border-surface-edge rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-2 border-b border-surface-edge/50 flex items-center gap-2 bg-white/5">
                     <Search className="w-3.5 h-3.5 text-gray-500 ml-2" />
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Filtrado por facturación</span>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Con facturación o extras este mes</span>
                   </div>
                   <div className="max-h-[500px] overflow-auto custom-scrollbar">
                     {/* Option TODOS */}

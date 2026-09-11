@@ -51,7 +51,10 @@ export function useNominasData() {
   }, [selectedStaffId, month, year]);
 
   const fetchStaff = async () => {
-    const { data } = await supabase.from('staff').select('id, first_name, last_name, initials, role, commission_rate, email').order('first_name');
+    const { data } = await supabase
+      .from('staff')
+      .select('id, first_name, last_name, initials, role, commission_rate, email, active')
+      .order('first_name');
     if (data) {
       setStaff(data);
     }
@@ -61,21 +64,20 @@ export function useNominasData() {
     const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
     const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
     
-    const { data } = await supabase
-      .from('invoice_items')
-      .select('instructor_id')
-      .gte('date', firstDay)
-      .lte('date', lastDay);
-      
-    if (data) {
-      const ids = new Set(data.map(i => i.instructor_id).filter(Boolean));
-      setActiveStaffIds(ids);
-      
-      if (ids.size > 0 && (!selectedStaffId || (selectedStaffId !== 'TODOS' && !ids.has(selectedStaffId)))) {
-        setSelectedStaffId(Array.from(ids)[0]);
-      }
-    } else {
-      setActiveStaffIds(new Set());
+    // Buscar instructores con cursos facturados o ajustes/extras en este mes
+    const [invRes, adjRes] = await Promise.all([
+      supabase.from('invoice_items').select('instructor_id').gte('date', firstDay).lte('date', lastDay),
+      supabase.from('staff_adjustments').select('staff_id').eq('year', year).eq('month', month)
+    ]);
+    
+    const ids = new Set();
+    (invRes.data || []).forEach(i => i.instructor_id && ids.add(i.instructor_id));
+    (adjRes.data || []).forEach(a => a.staff_id && ids.add(a.staff_id));
+    
+    setActiveStaffIds(ids);
+    
+    if (ids.size > 0 && (!selectedStaffId || (selectedStaffId !== 'TODOS' && !ids.has(selectedStaffId)))) {
+      setSelectedStaffId(Array.from(ids)[0]);
     }
   };
 
@@ -144,7 +146,7 @@ export function useNominasData() {
       setAttendanceOverrides(attMap);
 
       const adjMap = {};
-      sAdjs?.forEach(row => { 
+      sAdjs?.filter(row => String(row.staff_id) === String(selectedStaffId)).forEach(row => { 
         if (row.amount !== 0 || row.concept) adjMap[row.day] = { amount: row.amount, concept: row.concept || '' }; 
       });
       setManualAdj(adjMap);
@@ -197,6 +199,123 @@ export function useNominasData() {
 
     if (!skipHistory) {
       pushAction(buildAdjUpdateAction(day, newAmount, newConcept, oldAdj, handleAdjUpdate, fetchData));
+    }
+  };
+
+  const appendSharedConcept = (existingConcept, existingAmount, lineText, deltaAmount) => {
+    const currentText = (existingConcept || '').trim();
+    const formulaMatch = currentText.match(/\bFórmula:\s*(.+)$/m);
+    
+    let baseText = currentText;
+    let currentFormula = null;
+    
+    if (formulaMatch) {
+      currentFormula = formulaMatch[1].trim();
+      baseText = currentText.replace(/(?:\r?\n)?\bFórmula:.*$/g, '').trim();
+    }
+    
+    const deltaFormulaStr = deltaAmount >= 0 ? `+${deltaAmount}` : `${deltaAmount}`;
+    let newFormula = '';
+    if (currentFormula) {
+      newFormula = `${currentFormula}${deltaFormulaStr}`;
+    } else if (existingAmount && existingAmount !== 0) {
+      newFormula = `${existingAmount}${deltaFormulaStr}`;
+    } else {
+      newFormula = deltaAmount >= 0 ? `${deltaAmount}` : `${deltaAmount}`;
+    }
+    
+    const textParts = [];
+    if (baseText) textParts.push(baseText);
+    if (lineText) textParts.push(lineText);
+    textParts.push(`Fórmula: ${newFormula}`);
+    
+    return textParts.join('\n');
+  };
+
+  const handleShareActivity = async ({
+    day,
+    targetStaffId,
+    shareAmount,
+    sourceLineText,
+    targetLineText
+  }) => {
+    if (!selectedStaffId || !targetStaffId || !day || shareAmount <= 0) return false;
+
+    try {
+      // 1. Instructor Actual (Resta)
+      const currentAdj = manualAdj[day] || { amount: 0, concept: '' };
+      const newAmountCurrent = (currentAdj.amount || 0) - shareAmount;
+      const newConceptCurrent = appendSharedConcept(
+        currentAdj.concept,
+        currentAdj.amount || 0,
+        sourceLineText,
+        -shareAmount
+      );
+
+      // 2. Instructor Compañero (Suma)
+      // Consultamos el registro más reciente directamente en Supabase para garantizar acumulación 100% exacta
+      const { data: targetRecord } = await supabase
+        .from('staff_adjustments')
+        .select('amount, concept')
+        .eq('year', year)
+        .eq('month', month)
+        .eq('day', day)
+        .eq('staff_id', targetStaffId)
+        .maybeSingle();
+
+      const targetExistingAmount = targetRecord ? (parseFloat(targetRecord.amount) || 0) : 0;
+      const targetExistingConcept = targetRecord ? (targetRecord.concept || '') : '';
+      const newAmountTarget = targetExistingAmount + shareAmount;
+      const newConceptTarget = appendSharedConcept(
+        targetExistingConcept,
+        targetExistingAmount,
+        targetLineText,
+        shareAmount
+      );
+
+      // 3. Persistir en Supabase de forma atómica para ambos instructores
+      const [resCurrent, resTarget] = await Promise.all([
+        supabase.from('staff_adjustments').upsert({
+          year, month, day, staff_id: selectedStaffId,
+          amount: newAmountCurrent, concept: newConceptCurrent
+        }, { onConflict: 'year, month, day, staff_id' }),
+        supabase.from('staff_adjustments').upsert({
+          year, month, day, staff_id: targetStaffId,
+          amount: newAmountTarget, concept: newConceptTarget
+        }, { onConflict: 'year, month, day, staff_id' })
+      ]);
+
+      if (resCurrent.error) throw resCurrent.error;
+      if (resTarget.error) throw resTarget.error;
+
+      // 4. Actualizar estado local
+      setManualAdj(prev => ({
+        ...prev,
+        [day]: { amount: newAmountCurrent, concept: newConceptCurrent }
+      }));
+
+      setRawAdjustments(prev => {
+        let updated = [...prev];
+        const idxCurr = updated.findIndex(r => r.year === year && r.month === month && r.day === day && String(r.staff_id) === String(selectedStaffId));
+        const newCurrRow = { year, month, day, staff_id: selectedStaffId, amount: newAmountCurrent, concept: newConceptCurrent };
+        if (idxCurr > -1) updated[idxCurr] = newCurrRow;
+        else updated.push(newCurrRow);
+
+        const idxTarg = updated.findIndex(r => r.year === year && r.month === month && r.day === day && String(r.staff_id) === String(targetStaffId));
+        const newTargRow = { year, month, day, staff_id: targetStaffId, amount: newAmountTarget, concept: newConceptTarget };
+        if (idxTarg > -1) updated[idxTarg] = newTargRow;
+        else updated.push(newTargRow);
+
+        return updated;
+      });
+
+      setActiveStaffIds(prev => new Set([...prev, targetStaffId]));
+      fetchData();
+
+      return true;
+    } catch (err) {
+      console.error('Error en handleShareActivity:', err);
+      throw err;
     }
   };
   
@@ -529,7 +648,16 @@ export function useNominasData() {
     totalComm, totalAssists, totalAdj, totalAdvances, finalBalance,
     selectedMember,
     getPayrollDataForStaff,
+    invoiceItems,
+    payoutRules,
+    rawAdjustments,
     
-    handleAdjUpdate, handleAssChange, handleAttendanceToggle, addAdvance, removeAdvance, updateAdvance
+    handleAdjUpdate,
+    handleShareActivity,
+    handleAssChange,
+    handleAttendanceToggle,
+    addAdvance,
+    removeAdvance,
+    updateAdvance
   };
 }

@@ -28,8 +28,17 @@ export default function Nominas_View() {
     totalComm, totalAssists, totalAdj, totalAdvances, finalBalance,
     selectedMember,
     getPayrollDataForStaff,
+    invoiceItems,
+    payoutRules,
+    rawAdjustments,
     
-    handleAdjUpdate, handleAssChange, handleAttendanceToggle, addAdvance, removeAdvance, updateAdvance
+    handleAdjUpdate,
+    handleShareActivity,
+    handleAssChange,
+    handleAttendanceToggle,
+    addAdvance,
+    removeAdvance,
+    updateAdvance
   } = useNominasData();
 
   const handleDownloadPDF = () => {
@@ -203,8 +212,14 @@ export default function Nominas_View() {
         adjModal={adjModal}
         setAdjModal={setAdjModal}
         handleAdjUpdate={handleAdjUpdate}
+        handleShareActivity={handleShareActivity}
         month={month}
         year={year}
+        staff={staff}
+        selectedStaffId={selectedStaffId}
+        invoiceItems={invoiceItems}
+        payoutRules={payoutRules}
+        rawAdjustments={rawAdjustments}
       />
 
       <Nominas_EmailModal 
