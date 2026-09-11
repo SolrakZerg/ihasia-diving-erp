@@ -16,31 +16,48 @@
 const SUPABASE_URL = PropertiesService.getScriptProperties().getProperty('SUPABASE_URL'); 
 const SUPABASE_KEY = PropertiesService.getScriptProperties().getProperty('SUPABASE_KEY');
 
+const GMAIL_LABEL_NAME = 'Wise_ERP';
+
+function getOrCreateLabel(name) {
+  let label = GmailApp.getUserLabelByName(name);
+  if (!label) {
+    label = GmailApp.createLabel(name);
+  }
+  return label;
+}
+
 function syncWisePayments() {
   Logger.log("Iniciando sincronización de pagos de Wise...");
   
-  // 1. Buscar correos de Wise en Gmail (último día)
-  const query = 'from:noreply@wise.com subject:"Dinero recibido de" newer_than:1d';
+  const processedLabel = getOrCreateLabel(GMAIL_LABEL_NAME);
+
+  // 1. Buscar correos de Wise en Gmail que no tengan todavía la etiqueta Wise_ERP (últimos 7 días)
+  const query = `from:noreply@wise.com subject:"Dinero recibido de" newer_than:7d -label:${GMAIL_LABEL_NAME}`;
   const threads = GmailApp.search(query);
-  Logger.log(`Se encontraron ${threads.length} hilos de correo recientes.`);
+  Logger.log(`Se encontraron ${threads.length} hilos de correo nuevos/pendientes de etiquetar.`);
   
-  processThreads(threads);
+  processThreads(threads, processedLabel);
 }
 
 /**
- * Procesa los hilos encontrados y los sube a Supabase
+ * Procesa los hilos encontrados y los sube a Supabase (ON CONFLICT IGNORE)
  */
-function processThreads(threads) {
-  const paymentsToUpsert = [];
-  
+function processThreads(threads, processedLabel) {
+  const supabaseEndpoint = `${SUPABASE_URL}/rest/v1/wise_payments`;
+
   for (let i = 0; i < threads.length; i++) {
-    const messages = threads[i].getMessages();
+    const thread = threads[i];
+    const messages = thread.getMessages();
+    let threadSyncSuccess = true;
+
     for (let j = 0; j < messages.length; j++) {
       const message = messages[j];
       const body = message.getPlainBody();
       const subject = message.getSubject();
       
       const parsedData = parseWiseEmail(body, subject);
+      let payload = null;
+
       if (parsedData) {
         // Usar la fecha del correo
         const emailDate = message.getDate();
@@ -57,7 +74,7 @@ function processThreads(threads) {
         // Evitar que el número de personas sea menor a 1
         if (numPeople < 1) numPeople = 1;
         
-        paymentsToUpsert.push({
+        payload = {
           id: parsedData.transferId,
           created_at: emailDate.toISOString(),
           sender_name: parsedData.sender,
@@ -67,12 +84,12 @@ function processThreads(threads) {
           num_people: numPeople,
           reference: parsedData.reference,
           is_processed: false
-        });
+        };
       } else {
         Logger.log(`No se pudo parsear el correo con Asunto: "${subject}". Enviando cuerpo completo a base de datos para depuración.`);
         
-        // INSERTAR REGISTRO DE DEPURACIÓN EN LA BASE DE DATOS
-        paymentsToUpsert.push({
+        // REGISTRO DE DEPURACIÓN EN LA BASE DE DATOS
+        payload = {
           id: "DEBUG_" + message.getId(),
           created_at: message.getDate().toISOString(),
           sender_name: "DEBUG PARSE FAIL: " + subject,
@@ -83,42 +100,41 @@ function processThreads(threads) {
           reference: "FAIL_DEBUG",
           notes: body,
           is_processed: true
-        });
+        };
+      }
+
+      if (payload) {
+        try {
+          const options = {
+            method: "post",
+            contentType: "application/json",
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+              "Prefer": "resolution=ignore-duplicates" // ¡IMPORTANTE! No sobrescribe registros existentes
+            },
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+          };
+          
+          const response = UrlFetchApp.fetch(supabaseEndpoint, options);
+          const code = response.getResponseCode();
+          if (code >= 200 && code < 300) {
+            Logger.log(`Pago ID ${payload.id} (${payload.sender_name}) sincronizado con éxito.`);
+          } else {
+            Logger.log(`Error al subir Pago ID ${payload.id}. Código: ${code}. Respuesta: ${response.getContentText()}`);
+            threadSyncSuccess = false;
+          }
+        } catch (e) {
+          Logger.log(`Excepción al enviar pago a Supabase: ${e}`);
+          threadSyncSuccess = false;
+        }
       }
     }
-  }
-  
-  Logger.log(`Procesados ${paymentsToUpsert.length} pagos para enviar a Supabase.`);
-  
-  // Enviar a Supabase
-  if (paymentsToUpsert.length > 0) {
-    const supabaseEndpoint = `${SUPABASE_URL}/rest/v1/wise_payments`;
-    
-    for (let k = 0; k < paymentsToUpsert.length; k++) {
-      const payload = paymentsToUpsert[k];
-      try {
-        const options = {
-          method: "post",
-          contentType: "application/json",
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Prefer": "resolution=merge-duplicates"
-          },
-          payload: JSON.stringify(payload),
-          muteHttpExceptions: true
-        };
-        
-        const response = UrlFetchApp.fetch(supabaseEndpoint, options);
-        const code = response.getResponseCode();
-        if (code >= 200 && code < 300) {
-          Logger.log(`Pago ID ${payload.id} (${payload.sender_name}) sincronizado con éxito.`);
-        } else {
-          Logger.log(`Error al subir Pago ID ${payload.id}. Código: ${code}. Respuesta: ${response.getContentText()}`);
-        }
-      } catch (e) {
-        Logger.log(`Excepción al enviar pago a Supabase: ${e}`);
-      }
+
+    // Si todos los mensajes del hilo se procesaron sin errores de red/servidor, etiquetar el hilo en Gmail
+    if (threadSyncSuccess && processedLabel) {
+      thread.addLabel(processedLabel);
     }
   }
   

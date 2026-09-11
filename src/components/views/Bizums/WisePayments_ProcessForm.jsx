@@ -18,6 +18,8 @@ export default function WisePayments_ProcessForm({
   onSelectDate,
   currentMonth,
   onChangeMonth,
+  clientName,
+  onChangeClientName,
   phone,
   onChangePhone,
   onPasteClipboard,
@@ -47,22 +49,31 @@ export default function WisePayments_ProcessForm({
         onChangeMonth={onChangeMonth}
       />
 
-      {/* Datos Fijos de Wise */}
-      <div className="grid grid-cols-2 gap-3 bg-surface-soft/50 border border-surface-edge rounded-2xl p-3.5">
-        <div className="flex items-center gap-2.5 text-gray-200">
-          <User className="w-5 h-5 text-brand shrink-0" />
-          <span className="font-black text-sm sm:text-base truncate" title={payment.sender_name}>
-            {payment.sender_name}
-          </span>
+      {/* Datos de Wise: Titular / Cliente Editable y Badges */}
+      <div className="bg-surface-soft/50 border border-surface-edge rounded-2xl p-3.5 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
+            <User className="w-4 h-4 text-brand shrink-0" /> Titular / Cliente Reserva:
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 font-black text-xs">
+              {payment.num_people} PAX
+            </span>
+            <span className="px-2.5 py-0.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black text-xs flex items-center gap-1">
+              <CreditCard className="w-3.5 h-3.5" />
+              WISE BT
+            </span>
+          </div>
         </div>
-        <div className="flex items-center justify-end gap-2">
-          <span className="px-3 py-1 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 font-black text-xs sm:text-sm">
-            {payment.num_people} PAX
-          </span>
-          <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black text-xs sm:text-sm flex items-center gap-1.5">
-            <CreditCard className="w-4 h-4" />
-            WISE BT
-          </span>
+
+        <div className="relative flex items-center">
+          <input
+            type="text"
+            value={clientName}
+            onChange={(e) => onChangeClientName(e.target.value)}
+            placeholder="Nombre del cliente o Empresa (Nombre)"
+            className="w-full bg-surface border border-surface-edge rounded-xl px-3.5 py-2 text-sm sm:text-base text-white font-bold placeholder-gray-500 focus:outline-none focus:border-brand transition-all"
+          />
         </div>
       </div>
 
@@ -114,37 +125,67 @@ export default function WisePayments_ProcessForm({
               onChange={(e) => onChangeActivity(e.target.value)}
               className="w-full bg-surface-soft border border-surface-edge rounded-xl p-3 text-sm sm:text-base text-white focus:outline-none focus:border-brand transition-all cursor-pointer font-bold"
             >
-              <option value="OW 2">OW 2</option>
               <option value="OW">OW</option>
+              <option value="OW 2">OW 2</option>
               <option value="AA">AA</option>
               <option value="DSD">DSD</option>
               <option value="SR">SR</option>
               <option value="FD">FD</option>
             </select>
 
-            <label className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-soft border border-surface-edge w-full cursor-pointer hover:bg-white/5 transition-all">
-              <input
-                type="checkbox"
-                checked={isEnglish}
-                onChange={(e) => onChangeIsEnglish(e.target.checked)}
-                className="w-4.5 h-4.5 rounded border-surface-edge bg-surface text-brand focus:ring-brand accent-brand cursor-pointer"
-              />
-              <span className="text-sm font-bold text-white">✓ Inglés</span>
-            </label>
+            <div className="grid grid-cols-2 p-1 bg-surface-soft border border-surface-edge rounded-xl gap-1">
+              <button
+                type="button"
+                onClick={() => onChangeIsEnglish(true)}
+                className={`flex items-center justify-center py-2.5 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  isEnglish
+                    ? 'bg-brand text-white shadow-md shadow-brand/20 font-black'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                }`}
+              >
+                Inglés
+              </button>
+              <button
+                type="button"
+                onClick={() => onChangeIsEnglish(false)}
+                className={`flex items-center justify-center py-2.5 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  !isEnglish
+                    ? 'bg-brand text-white shadow-md shadow-brand/20 font-black'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                }`}
+              >
+                Español
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-2.5 p-3.5 bg-surface-soft/40 border border-amber-500/20 rounded-2xl animate-in fade-in duration-200">
             <div className="flex items-center justify-between pb-1">
               <span className="text-xs font-black text-amber-300 uppercase tracking-wider">Actividades por Pax ({payment.num_people}):</span>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isEnglish}
-                  onChange={(e) => onChangeIsEnglish(e.target.checked)}
-                  className="w-4 h-4 rounded border-surface-edge bg-surface text-brand focus:ring-brand accent-brand cursor-pointer"
-                />
-                <span className="text-xs sm:text-sm font-bold text-white">✓ Inglés</span>
-              </label>
+              <div className="flex p-0.5 bg-surface border border-surface-edge rounded-xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => onChangeIsEnglish(true)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isEnglish
+                      ? 'bg-brand text-white shadow-sm font-black'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  }`}
+                >
+                  Inglés
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangeIsEnglish(false)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    !isEnglish
+                      ? 'bg-brand text-white shadow-sm font-black'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  }`}
+                >
+                  Español
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -152,12 +193,12 @@ export default function WisePayments_ProcessForm({
                 <div key={idx} className="flex items-center gap-2">
                   <span className="text-xs font-black text-gray-400 shrink-0 w-12">Pax {idx + 1}:</span>
                   <select
-                    value={paxActivities[idx] || 'OW 2'}
+                    value={paxActivities[idx] || 'OW'}
                     onChange={(e) => onPaxActivityChange(idx, e.target.value)}
                     className="w-full bg-surface border border-surface-edge rounded-xl p-2 text-xs sm:text-sm text-white focus:outline-none focus:border-brand font-bold cursor-pointer"
                   >
-                    <option value="OW 2">OW 2</option>
                     <option value="OW">OW</option>
+                    <option value="OW 2">OW 2</option>
                     <option value="AA">AA</option>
                     <option value="DSD">DSD</option>
                     <option value="SR">SR</option>

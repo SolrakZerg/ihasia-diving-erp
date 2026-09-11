@@ -12,6 +12,8 @@ export default function WisePayments_ProcessModal({ payment, isOpen, onClose, on
     setSelectedDate,
     currentMonth,
     setCurrentMonth,
+    clientName,
+    setClientName,
     activity,
     setActivity,
     phone,
@@ -66,6 +68,8 @@ export default function WisePayments_ProcessModal({ payment, isOpen, onClose, on
             onSelectDate={setSelectedDate}
             currentMonth={currentMonth}
             onChangeMonth={setCurrentMonth}
+            clientName={clientName}
+            onChangeClientName={setClientName}
             phone={phone}
             onChangePhone={setPhone}
             onPasteClipboard={handleManualPasteClipboard}

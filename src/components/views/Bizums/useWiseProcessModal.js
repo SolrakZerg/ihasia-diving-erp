@@ -6,8 +6,8 @@ import { createCustomGoogleCalendarEvent } from './googleCalendarApi';
 const ACTIVITY_TRANSLATIONS = {
   "OW 2": { en: "Open Water Course", es: "Open Water", code: "OW" },
   "OW": { en: "Open Water Course", es: "Open Water", code: "OW" },
-  "AA": { en: "Advanced Adventurer Course", es: "Curso Avanzado", code: "AA" },
-  "DSD": { en: "Discover Scuba Diving", es: "Bautizo de Buceo", code: "DSD" },
+  "AA": { en: "Advanced Course", es: "Curso Avanzado", code: "AA" },
+  "DSD": { en: "Try Dive", es: "Bautizo de Buceo", code: "DSD" },
   "SR": { en: "Scuba Refresh", es: "Refresh", code: "SR" },
   "FD": { en: "Fun Dives", es: "Fun Dives", code: "FD" }
 };
@@ -15,7 +15,8 @@ const ACTIVITY_TRANSLATIONS = {
 export default function useWiseProcessModal({ payment, isOpen, onClose, onProcessedSuccess }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
-  const [activity, setActivity] = useState('OW 2');
+  const [clientName, setClientName] = useState('');
+  const [activity, setActivity] = useState('OW');
   const [phone, setPhone] = useState('');
   const [isEnglish, setIsEnglish] = useState(true);
   const [isMultipleActivities, setIsMultipleActivities] = useState(false);
@@ -32,10 +33,11 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
       const now = new Date();
       setSelectedDate(now);
       setCurrentMonth(now);
-      setActivity('OW 2');
+      setClientName(payment.sender_name || '');
+      setActivity('OW');
       setIsEnglish(true);
       setIsMultipleActivities(false);
-      setPaxActivities(Array.from({ length: payment.num_people || 1 }, () => 'OW 2'));
+      setPaxActivities(Array.from({ length: payment.num_people || 1 }, () => 'OW'));
       setCompletedList([]);
       setEventLink(null);
       setCalendarError(null);
@@ -151,7 +153,27 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
   const combinedActivitiesText = getCombinedActivitiesText();
   const acronymsText = getAcronymsText();
-  const firstName = payment?.sender_name ? payment.sender_name.trim().split(' ')[0] : 'Cliente';
+
+  const extractGreetingName = (rawName) => {
+    if (!rawName) return 'Cliente';
+    // Si viene formato con paréntesis ej: "WeSpearhead LLC (Carlos)" o "Empresa (Carlos Sanz)"
+    const parenMatch = rawName.match(/\(([^)]+)\)/);
+    if (parenMatch && parenMatch[1].trim()) {
+      return parenMatch[1].trim().split(' ')[0];
+    }
+    // Si viene con guión ej: "WeSpearhead LLC - Carlos"
+    if (rawName.includes(' - ')) {
+      const parts = rawName.split(' - ');
+      if (parts[1] && parts[1].trim()) {
+        return parts[1].trim().split(' ')[0];
+      }
+    }
+    // Nombre normal
+    return rawName.trim().split(' ')[0] || 'Cliente';
+  };
+
+  const finalCustomerName = (clientName || '').trim() || payment?.sender_name || 'Cliente';
+  const firstName = extractGreetingName(finalCustomerName);
 
   const formatSpanishDateText = (dateObj) => {
     const daysEs = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -191,9 +213,13 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
   const markPaymentAsProcessed = async () => {
     try {
+      const finalName = (clientName || '').trim() || payment.sender_name;
       const { error } = await supabase
         .from('wise_payments')
-        .update({ is_processed: true })
+        .update({ 
+          is_processed: true,
+          sender_name: finalName
+        })
         .eq('id', payment.id);
 
       if (error) throw error;
@@ -219,7 +245,7 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
       setCalendarError(null);
 
       const res = await createCustomGoogleCalendarEvent({
-        customerName: payment.sender_name,
+        customerName: finalCustomerName,
         activityCodes: acronymsText,
         activityFull: combinedActivitiesText,
         numPeople: payment.num_people,
@@ -234,7 +260,7 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
       if (res && res.htmlLink) {
         setEventLink(res.htmlLink);
-        list.push(`Evento '${res.summary || payment.sender_name + ' ' + acronymsText}' creado en Google Calendar`);
+        list.push(`Evento '${res.summary || finalCustomerName + ' ' + acronymsText}' creado en Google Calendar`);
       }
     } catch (err) {
       console.error('Error creando evento en Google Calendar API:', err);
@@ -270,7 +296,7 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
       setCalendarError(null);
 
       const res = await createCustomGoogleCalendarEvent({
-        customerName: payment.sender_name,
+        customerName: finalCustomerName,
         activityCodes: acronymsText,
         activityFull: combinedActivitiesText,
         numPeople: payment.num_people,
@@ -286,7 +312,7 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
       if (res && res.htmlLink) {
         setEventLink(res.htmlLink);
         setCompletedList([
-          `Evento '${res.summary || payment.sender_name + ' ' + acronymsText}' creado en Google Calendar`,
+          `Evento '${res.summary || finalCustomerName + ' ' + acronymsText}' creado en Google Calendar`,
           'Transferencia marcada como PROCESADA en Diving ERP'
         ]);
         setIsDoneView(true);
@@ -304,6 +330,8 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     setSelectedDate,
     currentMonth,
     setCurrentMonth,
+    clientName,
+    setClientName,
     activity,
     setActivity,
     phone,

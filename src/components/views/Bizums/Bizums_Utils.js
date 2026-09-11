@@ -1,8 +1,8 @@
 export const BIZUM_ACTIVITY_OPTIONS = [
   { code: 'OW 2', acronym: 'OW 2', nameEs: 'Open Water en 2 días', nameEn: 'Open Water Course (in 2 days)' },
   { code: 'OW', acronym: 'OW', nameEs: 'Open Water', nameEn: 'Open Water Course' },
-  { code: 'AA', acronym: 'AA', nameEs: 'Avanzado', nameEn: 'Advanced' },
-  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo', nameEn: 'Discover Scuba Diving' },
+  { code: 'AA', acronym: 'AA', nameEs: 'Avanzado', nameEn: 'Advanced Course' },
+  { code: 'DSD', acronym: 'DSD', nameEs: 'Bautizo', nameEn: 'Try Dive' },
   { code: 'SR', acronym: 'SR', nameEs: 'Refresh', nameEn: 'Refresh' },
   { code: 'FD', acronym: 'FD', nameEs: 'Fun Dives', nameEn: 'Fun Dives' },
   { code: 'Rescue', acronym: 'Rescue', nameEs: 'Rescue', nameEn: 'Rescue' }
