@@ -23,34 +23,35 @@ CREATE OR REPLACE FUNCTION public.update_customer_gear(
 RETURNS VOID AS $$
 DECLARE
     target_id UUID;
+    clean_bcd VARCHAR;
+    clean_suit VARCHAR;
+    clean_fins VARCHAR;
 BEGIN
     target_id := p_customer_id;
 
-    -- Si no tenemos el UUID, buscar inteligentemente por el nombre del Roster (ej: "Kiron G." o "Kiron Geiger")
+    -- Si no tenemos el UUID, SOLO buscar por nombre completo exacto (nombre y apellido completos)
+    -- NUNCA adivinar por iniciales abreviadas para evitar asignar tallas a personas equivocadas
     IF target_id IS NULL AND p_customer_name IS NOT NULL AND trim(p_customer_name) <> '' THEN
-        SELECT c.id INTO target_id
-        FROM customers c
-        WHERE (
-            extensions.unaccent(lower(c.first_name || ' ' || c.last_name)) ILIKE extensions.unaccent(lower(trim(p_customer_name) || '%'))
-            OR
-            (
-                extensions.unaccent(lower(trim(c.first_name))) = extensions.unaccent(lower(split_part(trim(p_customer_name), ' ', 1)))
-                AND (
-                    split_part(trim(p_customer_name), ' ', 2) = ''
-                    OR extensions.unaccent(lower(substring(c.last_name, 1, 1))) = extensions.unaccent(lower(substring(split_part(trim(p_customer_name), ' ', 2), 1, 1)))
-                )
-            )
-        )
-        ORDER BY c.booking_date DESC NULLS LAST, c.created_at DESC
-        LIMIT 1;
+        IF position(' ' in trim(p_customer_name)) > 0 AND trim(p_customer_name) NOT LIKE '%.%' THEN
+            SELECT c.id INTO target_id
+            FROM customers c
+            WHERE extensions.unaccent(lower(trim(c.first_name || ' ' || c.last_name))) = extensions.unaccent(lower(trim(p_customer_name)))
+            ORDER BY c.booking_date DESC NULLS LAST, c.created_at DESC
+            LIMIT 1;
+        END IF;
     END IF;
+
+    -- Normalizar tallas: si viene '--', cadena vacía o NULL, se guarda NULL en base de datos
+    clean_bcd := CASE WHEN p_bcd IS NOT NULL AND trim(p_bcd) <> '' AND trim(p_bcd) <> '--' THEN trim(p_bcd) ELSE NULL END;
+    clean_suit := CASE WHEN p_suit IS NOT NULL AND trim(p_suit) <> '' AND trim(p_suit) <> '--' THEN trim(p_suit) ELSE NULL END;
+    clean_fins := CASE WHEN p_fins IS NOT NULL AND trim(p_fins) <> '' AND trim(p_fins) <> '--' THEN trim(p_fins) ELSE NULL END;
 
     IF target_id IS NOT NULL THEN
         UPDATE customers 
         SET 
-            bcd_size = CASE WHEN p_bcd IS NOT NULL THEN NULLIF(p_bcd, '') ELSE bcd_size END,
-            suit_size = CASE WHEN p_suit IS NOT NULL THEN NULLIF(p_suit, '') ELSE suit_size END,
-            fins_size = CASE WHEN p_fins IS NOT NULL THEN NULLIF(p_fins, '') ELSE fins_size END
+            bcd_size = clean_bcd,
+            suit_size = clean_suit,
+            fins_size = clean_fins
         WHERE id = target_id;
     END IF;
 END;
@@ -58,10 +59,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public';
 
 GRANT EXECUTE ON FUNCTION public.update_customer_gear(UUID, TEXT, VARCHAR, VARCHAR, VARCHAR) TO anon, authenticated, service_role;
 
-COMMENT ON FUNCTION public.update_customer_gear(UUID, VARCHAR, VARCHAR, VARCHAR) 
-IS 'Actualiza exclusivamente las tallas de equipo (BCD, traje, aletas) de un cliente desde Roster 2.0.';
+COMMENT ON FUNCTION public.update_customer_gear(UUID, TEXT, VARCHAR, VARCHAR, VARCHAR) 
+IS 'Actualiza exclusivamente las tallas de equipo (BCD, traje, aletas) de un cliente desde Roster 2.0 de forma segura.';
 
--- 3. Función RPC de búsqueda segura para el Roster con priorización por fecha
+-- 3. Función RPC de búsqueda segura para el Roster con priorización por fecha y relevancia textual
 CREATE OR REPLACE FUNCTION public.search_roster_customers(
     query_text text,
     target_date date DEFAULT NULL
@@ -85,9 +86,14 @@ SET search_path TO 'public'
 AS $$
 DECLARE
     tokens text[];
+    clean_query text;
+    first_token text;
+    second_token text;
 BEGIN
-    -- Limpiar espacios y dividir consulta en tokens
-    tokens := regexp_split_to_array(trim(query_text), '\s+');
+    clean_query := trim(query_text);
+    tokens := regexp_split_to_array(clean_query, '\s+');
+    first_token := COALESCE(tokens[1], '');
+    second_token := CASE WHEN array_length(tokens, 1) >= 2 THEN tokens[2] ELSE '' END;
     
     RETURN QUERY
     SELECT 
@@ -117,7 +123,27 @@ BEGIN
         ) FROM unnest(tokens) t
     )
     ORDER BY 
+        -- 1. Prioridad absoluta: los que bucean HOY (target_date)
         CASE WHEN target_date IS NOT NULL AND c.booking_date = target_date THEN 1 ELSE 0 END DESC,
+
+        -- 2. Relevancia natural del texto escrito:
+        -- Coincidencia exacta de nombre de pila
+        CASE WHEN extensions.unaccent(lower(c.first_name)) = extensions.unaccent(lower(first_token)) THEN 1 ELSE 0 END DESC,
+        -- El nombre de pila empieza por el primer término
+        CASE WHEN extensions.unaccent(lower(c.first_name)) ILIKE extensions.unaccent(lower(first_token) || '%') THEN 1 ELSE 0 END DESC,
+        -- Si hay segundo término, el apellido empieza por ese término (ej: "Ana s" -> Sánchez antes que Losa)
+        CASE WHEN second_token <> '' AND extensions.unaccent(lower(c.last_name)) ILIKE extensions.unaccent(lower(second_token) || '%') THEN 1 ELSE 0 END DESC,
+        -- El nombre completo empieza por la frase completa
+        CASE WHEN extensions.unaccent(lower(trim(c.first_name || ' ' || c.last_name))) ILIKE extensions.unaccent(lower(clean_query) || '%') THEN 1 ELSE 0 END DESC,
+
+        -- 3. Cercanía a la fecha de reserva consultada (días de diferencia)
+        CASE 
+            WHEN target_date IS NOT NULL AND c.booking_date IS NOT NULL 
+            THEN ABS(c.booking_date - target_date)
+            ELSE 99999 
+        END ASC,
+
+        -- 4. Desempate secundario por fecha y creación
         c.booking_date DESC NULLS LAST,
         c.created_at DESC
     LIMIT 10;
@@ -127,4 +153,4 @@ $$;
 GRANT EXECUTE ON FUNCTION public.search_roster_customers(text, date) TO anon, authenticated, service_role;
 
 COMMENT ON FUNCTION public.search_roster_customers(text, date) 
-IS 'Búsqueda contextualizada de clientes para Roster 2.0 con priorización por fecha y datos higienizados.';
+IS 'Búsqueda contextualizada de clientes para Roster con priorización por fecha, relevancia textual y proximidad temporal.';
