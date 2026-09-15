@@ -179,6 +179,31 @@ export default function Backups_View() {
       const { payload, totalRowsExported } = await generateFullBackupPayload();
       const todayStr = new Date().toISOString().split('T')[0];
 
+      let extraMsg = '';
+      const now = new Date();
+
+      if (syncToGithub) {
+        setCurrentExportTable('Servidor Supabase Vault -> GitHub API...');
+        const { data: ghRes, error: ghErr } = await supabase.rpc('generate_and_push_github_backup');
+
+        if (ghErr) {
+          console.error('Error al sincronizar con GitHub:', ghErr);
+          extraMsg = ` (Aviso: ${ghErr.message || 'Error de conexión con GitHub'})`;
+        } else if (ghRes && ghRes.success) {
+          setGithubSyncDate(now);
+          localStorage.setItem('ihasia_last_github_sync_date', now.toISOString());
+          extraMsg = ` ☁️ ¡Respaldo sincronizado automáticamente en tu repositorio privado de GitHub! (Commit: ${ghRes.commit ? ghRes.commit.substring(0, 7) : 'OK'})`;
+        } else if (ghRes && !ghRes.success) {
+          extraMsg = ` (Aviso GitHub API: ${ghRes.error || 'Error en respuesta de GitHub'})`;
+        }
+      }
+
+      setLastBackupDate(now);
+      localStorage.setItem('ihasia_last_data_backup_date', now.toISOString());
+
+      // Descargar archivo local DESPUÉS de la sincronización remota
+      // para evitar que el navegador cancele peticiones HTTP pendientes
+      setCurrentExportTable('Generando descarga local...');
       if (format === 'json') {
         const jsonPayloadString = JSON.stringify(payload, null, 2);
         const jsonBlob = new Blob([jsonPayloadString], { type: 'application/json;charset=utf-8' });
@@ -220,27 +245,6 @@ export default function Backups_View() {
         URL.revokeObjectURL(url);
       }
 
-      const now = new Date();
-      setLastBackupDate(now);
-      localStorage.setItem('ihasia_last_data_backup_date', now.toISOString());
-
-      let extraMsg = '';
-      if (syncToGithub) {
-        setCurrentExportTable('Servidor Supabase Vault -> GitHub API...');
-        const { data: ghRes, error: ghErr } = await supabase.rpc('generate_and_push_github_backup');
-
-        if (ghErr) {
-          console.error('Error al sincronizar con GitHub:', ghErr);
-          extraMsg = ` (Aviso: ${ghErr.message || 'Error de conexión con GitHub'})`;
-        } else if (ghRes && ghRes.success) {
-          setGithubSyncDate(now);
-          localStorage.setItem('ihasia_last_github_sync_date', now.toISOString());
-          extraMsg = ` ☁️ ¡Respaldo sincronizado automáticamente en tu repositorio privado de GitHub! (Commit: ${ghRes.commit ? ghRes.commit.substring(0, 7) : 'OK'})`;
-        } else if (ghRes && !ghRes.success) {
-          extraMsg = ` (Aviso GitHub API: ${ghRes.error || 'Error en respuesta de GitHub'})`;
-        }
-      }
-
       setSuccessMessage(`¡Copia completada! Se respaldaron ${totalRowsExported.toLocaleString()} filas de las 39 tablas.${extraMsg}`);
     } catch (err) {
       console.error('Error durante la exportación:', err);
@@ -251,8 +255,9 @@ export default function Backups_View() {
     }
   };
 
-  const daysSinceBackup = lastBackupDate
-    ? Math.floor((new Date() - lastBackupDate) / (1000 * 60 * 60 * 24))
+  const targetDateForCalc = githubSyncDate || lastBackupDate;
+  const daysSinceBackup = targetDateForCalc
+    ? Math.floor((new Date() - targetDateForCalc) / (1000 * 60 * 60 * 24))
     : null;
 
   return (
