@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Save, User, Calendar, Phone, Award, Hash, CreditCard } from 'lucide-react';
+import { X, Save, User, Calendar, Phone, Award, Hash, CreditCard, FileText } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 
 export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
@@ -252,6 +252,22 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
                 <span>REPARTIDO ENTRE SOCIOS</span>
               </label>
             )}
+          </div>
+
+          {/* Notas Internas / Observaciones */}
+          <div className="pt-3 border-t border-surface-edge">
+            <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5 px-0.5 mb-1.5">
+              <FileText className="w-3.5 h-3.5 text-brand" />
+              Notas Internas / Observaciones:
+            </label>
+            <textarea
+              name="notes"
+              rows={3}
+              value={formData.notes || ''}
+              onChange={handleChange}
+              placeholder="Añade notas aclaratorias sobre este bizum..."
+              className="w-full bg-surface-soft border border-surface-edge rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand/50 transition-all resize-none"
+            />
           </div>
         </form>
 

@@ -1,4 +1,4 @@
-import { Phone, Edit2, Trash2, Check, AlertCircle, Archive } from 'lucide-react';
+import { Phone, Edit2, Trash2, Check, AlertCircle, Archive, FileText } from 'lucide-react';
 import { getActivityColor, generateWhatsappLink, formatPrettyPhone } from './Bizums_Utils';
 
 export default function Bizums_Row({
@@ -98,10 +98,18 @@ export default function Bizums_Row({
         <div className="flex items-center gap-1.5">
           <p
             className="text-white/70 font-bold text-sm capitalize leading-snug line-clamp-2 break-words"
-            title={row.customer_name}
+            title={row.notes ? `${row.customer_name}\n\n📝 Nota: ${row.notes}` : row.customer_name}
           >
             {row.customer_name}
           </p>
+          {row.notes && (
+            <span
+              className="inline-flex text-cyan-400 hover:text-cyan-300 cursor-default shrink-0"
+              title={`📝 Nota: ${row.notes}`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+            </span>
+          )}
           {((row.is_returned && row.returned_people !== null && row.returned_people < row.num_people) || (row.is_retained && row.returned_people !== null && row.returned_people > 0)) && (
             <span 
               className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 

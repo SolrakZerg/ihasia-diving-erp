@@ -62,10 +62,21 @@ export default function WisePayments_Row({
       {/* 2. REMITENTE */}
       <td className="py-2.5 px-4 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <User className="w-3.5 h-3.5 text-brand" />
-          <p className="text-white/70 font-bold text-sm capitalize">
+          <User className="w-3.5 h-3.5 text-brand shrink-0" />
+          <p 
+            className="text-white/70 font-bold text-sm capitalize"
+            title={payment.notes ? `${payment.sender_name}\n\n📝 Nota: ${payment.notes}` : payment.sender_name}
+          >
             {payment.sender_name}
           </p>
+          {payment.notes && (
+            <span
+              className="inline-flex text-cyan-400 hover:text-cyan-300 cursor-default shrink-0"
+              title={`📝 Nota: ${payment.notes}`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+            </span>
+          )}
           {isPartialRetention && (
             <span 
               className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 

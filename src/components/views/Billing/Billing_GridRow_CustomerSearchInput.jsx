@@ -102,7 +102,7 @@ export default function Billing_GridRow_CustomerSearchInput({
   };
 
   return (
-    <div className="py-1 relative w-full h-full z-[1001]" ref={containerRef}>
+    <div className="relative w-full h-full flex items-center z-[1001]" ref={containerRef}>
       <input
         autoFocus
         type="text"
@@ -120,7 +120,7 @@ export default function Billing_GridRow_CustomerSearchInput({
             if (!isSavingLocal.current) handleSaveTemporary();
           }, 400);
         }}
-        className="w-full bg-blue-50 border border-blue-400 text-gray-900 px-2 py-0.5 text-xs rounded outline-none font-bold focus:ring-2 focus:ring-brand"
+        className="w-full h-6 bg-blue-50 border border-blue-400 text-gray-900 px-2 py-0 text-xs rounded outline-none font-bold focus:ring-2 focus:ring-brand leading-normal"
       />
 
       {query.length >= 2 && (

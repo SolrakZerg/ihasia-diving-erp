@@ -85,7 +85,7 @@ export default function Billing_GridRow_ItemRow({
             className="flex items-center gap-2 overflow-hidden cursor-text h-full px-1 outline-none focus-visible:ring-1 focus-visible:ring-brand focus-visible:rounded"
             aria-label={item.customers?.first_name ? `Cliente: ${item.customers.first_name}` : "Vincular nuevo cliente"}
           >
-            <span className={`text-[13px] font-bold truncate block ${item.customer_id ? 'text-gray-900' : 'text-blue-600 italic font-medium'}`}>
+            <span className={`text-[13px] font-bold truncate block leading-normal py-0.5 ${item.customer_id ? 'text-gray-900' : 'text-blue-600 italic font-medium'}`}>
               {item.customers?.first_name || item.temporary_name || 'Vincular Cliente...'}
             </span>
             {item.customer_id && (
@@ -117,16 +117,20 @@ export default function Billing_GridRow_ItemRow({
 
       {/* 5. Apellidos */}
       <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <span className="text-[13px] text-slate-800 font-bold truncate block">
-          {item.customers?.last_name || (item.temporary_name ? "-" : "...")}
-        </span>
+        <div className="flex items-center h-full">
+          <span className="text-[13px] text-slate-800 font-bold truncate block leading-normal py-0.5">
+            {item.customers?.last_name || (item.temporary_name ? "-" : "...")}
+          </span>
+        </div>
       </td>
 
       {/* 6. Email */}
       <td className={`px-1 py-0 border-r border-gray-100 ${bLine}`}>
-        <span className="text-[12px] text-slate-600 truncate block">
-          {item.customers?.email || (item.temporary_name ? "-" : "")}
-        </span>
+        <div className="flex items-center h-full">
+          <span className="text-[12px] text-slate-600 truncate block leading-normal py-0.5">
+            {item.customers?.email || (item.temporary_name ? "-" : "")}
+          </span>
+        </div>
       </td>
 
       {/* 7. Actividad */}
