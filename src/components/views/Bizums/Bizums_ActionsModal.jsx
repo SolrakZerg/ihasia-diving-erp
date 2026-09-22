@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MessageSquare, Calendar, CheckCircle2, Sparkles, Loader2, ExternalLink, Users, BookOpen, Plus, Trash2, Check, ArrowRight } from 'lucide-react';
+import { X, MessageSquare, Calendar, CheckCircle2, XCircle, Sparkles, Loader2, ExternalLink, Users, BookOpen, Plus, Trash2, Check, ArrowRight } from 'lucide-react';
 import { 
   generateWhatsappLink, 
   generateWhatsappMessage, 
@@ -221,7 +221,9 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose, onConfirmPa
     const list = [];
     if (waLink) {
       window.open(waLink, '_blank');
-      list.push('WhatsApp abierto para enviar mensaje de confirmación');
+      list.push({ text: 'WhatsApp abierto para enviar mensaje de confirmación', type: 'success' });
+    } else {
+      list.push({ text: 'No se abrió WhatsApp: falta número de teléfono válido con prefijo internacional', type: 'error' });
     }
 
     let success = false;
@@ -231,12 +233,13 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose, onConfirmPa
       const res = await executeCalendarCreation();
       if (res && res.htmlLink) {
         setEventLink(res.htmlLink);
-        list.push(`Evento '${res.summary}' creado en Calendar`);
+        list.push({ text: `Evento '${res.summary}' creado en Calendar`, type: 'success' });
         success = true;
       }
     } catch (err) {
       console.error('Error creando evento en Google Calendar API:', err);
       setCalendarError(err.message || 'Error al crear el evento en el calendario');
+      list.push({ text: `Error al crear evento en Google Calendar: ${err.message || 'Error al conectar con la API'}`, type: 'error' });
     } finally {
       setLoadingCalendar(false);
     }
@@ -245,7 +248,10 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose, onConfirmPa
       if (onConfirmPaid) {
         await onConfirmPaid(data.id);
       }
-      list.push('Reserva marcada como RECIBIDA en Diving ERP');
+      list.push({ text: 'Reserva marcada como RECIBIDA en Diving ERP', type: 'success' });
+      setCompletedList(list);
+      setIsDoneView(true);
+    } else if (list.length > 0) {
       setCompletedList(list);
       setIsDoneView(true);
     }
@@ -500,14 +506,25 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose, onConfirmPa
           ) : (
             /* Vista de Completado */
             <div className="space-y-5 text-left pt-2">
-              <h4 className="text-sm font-extrabold uppercase tracking-wider text-emerald-400">Acciones Completadas:</h4>
-              <ul className="space-y-3 text-sm text-gray-200">
-                {completedList.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="leading-tight">{item}</span>
-                  </li>
-                ))}
+              <h4 className="text-sm font-extrabold uppercase tracking-wider text-emerald-400">Resumen de Acciones:</h4>
+              <ul className="space-y-3 text-sm font-medium">
+                {completedList.map((item, idx) => {
+                  const isError = typeof item === 'object' ? item.type === 'error' : (item.includes('No se abrió') || item.includes('Error'));
+                  const itemText = typeof item === 'object' ? item.text : item;
+
+                  return (
+                    <li key={idx} className="flex items-start gap-2.5">
+                      {isError ? (
+                        <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                      ) : (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                      )}
+                      <span className={`leading-tight ${isError ? 'text-rose-300 font-bold' : 'text-gray-200'}`}>
+                        {itemText}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
 
               {eventLink && (

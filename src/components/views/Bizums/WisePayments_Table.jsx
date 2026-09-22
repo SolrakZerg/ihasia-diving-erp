@@ -8,7 +8,6 @@ import useWisePaymentsData from './useWisePaymentsData';
 import WisePayments_Header from './WisePayments_Header';
 import WisePayments_Row from './WisePayments_Row';
 import WisePayments_RetentionModal from './WisePayments_RetentionModal';
-import WisePayments_EditModal from './WisePayments_EditModal';
 import WisePayments_ProcessModal from './WisePayments_ProcessModal';
 
 export default function WisePayments_Table() {
@@ -210,10 +209,11 @@ export default function WisePayments_Table() {
         </div>
       )}
 
-      {/* Modal de Procesamiento de Reserva */}
+      {/* Modal de Procesamiento de Reserva (Modo Normal) */}
       <WisePayments_ProcessModal
         payment={processModalPayment}
         isOpen={isProcessModalOpen}
+        isEditMode={false}
         onClose={() => setIsProcessModalOpen(false)}
         onProcessedSuccess={fetchPayments}
       />
@@ -227,12 +227,13 @@ export default function WisePayments_Table() {
         onClose={() => setRetentionModalPayment(null)}
       />
 
-      {/* Modal de Edición Completo */}
-      <WisePayments_EditModal
+      {/* Modal de Edición Completo (Mismo modal unificado con isEditMode=true) */}
+      <WisePayments_ProcessModal
         payment={editingPayment}
         isOpen={isEditModalOpen}
+        isEditMode={true}
         onClose={() => setIsEditModalOpen(false)}
-        onSaved={fetchPayments}
+        onProcessedSuccess={fetchPayments}
       />
     </div>
   );

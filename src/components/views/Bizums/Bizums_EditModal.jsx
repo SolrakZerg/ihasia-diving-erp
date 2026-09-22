@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
-import { X, Save, User, Calendar, Phone, Award, Hash, CreditCard, FileText } from 'lucide-react';
+import { 
+  X, 
+  Save, 
+  User, 
+  Calendar, 
+  Phone, 
+  Award, 
+  Hash, 
+  CreditCard, 
+  FileText 
+} from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
+import { cleanPhone } from './Bizums_Utils';
+import Bizums_DirectActions from './Bizums_DirectActions';
 
 export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
   const [formData, setFormData] = useState({});
@@ -35,9 +47,13 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let finalVal = type === 'checkbox' ? checked : value;
+    if ((name === 'bizum_phone' || name === 'whatsapp_phone') && typeof finalVal === 'string') {
+      finalVal = cleanPhone(finalVal);
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: finalVal,
     }));
   };
 
@@ -253,6 +269,16 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
               </label>
             )}
           </div>
+
+          {/* SECCIÓN: ACCIONES DIRECTAS DE RESERVA */}
+          {isEditMode && (
+            <Bizums_DirectActions
+              bizum={bizum}
+              formData={formData}
+              onSaved={onSaved}
+              onPaidChange={(val) => setFormData(prev => ({ ...prev, is_paid: val }))}
+            />
+          )}
 
           {/* Notas Internas / Observaciones */}
           <div className="pt-3 border-t border-surface-edge">

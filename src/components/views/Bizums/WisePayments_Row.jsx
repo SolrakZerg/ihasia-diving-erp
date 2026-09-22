@@ -61,29 +61,41 @@ export default function WisePayments_Row({
 
       {/* 2. REMITENTE */}
       <td className="py-2.5 px-4 whitespace-nowrap">
-        <div className="flex items-center gap-2">
-          <User className="w-3.5 h-3.5 text-brand shrink-0" />
-          <p 
-            className="text-white/70 font-bold text-sm capitalize"
-            title={payment.notes ? `${payment.sender_name}\n\n📝 Nota: ${payment.notes}` : payment.sender_name}
-          >
-            {payment.sender_name}
-          </p>
-          {payment.notes && (
-            <span
-              className="inline-flex text-cyan-400 hover:text-cyan-300 cursor-default shrink-0"
-              title={`📝 Nota: ${payment.notes}`}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <User className="w-3.5 h-3.5 text-brand shrink-0" />
+            <p 
+              className="text-white/70 font-bold text-sm capitalize"
+              title={payment.notes ? `${payment.sender_name}\n\n📝 Nota: ${payment.notes}` : payment.sender_name}
             >
-              <FileText className="w-3.5 h-3.5" />
-            </span>
-          )}
-          {isPartialRetention && (
-            <span 
-              className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 
-              title={`Retención Parcial: retenidos ${payment.retained_people} de ${payment.num_people} pax.`}
-            >
-              <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-            </span>
+              {payment.sender_name}
+            </p>
+            {payment.notes && (
+              <span
+                className="inline-flex text-cyan-400 hover:text-cyan-300 cursor-default shrink-0"
+                title={`📝 Nota: ${payment.notes}`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </span>
+            )}
+            {isPartialRetention && (
+              <span 
+                className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 
+                title={`Retención Parcial: retenidos ${payment.retained_people} de ${payment.num_people} pax.`}
+              >
+                <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+              </span>
+            )}
+          </div>
+          {payment.activity && (
+            <div className="flex items-center gap-1.5 text-[11px] pl-5 pt-0.5">
+              <span className="text-amber-400 font-bold">{payment.activity}</span>
+              {payment.booking_date && (
+                <span className="text-cyan-400/80 font-medium">
+                  • {new Date(payment.booking_date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </td>

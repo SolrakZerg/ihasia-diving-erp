@@ -20,7 +20,13 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
   const [phone, setPhone] = useState('');
   const [isEnglish, setIsEnglish] = useState(true);
   const [isMultipleActivities, setIsMultipleActivities] = useState(false);
-  const [paxActivities, setPaxActivities] = useState([]);
+  const [activityLines, setActivityLines] = useState([]);
+  const [notes, setNotes] = useState('');
+  const [isProcessed, setIsProcessed] = useState(false);
+  const [isRetained, setIsRetained] = useState(false);
+  const [retainedPeople, setRetainedPeople] = useState(1);
+  const [isSettled, setIsSettled] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [loadingCalendar, setLoadingCalendar] = useState(false);
   const [eventLink, setEventLink] = useState(null);
@@ -30,20 +36,62 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
   useEffect(() => {
     if (isOpen && payment) {
-      const now = new Date();
-      setSelectedDate(now);
-      setCurrentMonth(now);
+      if (payment.booking_date) {
+        const [y, m, d] = payment.booking_date.split('-').map(Number);
+        const bDate = new Date(y, m - 1, d);
+        setSelectedDate(bDate);
+        setCurrentMonth(bDate);
+      } else {
+        const now = new Date();
+        setSelectedDate(now);
+        setCurrentMonth(now);
+      }
+
       setClientName(payment.sender_name || '');
-      setActivity('OW');
-      setIsEnglish(true);
-      setIsMultipleActivities(false);
-      setPaxActivities(Array.from({ length: payment.num_people || 1 }, () => 'OW'));
+      setIsEnglish(payment.is_english !== undefined && payment.is_english !== null ? !!payment.is_english : true);
+
+      const numPax = payment.num_people || 1;
+      const savedLines = Array.isArray(payment.activity_lines) && payment.activity_lines.length > 0 
+        ? payment.activity_lines 
+        : null;
+
+      if (savedLines && (savedLines.length > 1 || (savedLines.length === 1 && numPax > 1 && savedLines[0].count < numPax))) {
+        setIsMultipleActivities(true);
+        setActivityLines(savedLines);
+        setActivity(savedLines[0].code || 'OW');
+      } else {
+        setIsMultipleActivities(false);
+        const initialActivity = (payment.activity && !payment.activity.includes(',')) 
+          ? payment.activity.replace(/\s*x\d+.*$/i, '').trim() 
+          : 'OW';
+        setActivity(initialActivity || 'OW');
+        const secondaryCode = initialActivity === 'OW' ? 'AA' : 'OW';
+        if (numPax > 1) {
+          setActivityLines([
+            { count: numPax - 1, code: initialActivity || 'OW' },
+            { count: 1, code: secondaryCode }
+          ]);
+        } else {
+          setActivityLines([{ count: 1, code: initialActivity || 'OW' }]);
+        }
+      }
+
+      setNotes(payment.notes || '');
+      setIsProcessed(!!payment.is_processed);
+      setIsRetained(!!payment.is_retained);
+      setRetainedPeople(payment.retained_people || payment.num_people || 1);
+      setIsSettled(!!payment.is_settled);
       setCompletedList([]);
       setEventLink(null);
       setCalendarError(null);
       setIsDoneView(false);
 
-      autoReadClipboard();
+      if (payment.phone) {
+        setPhone(payment.phone);
+      } else {
+        setPhone('');
+        autoReadClipboard();
+      }
     }
   }, [isOpen, payment]);
 
@@ -95,15 +143,64 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
   const formattedBookingDate = formatLocalYMD(selectedDate);
 
-  const handlePaxActivityChange = (index, newAct) => {
-    const updated = [...paxActivities];
-    updated[index] = newAct;
-    setPaxActivities(updated);
+  const handleAddLine = () => {
+    const numPax = payment?.num_people || 1;
+    const assigned = activityLines.reduce((sum, l) => sum + (parseInt(l.count) || 0), 0);
+    const remaining = Math.max(1, numPax - assigned);
+    const unusedCode = activity === 'AA' ? 'OW' : 'AA';
+    setActivityLines(prev => [...prev, { count: remaining, code: unusedCode }]);
   };
+
+  const handleRemoveLine = (index) => {
+    if (activityLines.length <= 1) return;
+    setActivityLines(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLineChange = (index, field, value) => {
+    const numPax = payment?.num_people || 1;
+    setActivityLines(prev => {
+      const updated = [...prev];
+      if (field === 'count') {
+        const otherAssigned = updated.reduce((sum, l, i) => i === index ? sum : sum + (parseInt(l.count) || 0), 0);
+        const maxAllowed = Math.max(1, numPax - otherAssigned);
+        const parsed = parseInt(value) || 1;
+        const finalCount = Math.min(Math.max(1, parsed), maxAllowed);
+        updated[index] = { ...updated[index], count: finalCount };
+      } else {
+        updated[index] = { ...updated[index], [field]: value };
+      }
+      return updated;
+    });
+  };
+
+  const handleToggleMultipleActivities = () => {
+    const numPax = payment?.num_people || 1;
+    setIsMultipleActivities(prev => {
+      const next = !prev;
+      if (next && (!activityLines || activityLines.length <= 1)) {
+        const secondaryCode = activity === 'OW' ? 'AA' : 'OW';
+        if (numPax > 1) {
+          setActivityLines([
+            { count: numPax - 1, code: activity },
+            { count: 1, code: secondaryCode }
+          ]);
+        } else {
+          setActivityLines([{ count: 1, code: activity }]);
+        }
+      }
+      return next;
+    });
+  };
+
+  const totalAssignedPax = isMultipleActivities
+    ? activityLines.reduce((sum, l) => sum + (parseInt(l.count) || 0), 0)
+    : (payment?.num_people || 1);
+
+  const isPaxCountValid = !isMultipleActivities || totalAssignedPax === (payment?.num_people || 1);
 
   const hasOW2 = !isMultipleActivities 
     ? (activity === 'OW 2') 
-    : paxActivities.includes('OW 2');
+    : activityLines.some(l => l.code === 'OW 2');
 
   const sufijoDiasTitulo = hasOW2 ? (isEnglish ? " - in 2 days" : " - en 2 días") : "";
   const sufijoDiasWa = hasOW2 ? (isEnglish ? " in 2 days" : " en 2 días") : "";
@@ -122,12 +219,15 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     }
 
     const counts = {};
-    paxActivities.forEach(code => {
-      const transName = getSingleActivityTranslation(code);
-      counts[transName] = (counts[transName] || 0) + 1;
+    activityLines.forEach(line => {
+      const cnt = parseInt(line.count) || 0;
+      if (cnt <= 0) return;
+      const transName = getSingleActivityTranslation(line.code);
+      counts[transName] = (counts[transName] || 0) + cnt;
     });
 
     const parts = Object.entries(counts).map(([actName, count]) => `${actName} x${count}`);
+    if (parts.length === 0) return getSingleActivityTranslation(activity);
     if (parts.length === 1) return parts[0];
 
     const lastPart = parts.pop();
@@ -143,16 +243,35 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     }
 
     const counts = {};
-    paxActivities.forEach(actCode => {
-      const shortCode = ACTIVITY_TRANSLATIONS[actCode]?.code || 'OW';
-      counts[shortCode] = (counts[shortCode] || 0) + 1;
+    activityLines.forEach(line => {
+      const cnt = parseInt(line.count) || 0;
+      if (cnt <= 0) return;
+      const shortCode = ACTIVITY_TRANSLATIONS[line.code]?.code || line.code;
+      counts[shortCode] = (counts[shortCode] || 0) + cnt;
     });
 
     return Object.entries(counts).map(([code, count]) => `${code}x${count}`).join(' ');
   };
 
+  const getActivityAcronymText = () => {
+    const numPax = payment?.num_people || 1;
+    if (!isMultipleActivities || numPax === 1) {
+      return numPax > 1 ? `${activity} x${numPax}` : activity;
+    }
+
+    const counts = {};
+    activityLines.forEach(line => {
+      const cnt = parseInt(line.count) || 0;
+      if (cnt <= 0) return;
+      counts[line.code] = (counts[line.code] || 0) + cnt;
+    });
+
+    return Object.entries(counts).map(([code, count]) => `${count}x ${code}`).join(', ');
+  };
+
   const combinedActivitiesText = getCombinedActivitiesText();
   const acronymsText = getAcronymsText();
+  const activityAcronymText = getActivityAcronymText();
 
   const extractGreetingName = (rawName) => {
     if (!rawName) return 'Cliente';
@@ -214,30 +333,51 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
   const markPaymentAsProcessed = async () => {
     try {
       const finalName = (clientName || '').trim() || payment.sender_name;
+      const cleaned = cleanPhone(phone);
+      const numPax = payment?.num_people || 1;
+      const activityStr = isMultipleActivities 
+        ? getActivityAcronymText() 
+        : (numPax > 1 ? `${activity} x${numPax}` : activity);
+
+      const updates = { 
+        is_processed: true,
+        sender_name: finalName,
+        phone: cleaned || null,
+        notes: notes.trim() || null,
+        booking_date: formattedBookingDate,
+        activity: activityStr,
+        activity_lines: isMultipleActivities ? activityLines : null,
+        is_english: isEnglish
+      };
+
       const { error } = await supabase
         .from('wise_payments')
-        .update({ 
-          is_processed: true,
-          sender_name: finalName
-        })
+        .update(updates)
         .eq('id', payment.id);
 
       if (error) throw error;
+      setIsProcessed(true);
       if (onProcessedSuccess) onProcessedSuccess();
+      return true;
     } catch (err) {
       console.error('Error al actualizar estado procesado:', err);
+      return false;
     }
   };
 
   const handleAllActions = async () => {
+    if (!isPaxCountValid) {
+      alert(`Debes asignar exactamente ${payment?.num_people || 1} Pax antes de continuar (actualmente hay ${totalAssignedPax}).`);
+      return;
+    }
     await markPaymentAsProcessed();
 
     const list = [];
     if (waLink) {
       window.open(waLink, '_blank');
-      list.push('WhatsApp abierto con mensaje de confirmación');
+      list.push({ text: 'WhatsApp abierto con mensaje de confirmación', type: 'success' });
     } else {
-      list.push('Nota: No se abrió WhatsApp por falta de teléfono internacional válido');
+      list.push({ text: 'No se abrió WhatsApp: falta número de teléfono internacional válido (+ prefijo)', type: 'error' });
     }
 
     try {
@@ -260,21 +400,26 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
       if (res && res.htmlLink) {
         setEventLink(res.htmlLink);
-        list.push(`Evento '${res.summary || finalCustomerName + ' ' + acronymsText}' creado en Google Calendar`);
+        list.push({ text: `Evento '${res.summary || finalCustomerName + ' ' + acronymsText}' creado en Google Calendar`, type: 'success' });
       }
     } catch (err) {
       console.error('Error creando evento en Google Calendar API:', err);
       setCalendarError(err.message || 'Error al crear evento en el calendario');
+      list.push({ text: `Error al crear evento en Google Calendar: ${err.message || 'Error al conectar con la API'}`, type: 'error' });
     } finally {
       setLoadingCalendar(false);
     }
 
-    list.push('Transferencia marcada como PROCESADA en Diving ERP');
+    list.push({ text: 'Transferencia marcada como PROCESADA en Diving ERP', type: 'success' });
     setCompletedList(list);
     setIsDoneView(true);
   };
 
   const handleWhatsappOnly = async () => {
+    if (!isPaxCountValid) {
+      alert(`Debes asignar exactamente ${payment?.num_people || 1} Pax antes de continuar (actualmente hay ${totalAssignedPax}).`);
+      return;
+    }
     if (!waLink) {
       alert('Por favor introduce un número de teléfono válido con prefijo internacional para abrir WhatsApp.');
       return;
@@ -283,14 +428,19 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     window.open(waLink, '_blank');
     
     setCompletedList([
-      'WhatsApp abierto con mensaje de confirmación',
-      'Transferencia marcada como PROCESADA en Diving ERP'
+      { text: 'WhatsApp abierto con mensaje de confirmación', type: 'success' },
+      { text: 'Transferencia marcada como PROCESADA en Diving ERP', type: 'success' }
     ]);
     setIsDoneView(true);
   };
 
   const handleCalendarOnly = async () => {
+    if (!isPaxCountValid) {
+      alert(`Debes asignar exactamente ${payment?.num_people || 1} Pax antes de continuar (actualmente hay ${totalAssignedPax}).`);
+      return;
+    }
     await markPaymentAsProcessed();
+    const list = [];
     try {
       setLoadingCalendar(true);
       setCalendarError(null);
@@ -311,17 +461,60 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
 
       if (res && res.htmlLink) {
         setEventLink(res.htmlLink);
-        setCompletedList([
-          `Evento '${res.summary || finalCustomerName + ' ' + acronymsText}' creado en Google Calendar`,
-          'Transferencia marcada como PROCESADA en Diving ERP'
-        ]);
-        setIsDoneView(true);
+        list.push({ text: `Evento '${res.summary || finalCustomerName + ' ' + acronymsText}' creado en Google Calendar`, type: 'success' });
       }
     } catch (err) {
       console.error('Error creando evento en Google Calendar API:', err);
       setCalendarError(err.message || 'Error al conectar con la API de Google Calendar');
+      list.push({ text: `Error al crear evento en Google Calendar: ${err.message || 'Error al conectar con la API'}`, type: 'error' });
     } finally {
       setLoadingCalendar(false);
+    }
+
+    list.push({ text: 'Transferencia marcada como PROCESADA en Diving ERP', type: 'success' });
+    setCompletedList(list);
+    setIsDoneView(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      if (!isPaxCountValid) {
+        alert(`Debes asignar exactamente ${payment?.num_people || 1} Pax antes de guardar (actualmente hay ${totalAssignedPax}).`);
+        return;
+      }
+      setSavingEdit(true);
+      const cleaned = cleanPhone(phone);
+      const numPax = payment?.num_people || 1;
+      const activityStr = isMultipleActivities 
+        ? getActivityAcronymText() 
+        : (numPax > 1 ? `${activity} x${numPax}` : activity);
+
+      const updates = {
+        sender_name: (clientName || '').trim() || payment.sender_name,
+        phone: cleaned || null,
+        is_processed: isProcessed,
+        is_retained: isRetained,
+        retained_people: isRetained ? Number(retainedPeople) : null,
+        is_settled: isRetained ? isSettled : false,
+        notes: notes.trim() || null,
+        booking_date: formattedBookingDate,
+        activity: activityStr,
+        activity_lines: isMultipleActivities ? activityLines : null,
+        is_english: isEnglish
+      };
+      const { error } = await supabase
+        .from('wise_payments')
+        .update(updates)
+        .eq('id', payment.id);
+
+      if (error) throw error;
+      if (onProcessedSuccess) onProcessedSuccess();
+      if (onClose) onClose();
+    } catch (err) {
+      console.error('Error al guardar edición:', err);
+      alert('Error al guardar cambios: ' + err.message);
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -340,10 +533,17 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     setIsEnglish,
     isMultipleActivities,
     setIsMultipleActivities,
-    paxActivities,
-    handlePaxActivityChange,
+    handleToggleMultipleActivities,
+    activityLines,
+    handleAddLine,
+    handleRemoveLine,
+    handleLineChange,
+    totalAssignedPax,
+    isPaxCountValid,
     handleManualPasteClipboard,
     generateWhatsappMessageText,
+    combinedActivitiesText,
+    activityAcronymText,
     loadingCalendar,
     eventLink,
     calendarError,
@@ -351,6 +551,18 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     isDoneView,
     handleAllActions,
     handleWhatsappOnly,
-    handleCalendarOnly
+    handleCalendarOnly,
+    notes,
+    setNotes,
+    isProcessed,
+    setIsProcessed,
+    isRetained,
+    setIsRetained,
+    retainedPeople,
+    setRetainedPeople,
+    isSettled,
+    setIsSettled,
+    savingEdit,
+    handleSaveEdit
   };
 }
