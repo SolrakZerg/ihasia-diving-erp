@@ -38,27 +38,30 @@ export default function WisePayments_Table() {
     processModalPayment,
     isProcessModalOpen,
     setIsProcessModalOpen,
+    togglePaid,
     fetchPayments
   } = useWisePaymentsData();
 
   const renderTableHeader = () => (
     <thead>
-      <tr className="bg-surface-soft border-b border-surface-edge text-gray-400 font-semibold tracking-wider uppercase text-[10px]">
-        <th className="py-2.5 px-4 text-center">Registrado</th>
-        <th className="py-2.5 px-4">Remitente</th>
-        <th className="py-2.5 px-4 text-center">Pax</th>
-        <th className="py-2.5 px-4 text-right">Importe Recibido</th>
+      <tr className="bg-surface-soft/80 border-b border-surface-edge text-gray-400 font-bold text-[11px] uppercase tracking-wider select-none">
+        <th className="py-3 px-2 text-center border-r border-surface-edge/10">Registrado</th>
+        <th className="py-3 px-2 text-center">Fecha Reserva</th>
+        <th className="py-3 px-3 text-left min-w-[230px]">Remitente / Alumno</th>
+        <th className="py-3 px-1 text-center">Pax</th>
+        <th className="py-3 px-2 text-center border-r border-surface-edge/10 min-w-[100px]">Actividad</th>
+        <th className="py-3 px-1 text-center">WhatsApp</th>
+        <th className="py-3 px-1 text-center">Recibido</th>
+        <th className="py-3 px-2 text-right">Importe</th>
         {activeTab !== 'retained' ? (
           <>
-            <th className="py-2.5 px-4 text-center">Procesado</th>
-            <th className="py-2.5 px-4 text-center">Retenido</th>
+            <th className="py-3 px-1 text-center">Procesado</th>
+            <th className="py-3 px-1 text-center">Retenido</th>
           </>
         ) : (
-          <th className="py-2.5 px-4 text-center">Repartido</th>
+          <th className="py-3 px-1 text-center">Repartido</th>
         )}
-        <th className="py-2.5 px-4">Referencia</th>
-        <th className="py-2.5 px-4">ID Transferencia</th>
-        <th className="py-2.5 px-4 text-center">ACC.</th>
+        <th className="py-3 px-2 text-right">ACC.</th>
       </tr>
     </thead>
   );
@@ -67,7 +70,7 @@ export default function WisePayments_Table() {
     if (loading) {
       return (
         <tr>
-          <td colSpan="9" className="py-8 text-center text-gray-400 font-medium text-xs">
+          <td colSpan="11" className="py-8 text-center text-gray-400 font-medium text-xs">
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
               Cargando transferencias de Wise...
@@ -80,7 +83,7 @@ export default function WisePayments_Table() {
     if (list.length === 0) {
       return (
         <tr>
-          <td colSpan="9" className="py-8 text-center text-gray-400 font-medium text-xs">
+          <td colSpan="11" className="py-8 text-center text-gray-400 font-medium text-xs">
             {emptyMsg}
           </td>
         </tr>
@@ -92,6 +95,7 @@ export default function WisePayments_Table() {
         key={payment.id}
         payment={payment}
         activeTab={activeTab}
+        onTogglePaid={togglePaid}
         onToggleProcessed={toggleProcessed}
         onToggleRetained={toggleRetained}
         onToggleSettled={toggleSettled}

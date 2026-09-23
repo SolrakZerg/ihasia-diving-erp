@@ -24,11 +24,11 @@ export function getActivityColor(activityName) {
   if (!activityName) return BIZUM_ACTIVITY_COLORS.DEFAULT;
   const upper = activityName.toUpperCase().replace(/\s+/g, '');
   if (upper.includes('BAUTIZO') || upper.includes('DSD') || upper.includes('TRY')) return BIZUM_ACTIVITY_COLORS.BAUTIZO;
-  if (upper.includes('OPEN') || upper.includes('OWE')) return BIZUM_ACTIVITY_COLORS.OPENWATER;
+  if (upper.includes('OPEN') || upper.includes('OWE') || upper.includes('OW')) return BIZUM_ACTIVITY_COLORS.OPENWATER;
   if (upper.includes('AVANZADO') || upper.includes('ADVANCED') || upper.includes('AA')) return BIZUM_ACTIVITY_COLORS.AVANZADO;
   if (upper.includes('REFRESH') || upper.includes('SR')) return BIZUM_ACTIVITY_COLORS.REFRESH;
   if (upper.includes('FUN') || upper.includes('FD')) return BIZUM_ACTIVITY_COLORS.FUNDIVES;
-  if (upper.includes('RESCUE')) return BIZUM_ACTIVITY_COLORS.RESCUE;
+  if (upper.includes('RESCUE') || upper.includes('RES')) return BIZUM_ACTIVITY_COLORS.RESCUE;
   if (upper.includes('SSI')) return BIZUM_ACTIVITY_COLORS.SSI;
   return BIZUM_ACTIVITY_COLORS.DEFAULT;
 }

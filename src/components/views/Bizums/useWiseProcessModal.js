@@ -9,7 +9,9 @@ const ACTIVITY_TRANSLATIONS = {
   "AA": { en: "Advanced Course", es: "Curso Avanzado", code: "AA" },
   "DSD": { en: "Try Dive", es: "Bautizo de Buceo", code: "DSD" },
   "SR": { en: "Scuba Refresh", es: "Refresh", code: "SR" },
-  "FD": { en: "Fun Dives", es: "Fun Dives", code: "FD" }
+  "FD": { en: "Fun Dives", es: "Fun Dives", code: "FD" },
+  "RES": { en: "Rescue Diver Course", es: "Curso de Rescate", code: "RES" },
+  "Rescue": { en: "Rescue Diver Course", es: "Curso de Rescate", code: "RES" }
 };
 
 export default function useWiseProcessModal({ payment, isOpen, onClose, onProcessedSuccess }) {
@@ -47,13 +49,18 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         setCurrentMonth(now);
       }
 
-      setClientName(payment.sender_name || '');
+      setClientName(payment.customer_name || payment.sender_name || '');
       setIsEnglish(payment.is_english !== undefined && payment.is_english !== null ? !!payment.is_english : true);
 
       const numPax = payment.num_people || 1;
-      const savedLines = Array.isArray(payment.activity_lines) && payment.activity_lines.length > 0 
+      const rawLines = Array.isArray(payment.activity_lines) && payment.activity_lines.length > 0 
         ? payment.activity_lines 
         : null;
+
+      const savedLines = rawLines ? rawLines.map(l => ({
+        count: parseInt(l.count || l.pax || 1, 10),
+        code: (l.code || l.activity || 'OW').toUpperCase()
+      })) : null;
 
       if (savedLines && (savedLines.length > 1 || (savedLines.length === 1 && numPax > 1 && savedLines[0].count < numPax))) {
         setIsMultipleActivities(true);

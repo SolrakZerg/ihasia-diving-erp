@@ -131,6 +131,22 @@ export default function useWisePaymentsData() {
     }
   };
 
+  // Toggle Paid Status (Marca/Desmarca si el dinero fue recibido)
+  const togglePaid = async (payment) => {
+    try {
+      const nextVal = !payment.is_paid;
+      const { error } = await supabase
+        .from('wise_payments')
+        .update({ is_paid: nextVal })
+        .eq('id', payment.id);
+
+      if (error) throw error;
+      fetchPayments();
+    } catch (err) {
+      console.error('Error toggling paid status in Wise:', err);
+    }
+  };
+
   // Toggle Retained Status
   const toggleRetained = async (payment) => {
     const isCurrentlyRetained = payment.is_retained;
@@ -223,6 +239,7 @@ export default function useWisePaymentsData() {
     handleSearchChange,
     activeTab,
     handleTabChange,
+    togglePaid,
     toggleProcessed,
     toggleRetained,
     toggleSettled,
