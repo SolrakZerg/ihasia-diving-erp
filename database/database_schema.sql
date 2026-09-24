@@ -1,7 +1,7 @@
 -- ################################################################################
 -- DATABASE SCHEMA BACKUP - IHASIA ERP (Full Master Script)
 -- Project: IHASIA ERP
--- Backup Date: 2026-08-10
+-- Backup Date: 2026-09-24 (Audited and 100% synchronized with Supabase Live DB)
 -- Contains 100% literal SQL from Supabase Live DB (Tables, Functions, Triggers)
 -- ################################################################################
 

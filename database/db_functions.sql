@@ -1623,6 +1623,121 @@ $function$;
 COMMENT ON FUNCTION public.fn_trg_billing_auto_import_calendar_deposit() IS 'Importa automáticamente reservas desde Google Calendar como ítems de factura.';
 
 
+-- --------------------------------------------------------------------------------
+-- Función: public.reconcile_wise_payment()
+-- Propósito: Función trigger BEFORE INSERT para la tabla wise_payments.
+--            Reconcilia transferencias bancarias de Wise con formularios web pendientes,
+--            fusionando los datos y evitando registros duplicados.
+-- Retorna: trigger (NEW / NULL)
+-- ERP Módulo: Módulo de Gestión de Ingresos de Wise.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.reconcile_wise_payment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    matched_row RECORD;
+    clean_sender text;
+BEGIN
+    -- CASO 1: Llega una transferencia bancaria de Wise / Gmail
+    IF NEW.id NOT LIKE 'WEB_%' THEN
+        NEW.is_paid := true;
+        clean_sender := LOWER(TRIM(NEW.sender_name));
+
+        -- Buscar si hay un formulario web previo pendiente
+        SELECT * INTO matched_row
+        FROM public.wise_payments
+        WHERE id LIKE 'WEB_%'
+          AND is_processed = false
+          AND (
+              clean_sender LIKE '%' || LOWER(TRIM(sender_name)) || '%'
+              OR LOWER(TRIM(sender_name)) LIKE '%' || clean_sender || '%'
+              OR (titular_wise IS NOT NULL AND titular_wise <> '' AND clean_sender LIKE '%' || LOWER(TRIM(titular_wise)) || '%')
+              OR (customer_name IS NOT NULL AND customer_name <> '' AND clean_sender LIKE '%' || LOWER(TRIM(customer_name)) || '%')
+          )
+        ORDER BY created_at DESC
+        LIMIT 1;
+
+        -- Si encontramos el formulario web previo, heredamos sus datos
+        IF matched_row.id IS NOT NULL THEN
+            IF matched_row.booking_date IS NOT NULL THEN
+                NEW.booking_date := matched_row.booking_date;
+            END IF;
+            IF matched_row.phone IS NOT NULL THEN
+                NEW.phone := matched_row.phone;
+            END IF;
+            IF matched_row.activity IS NOT NULL THEN
+                NEW.activity := matched_row.activity;
+            END IF;
+            IF matched_row.activity_lines IS NOT NULL THEN
+                NEW.activity_lines := matched_row.activity_lines;
+            END IF;
+            IF matched_row.customer_name IS NOT NULL THEN
+                NEW.customer_name := matched_row.customer_name;
+            END IF;
+            IF matched_row.titular_wise IS NOT NULL THEN
+                NEW.titular_wise := matched_row.titular_wise;
+            END IF;
+            IF matched_row.is_english IS NOT NULL THEN
+                NEW.is_english := matched_row.is_english;
+            END IF;
+            IF matched_row.num_people IS NOT NULL AND matched_row.num_people > 0 THEN
+                NEW.num_people := matched_row.num_people;
+            END IF;
+
+            -- Eliminar la fila web temporal
+            DELETE FROM public.wise_payments WHERE id = matched_row.id;
+        END IF;
+
+        RETURN NEW;
+
+    -- CASO 2: Llega un formulario web (ID empieza por 'WEB_')
+    ELSE
+        clean_sender := LOWER(TRIM(NEW.sender_name));
+
+        -- Buscar si ya existe una transferencia de Wise en el banco
+        SELECT * INTO matched_row
+        FROM public.wise_payments
+        WHERE id NOT LIKE 'WEB_%'
+          AND is_processed = false
+          AND (
+              clean_sender LIKE '%' || LOWER(TRIM(sender_name)) || '%'
+              OR LOWER(TRIM(sender_name)) LIKE '%' || clean_sender || '%'
+              OR (titular_wise IS NOT NULL AND titular_wise <> '' AND clean_sender LIKE '%' || LOWER(TRIM(titular_wise)) || '%')
+              OR (customer_name IS NOT NULL AND customer_name <> '' AND clean_sender LIKE '%' || LOWER(TRIM(customer_name)) || '%')
+              OR (NEW.titular_wise IS NOT NULL AND NEW.titular_wise <> '' AND LOWER(TRIM(sender_name)) LIKE '%' || LOWER(TRIM(NEW.titular_wise)) || '%')
+          )
+        ORDER BY created_at DESC
+        LIMIT 1;
+
+        -- Si ya existe la transferencia del banco, la actualizamos con los datos del formulario:
+        IF matched_row.id IS NOT NULL THEN
+            UPDATE public.wise_payments
+            SET 
+                booking_date   = COALESCE(NEW.booking_date, matched_row.booking_date),
+                phone          = COALESCE(NEW.phone, matched_row.phone),
+                activity       = COALESCE(NEW.activity, matched_row.activity),
+                activity_lines = COALESCE(NEW.activity_lines, matched_row.activity_lines),
+                customer_name  = COALESCE(NEW.customer_name, matched_row.customer_name),
+                titular_wise   = COALESCE(NEW.titular_wise, matched_row.titular_wise),
+                is_english     = COALESCE(NEW.is_english, matched_row.is_english),
+                num_people     = CASE WHEN NEW.num_people > 0 THEN NEW.num_people ELSE matched_row.num_people END,
+                is_paid        = true
+            WHERE id = matched_row.id;
+
+            -- Cancelar la inserción de la fila WEB_ para que no haya duplicados
+            RETURN NULL;
+        END IF;
+
+        -- Si no existe ninguna transferencia previa en el banco, se inserta la fila web pendiente
+        RETURN NEW;
+    END IF;
+END;
+$function$;
+
+COMMENT ON FUNCTION public.reconcile_wise_payment() IS 'Reconcilia pagos de Wise entre extractos bancarios y formularios web CF7.';
+
+
 -- ================================================================================
 -- SECTION 2: INTERNAL LOGIC FUNCTIONS (Esquema: logic - Lógica de Negocio ERP)
 -- ================================================================================
@@ -2571,6 +2686,35 @@ COMMENT ON FUNCTION public.get_roster_bookings_by_date(date) IS 'Obtiene las res
 
 
 -- --------------------------------------------------------------------------------
+-- Función: public.get_roster_bookings_count_by_date(target_date date)
+-- Propósito: Conteo rápido y eficiente de reservas de clientes para una fecha en el Roster.
+-- Parámetros: target_date (date) - Fecha de buceo consultada.
+-- Retorna: integer - Número de reservas confirmadas para esa fecha.
+-- ERP Módulo: Indicador de carga y contadores de alumnos en Roster.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_roster_bookings_count_by_date(target_date date)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+    cnt integer;
+BEGIN
+    SELECT count(*)::integer INTO cnt
+    FROM customers c
+    WHERE c.booking_date = target_date;
+    
+    RETURN COALESCE(cnt, 0);
+END;
+$function$;
+
+GRANT EXECUTE ON FUNCTION public.get_roster_bookings_count_by_date(date) TO anon, authenticated, service_role;
+
+COMMENT ON FUNCTION public.get_roster_bookings_count_by_date(date) IS 'Conteo rápido de reservas registradas para una fecha en el Roster.';
+
+
+-- --------------------------------------------------------------------------------
 -- Función: public.search_roster_customers(query_text text, target_date date)
 -- Propósito: Búsqueda contextualizada de clientes para Roster con priorización por fecha (HOY),
 --            relevancia textual natural (nombre de pila y prefijo de apellido) y proximidad temporal.
@@ -2728,3 +2872,243 @@ GRANT EXECUTE ON FUNCTION public.update_customer_gear(UUID, TEXT, VARCHAR, VARCH
 
 COMMENT ON FUNCTION public.update_customer_gear(UUID, TEXT, VARCHAR, VARCHAR, VARCHAR) 
 IS 'Actualiza exclusivamente las tallas de equipo (BCD, traje, aletas) de un cliente desde Roster 2.0 de forma segura.';
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.push_backup_to_github(p_file_content text)
+-- Propósito: Sube el contenido de una copia de seguridad en formato JSON directamente a GitHub
+--            mediante la API REST de GitHub con autenticación Vault GITHUB_PAT.
+-- Parámetros: p_file_content (text) - Contenido serializado del backup.
+-- Retorna: jsonb con estado, commit SHA y timestamp.
+-- ERP Módulo: Módulo de Copias de Seguridad (Ajustes -> Backups).
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.push_backup_to_github(p_file_content text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+  v_pat text;
+  v_get_res http_response;
+  v_put_res http_response;
+  v_sha text := NULL;
+  v_base64_content text;
+  v_body jsonb;
+  v_json_resp jsonb;
+BEGIN
+  -- 1. Obtener Token cifrado desde Vault
+  SELECT decrypted_secret INTO v_pat FROM vault.decrypted_secrets WHERE name = 'GITHUB_PAT' LIMIT 1;
+  IF v_pat IS NULL THEN
+    RAISE EXCEPTION 'No se encontró el token GITHUB_PAT en Vault';
+  END IF;
+
+  -- 2. Consultar si el archivo ya existe para obtener su SHA
+  v_get_res := http((
+    'GET',
+    'https://api.github.com/repos/SolrakZerg/ihasia-diving-erp/contents/database/data_backups/backup_latest.json',
+    ARRAY[
+      http_header('Authorization', 'Bearer ' || v_pat),
+      http_header('User-Agent', 'Supabase-ERP-Backup'),
+      http_header('Accept', 'application/vnd.github.v3+json')
+    ],
+    NULL,
+    NULL
+  )::http_request);
+
+  IF v_get_res.status = 200 THEN
+    v_json_resp := v_get_res.content::jsonb;
+    v_sha := v_json_resp->>'sha';
+  END IF;
+
+  -- 3. Codificar el contenido en Base64
+  v_base64_content := encode(convert_to(p_file_content, 'UTF8'), 'base64');
+
+  -- 4. Construir cuerpo del PUT
+  IF v_sha IS NOT NULL THEN
+    v_body := jsonb_build_object(
+      'message', 'chore(backup): Actualizar respaldo de datos ' || to_char(now(), 'YYYY-MM-DD HH24:MI:SS UTC'),
+      'content', v_base64_content,
+      'sha', v_sha
+    );
+  ELSE
+    v_body := jsonb_build_object(
+      'message', 'chore(backup): Crear respaldo inicial de datos ' || to_char(now(), 'YYYY-MM-DD HH24:MI:SS UTC'),
+      'content', v_base64_content
+    );
+  END IF;
+
+  -- 5. Enviar PUT a GitHub API
+  v_put_res := http((
+    'PUT',
+    'https://api.github.com/repos/SolrakZerg/ihasia-diving-erp/contents/database/data_backups/backup_latest.json',
+    ARRAY[
+      http_header('Authorization', 'Bearer ' || v_pat),
+      http_header('User-Agent', 'Supabase-ERP-Backup'),
+      http_header('Accept', 'application/vnd.github.v3+json'),
+      http_header('Content-Type', 'application/json')
+    ],
+    'application/json',
+    v_body::text
+  )::http_request);
+
+  IF v_put_res.status IN (200, 201) THEN
+    RETURN jsonb_build_object(
+      'success', true,
+      'status', v_put_res.status,
+      'commit', (v_put_res.content::jsonb)->'commit'->>'sha',
+      'timestamp', now()
+    );
+  ELSE
+    RETURN jsonb_build_object(
+      'success', false,
+      'status', v_put_res.status,
+      'error', v_put_res.content
+    );
+  END IF;
+END;
+$function$;
+
+
+-- --------------------------------------------------------------------------------
+-- Función: public.generate_and_push_github_backup()
+-- Propósito: Genera el volcado completo de las 39 tablas de la base de datos directamente en PostgreSQL
+--            y lo sube a GitHub en una única operación atómica sin intermediación del navegador.
+-- Retorna: jsonb con estado, commit SHA y timestamp.
+-- ERP Módulo: Módulo de Copias de Seguridad (Ajustes -> Backups).
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.generate_and_push_github_backup()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+  v_pat text;
+  v_get_res http_response;
+  v_put_res http_response;
+  v_sha text := NULL;
+  v_full_json jsonb;
+  v_base64_content text;
+  v_body jsonb;
+  v_json_resp jsonb;
+BEGIN
+  -- 1. Obtener Token cifrado desde Vault
+  SELECT decrypted_secret INTO v_pat FROM vault.decrypted_secrets WHERE name = 'GITHUB_PAT' LIMIT 1;
+  IF v_pat IS NULL THEN
+    RAISE EXCEPTION 'No se encontró el token GITHUB_PAT en Vault';
+  END IF;
+
+  -- 2. Generar JSON completo directamente en PostgreSQL (39 tablas)
+  v_full_json := jsonb_build_object(
+    'metadata', jsonb_build_object(
+      'project', 'IHASIA Diving ERP',
+      'version', '1.4.0',
+      'export_date', now(),
+      'total_tables', 39
+    ),
+    'tables', jsonb_build_object(
+      'customers', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.customers r),
+      'invoices', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.invoices r),
+      'invoice_items', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.invoice_items r),
+      'bizums', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.bizums r),
+      'wise_payments', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.wise_payments r),
+      'staff', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.staff r),
+      'staff_settlements', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.staff_settlements r),
+      'staff_advances', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.staff_advances r),
+      'staff_daily_activity', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.staff_daily_activity r),
+      'staff_adjustments', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.staff_adjustments r),
+      'partner_settlements', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.partner_settlements r),
+      'partner_advances', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.partner_advances r),
+      'partner_daily_activity', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.partner_daily_activity r),
+      'partner_adjustments', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.partner_adjustments r),
+      'partner_cash_payments', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.partner_cash_payments r),
+      'partner_daily_log', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.partner_daily_log r),
+      'bote_monthly', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.bote_monthly r),
+      'bote_expenses', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.bote_expenses r),
+      'monthly_expenses', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.monthly_expenses r),
+      'monthly_reports', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.monthly_reports r),
+      'daily_expenses', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.daily_expenses r),
+      'fixed_expenses', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.fixed_expenses r),
+      'supplier_settlements', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.supplier_settlements r),
+      'ssi_monthly_breakdown', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.ssi_monthly_breakdown r),
+      'activities', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.activities r),
+      'activity_categories', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.activity_categories r),
+      'activity_logs', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.activity_logs r),
+      'monthly_activity_logs', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.monthly_activity_logs r),
+      'insurance_batches', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.insurance_batches r),
+      'insurance_batch_items', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.insurance_batch_items r),
+      'insurance_config', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.insurance_config r),
+      'business_entities', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.business_entities r),
+      'cash_control_monthly', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.cash_control_monthly r),
+      'attendance', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.attendance r),
+      'exchange_rates', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.exchange_rates r),
+      'expense_categories', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.expense_categories r),
+      'external_promoters', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.external_promoters r),
+      'instructor_payouts', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.instructor_payouts r),
+      'ui_config', (SELECT COALESCE(jsonb_agg(r), '[]'::jsonb) FROM public.ui_config r)
+    )
+  );
+
+  -- 3. Consultar SHA existente en GitHub
+  v_get_res := http((
+    'GET',
+    'https://api.github.com/repos/SolrakZerg/ihasia-diving-erp/contents/database/data_backups/backup_latest.json',
+    ARRAY[
+      http_header('Authorization', 'Bearer ' || v_pat),
+      http_header('User-Agent', 'Supabase-ERP-Backup'),
+      http_header('Accept', 'application/vnd.github.v3+json')
+    ],
+    NULL,
+    NULL
+  )::http_request);
+
+  IF v_get_res.status = 200 THEN
+    v_json_resp := v_get_res.content::jsonb;
+    v_sha := v_json_resp->>'sha';
+  END IF;
+
+  -- 4. Codificar a Base64
+  v_base64_content := encode(convert_to(v_full_json::text, 'UTF8'), 'base64');
+
+  -- 5. Enviar PUT a GitHub API
+  IF v_sha IS NOT NULL THEN
+    v_body := jsonb_build_object(
+      'message', 'chore(backup): Actualizar respaldo de datos ' || to_char(now(), 'YYYY-MM-DD HH24:MI:SS UTC'),
+      'content', v_base64_content,
+      'sha', v_sha
+    );
+  ELSE
+    v_body := jsonb_build_object(
+      'message', 'chore(backup): Crear respaldo de datos ' || to_char(now(), 'YYYY-MM-DD HH24:MI:SS UTC'),
+      'content', v_base64_content
+    );
+  END IF;
+
+  v_put_res := http((
+    'PUT',
+    'https://api.github.com/repos/SolrakZerg/ihasia-diving-erp/contents/database/data_backups/backup_latest.json',
+    ARRAY[
+      http_header('Authorization', 'Bearer ' || v_pat),
+      http_header('User-Agent', 'Supabase-ERP-Backup'),
+      http_header('Accept', 'application/vnd.github.v3+json'),
+      http_header('Content-Type', 'application/json')
+    ],
+    'application/json',
+    v_body::text
+  )::http_request);
+
+  IF v_put_res.status IN (200, 201) THEN
+    RETURN jsonb_build_object(
+      'success', true,
+      'status', v_put_res.status,
+      'commit', (v_put_res.content::jsonb)->'commit'->>'sha',
+      'timestamp', now()
+    );
+  ELSE
+    RETURN jsonb_build_object(
+      'success', false,
+      'status', v_put_res.status,
+      'error', v_put_res.content
+    );
+  END IF;
+END;
+$function$;

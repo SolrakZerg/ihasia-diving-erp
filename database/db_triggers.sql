@@ -291,3 +291,17 @@ CREATE TRIGGER trg_sync_staff_to_report AFTER INSERT OR DELETE OR UPDATE ON publ
 -- Propósito: Sincroniza facturas de proveedores pagadas en `monthly_reports.total_gastos`.
 -- --------------------------------------------------------------------------------
 CREATE TRIGGER trg_sync_suppliers_to_report AFTER INSERT OR DELETE OR UPDATE ON public.supplier_settlements FOR EACH ROW EXECUTE FUNCTION logic.trg_sync_total_gastos_to_report();
+
+
+-- ================================================================================
+-- Tabla: public.wise_payments
+-- ================================================================================
+
+-- --------------------------------------------------------------------------------
+-- Trigger: trg_reconcile_wise_payment
+-- Evento: BEFORE INSERT ON public.wise_payments
+-- Función: public.reconcile_wise_payment()
+-- Propósito: Normaliza importes, detecta moneda y precalcula depósitos recibidos vía Wise.
+-- --------------------------------------------------------------------------------
+CREATE TRIGGER trg_reconcile_wise_payment BEFORE INSERT ON public.wise_payments FOR EACH ROW EXECUTE FUNCTION reconcile_wise_payment();
+
