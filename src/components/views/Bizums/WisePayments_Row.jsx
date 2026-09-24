@@ -78,7 +78,7 @@ export default function WisePayments_Row({
             const badge = getActivityColor(code);
             // Formato con x minúscula (ej: OW x2, o DSD x1 si son mixtas)
             const isSingleOverall = payment.activity_lines.length === 1 && cnt === 1;
-            const label = isSingleOverall ? code : `${code} x${cnt}`;
+            const label = isSingleOverall ? code : `${code}x${cnt}`;
             return (
               <span
                 key={idx}
@@ -107,7 +107,7 @@ export default function WisePayments_Row({
             ? (multMatch[1] || multMatch[2]) 
             : (parts.length === 1 && payment.num_people > 1 ? payment.num_people : null);
           
-          const label = mult && parseInt(mult, 10) > 1 ? `${acronym} x${mult}` : acronym;
+          const label = mult && parseInt(mult, 10) > 1 ? `${acronym}x${mult}` : acronym;
 
           return (
             <span

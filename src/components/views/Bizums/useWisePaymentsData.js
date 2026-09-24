@@ -27,8 +27,8 @@ export default function useWisePaymentsData() {
   const [totalCount, setTotalCount] = useState(0);
   const PAGE_SIZE = 12;
 
-  const fetchPayments = useCallback(async () => {
-    setLoading(true);
+  const fetchPayments = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let query = supabase
         .from('wise_payments')
@@ -65,12 +65,35 @@ export default function useWisePaymentsData() {
     } catch (err) {
       console.error('Error fetching Wise payments:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, [currentPage, activeTab, searchTerm]);
 
   useEffect(() => {
     fetchPayments();
+  }, [fetchPayments]);
+
+  // --- Realtime Subscription ---
+  useEffect(() => {
+    const channel = supabase
+      .channel('wise-payments-realtime-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'wise_payments' },
+        (payload) => {
+          console.log('[Realtime Wise] Cambio detectado:', payload.eventType);
+          fetchPayments(true);
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('[Realtime Wise] Error en suscripción:', err);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchPayments]);
 
   // Search Handler

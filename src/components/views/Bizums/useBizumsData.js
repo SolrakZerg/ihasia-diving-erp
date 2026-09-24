@@ -36,9 +36,9 @@ export default function useBizumsData() {
   const pageSize = activeTab === 'active' ? 200 : 50;
 
   // --- Fetching ---
-  const fetchBizums = useCallback(async () => {
+  const fetchBizums = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const limit = activeTab === 'active' ? 200 : 50;
 
       let q = supabase
@@ -69,12 +69,35 @@ export default function useBizumsData() {
     } catch (err) {
       console.error('Error fetching bizums:', err.message);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, [activeTab, currentPage, debouncedSearch, sortConfig]);
 
   useEffect(() => {
     fetchBizums();
+  }, [fetchBizums]);
+
+  // --- Realtime Subscription ---
+  useEffect(() => {
+    const channel = supabase
+      .channel('bizums-realtime-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bizums' },
+        (payload) => {
+          console.log('[Realtime Bizums] Cambio detectado:', payload.eventType);
+          fetchBizums(true);
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('[Realtime Bizums] Error en suscripción:', err);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchBizums]);
 
   // --- Search Handler ---

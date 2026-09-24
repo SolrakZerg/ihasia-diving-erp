@@ -36,17 +36,26 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose, onConfirmPa
     if (isOpen && data) {
       const defaultCode = getShortCodeFromActivityName(data.activity);
       const numPax = data.num_people || 1;
-      setIsMultipleActivities(false);
       
-      // Por defecto al desglosar: Línea 1 con numPax - 1, Línea 2 con 1 pax
-      if (numPax > 1) {
-        const secondaryCode = defaultCode === 'OW' ? 'SR' : 'OW';
-        setActivityLines([
-          { count: numPax - 1, code: defaultCode, isSequential: false },
-          { count: 1, code: secondaryCode, isSequential: false }
-        ]);
+      if (Array.isArray(data.activity_lines) && data.activity_lines.length > 0) {
+        setIsMultipleActivities(data.activity_lines.length > 1);
+        setActivityLines(data.activity_lines.map(l => ({
+          count: parseInt(l.count || l.pax || 1, 10),
+          code: (l.code || getShortCodeFromActivityName(l.name)).toUpperCase(),
+          isSequential: false
+        })));
       } else {
-        setActivityLines([{ count: 1, code: defaultCode, isSequential: false }]);
+        setIsMultipleActivities(false);
+        // Por defecto al desglosar: Línea 1 con numPax - 1, Línea 2 con 1 pax
+        if (numPax > 1) {
+          const secondaryCode = defaultCode === 'OW' ? 'SR' : 'OW';
+          setActivityLines([
+            { count: numPax - 1, code: defaultCode, isSequential: false },
+            { count: 1, code: secondaryCode, isSequential: false }
+          ]);
+        } else {
+          setActivityLines([{ count: 1, code: defaultCode, isSequential: false }]);
+        }
       }
 
       setCompletedList([]);
@@ -300,6 +309,11 @@ export default function Bizums_ActionsModal({ data, isOpen, onClose, onConfirmPa
           <div className="p-4 rounded-2xl bg-surface-soft border border-surface-edge text-center space-y-1">
             <span className="text-gray-400 block text-xs uppercase font-extrabold tracking-wider">Reserva Confirmada</span>
             <strong className="text-white text-base sm:text-lg block font-black leading-snug">{mainInfo}</strong>
+            {data.titular_bizum && data.titular_bizum.trim().toLowerCase() !== data.customer_name?.trim().toLowerCase() && (
+              <span className="text-amber-400 text-xs sm:text-sm block font-semibold">
+                (Titular Bizum: {data.titular_bizum})
+              </span>
+            )}
             <span className="text-gray-300 text-sm sm:text-base block font-medium">({formattedDate})</span>
           </div>
 

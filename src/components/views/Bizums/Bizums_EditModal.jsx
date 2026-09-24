@@ -73,6 +73,7 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
       const payload = {
         booking_date: formData.booking_date,
         customer_name: formData.customer_name.trim(),
+        titular_bizum: formData.titular_bizum ? formData.titular_bizum.trim() : null,
         num_people: Number(formData.num_people || 1),
         activity: formData.activity ? formData.activity.trim() : null,
         bizum_phone: formData.bizum_phone ? formData.bizum_phone.trim() : null,
@@ -159,6 +160,15 @@ export default function Bizums_EditModal({ bizum, isOpen, onClose, onSaved }) {
               onChange={handleChange}
               icon={User}
               required
+            />
+
+            <InputGroup
+              label="Titular Bizum (si es diferente)"
+              name="titular_bizum"
+              value={formData.titular_bizum || ''}
+              onChange={handleChange}
+              icon={User}
+              placeholder="Opcional si pagó otra persona"
             />
 
             <InputGroup

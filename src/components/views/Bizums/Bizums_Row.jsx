@@ -1,5 +1,5 @@
 import { Phone, Edit2, Trash2, Check, AlertCircle, Archive, FileText } from 'lucide-react';
-import { getActivityColor, generateWhatsappLink, formatPrettyPhone } from './Bizums_Utils';
+import { getActivityColor, generateWhatsappLink, formatPrettyPhone, getShortCodeFromActivityName } from './Bizums_Utils';
 
 export default function Bizums_Row({
   row,
@@ -42,18 +42,50 @@ export default function Bizums_Row({
   };
 
   const renderActivityBadges = (activityStr) => {
+    // 1. Si tenemos desglose exacto por curso en activity_lines:
+    if (Array.isArray(row.activity_lines) && row.activity_lines.length > 0) {
+      return (
+        <div className="flex flex-wrap items-center justify-center gap-1 max-w-[130px] mx-auto">
+          {row.activity_lines.map((l, idx) => {
+            const code = (l.code || l.activity || getShortCodeFromActivityName(l.name)).toUpperCase();
+            const cnt = parseInt(l.count || l.pax || 1, 10);
+            const badge = getActivityColor(code);
+            const isSingleOverall = row.activity_lines.length === 1 && cnt === 1;
+            const label = isSingleOverall ? code : `${code}x${cnt}`;
+            return (
+              <span
+                key={idx}
+                title={`${l.name || code} (${cnt} ${cnt === 1 ? 'persona' : 'personas'})`}
+                className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-extrabold border tracking-wider leading-tight shadow-xs ${badge.bg} ${badge.text} ${badge.border}`}
+              >
+                {label}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // 2. Si viene de texto plano (registros antiguos):
     if (!activityStr) return <span className="text-gray-600 text-xs">-</span>;
     const parts = activityStr.split(',').map(s => s.trim()).filter(Boolean);
     return (
-      <div className="flex flex-wrap items-center justify-center gap-1 max-w-[120px] mx-auto">
+      <div className="flex flex-wrap items-center justify-center gap-1 max-w-[130px] mx-auto">
         {parts.map((act, idx) => {
           const badge = getActivityColor(act);
+          const code = getShortCodeFromActivityName(act).toUpperCase();
+          const multMatch = act.match(/(?:x\s*(\d+)|(\d+)\s*x)/i);
+          const mult = multMatch 
+            ? (multMatch[1] || multMatch[2]) 
+            : (parts.length === 1 && row.num_people > 1 ? row.num_people : null);
+          const label = mult && parseInt(mult, 10) > 1 ? `${code}x${mult}` : code;
           return (
             <span
               key={idx}
-              className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-bold border uppercase tracking-wide leading-tight ${badge.bg} ${badge.text} ${badge.border}`}
+              title={act}
+              className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-extrabold border tracking-wider leading-tight shadow-xs ${badge.bg} ${badge.text} ${badge.border}`}
             >
-              {act}
+              {label}
             </span>
           );
         })}
@@ -93,29 +125,36 @@ export default function Bizums_Row({
         </span>
       </td>
 
-      {/* Nombre y Apellidos */}
-      <td className="py-2.5 px-3 max-w-[180px] w-[180px]">
-        <div className="flex items-center gap-1.5">
-          <p
-            className="text-white/70 font-bold text-sm capitalize leading-snug line-clamp-2 break-words"
-            title={row.notes ? `${row.customer_name}\n\n📝 Nota: ${row.notes}` : row.customer_name}
-          >
-            {row.customer_name}
-          </p>
-          {row.notes && (
-            <span
-              className="inline-flex text-cyan-400 hover:text-cyan-300 cursor-default shrink-0"
-              title={`📝 Nota: ${row.notes}`}
+      {/* Nombre y Apellidos + Titular Bizum si es distinto */}
+      <td className="py-2.5 px-3 max-w-[200px] w-[200px]">
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-1.5">
+            <p
+              className="text-white/70 font-bold text-sm capitalize leading-snug line-clamp-2 break-words"
+              title={row.notes ? `${row.customer_name}\n\n📝 Nota: ${row.notes}` : row.customer_name}
             >
-              <FileText className="w-3.5 h-3.5" />
-            </span>
-          )}
-          {((row.is_returned && row.returned_people !== null && row.returned_people < row.num_people) || (row.is_retained && row.returned_people !== null && row.returned_people > 0)) && (
-            <span 
-              className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 
-              title={`Retención Parcial: asistieron ${row.returned_people} de ${row.num_people} personas. El importe restante de ${(row.num_people - row.returned_people) * 25}€ está retenido.`}
-            >
-              <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+              {row.customer_name}
+            </p>
+            {row.notes && (
+              <span
+                className="inline-flex text-cyan-400 hover:text-cyan-300 cursor-default shrink-0"
+                title={`📝 Nota: ${row.notes}`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </span>
+            )}
+            {((row.is_returned && row.returned_people !== null && row.returned_people < row.num_people) || (row.is_retained && row.returned_people !== null && row.returned_people > 0)) && (
+              <span 
+                className="inline-flex text-amber-500 hover:text-amber-400 cursor-help shrink-0" 
+                title={`Retención Parcial: asistieron ${row.returned_people} de ${row.num_people} personas. El importe restante de ${(row.num_people - row.returned_people) * 25}€ está retenido.`}
+              >
+                <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+              </span>
+            )}
+          </div>
+          {row.titular_bizum && row.titular_bizum.trim().toLowerCase() !== row.customer_name.trim().toLowerCase() && (
+            <span className="text-[11px] text-amber-400/90 font-medium truncate max-w-[190px]" title={`Titular de la cuenta Bizum: ${row.titular_bizum}`}>
+              Titular: {row.titular_bizum}
             </span>
           )}
         </div>
