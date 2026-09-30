@@ -96,7 +96,7 @@ export function useNominasData() {
     
     const { data: items, error: fetchError } = await supabase
       .from('invoice_items')
-      .select('*, activities(id, name, category, acronym, duration_days), customers(first_name), instructor:staff(id, initials)')
+      .select('*, activities(id, name, category, acronym, duration_days, price_thb), customers(first_name, last_name), instructor:staff(id, initials)')
       .gte('date', firstDay) 
       .lte('date', lastDay);
 
@@ -578,6 +578,31 @@ export function useNominasData() {
       const tAdvances = staffAdvancesList.reduce((acc, a) => acc + a.amount, 0);
       const fBalance = tComm + tAssists + tAdj - tAdvances;
 
+      // 8. Calculate staff sales commissions (Comisiones de venta)
+      const staffCommissions = (invoiceItems || [])
+        .filter(item => item.is_comm && item.comm_recipient_id === staffId)
+        .map(item => {
+          const amt = item.comm_amount_thb != null 
+            ? parseFloat(item.comm_amount_thb) 
+            : parseFloat(item.activities?.price_thb || 0) * 0.1;
+          const custName = item.customers 
+            ? `${item.customers.first_name || ''} ${item.customers.last_name || ''}`.trim() 
+            : (item.temporary_name || 'Sin cliente');
+          return {
+            id: item.id,
+            date: item.date,
+            customerName: custName,
+            activityName: item.activities?.name || 'Actividad',
+            amount: amt,
+            isPaid: !!item.is_comm_paid
+          };
+        })
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+      const totalAgentCommissions = staffCommissions.reduce((acc, c) => acc + c.amount, 0);
+      const totalAgentCommissionsPaid = staffCommissions.filter(c => c.isPaid).reduce((acc, c) => acc + c.amount, 0);
+      const totalAgentCommissionsPending = staffCommissions.filter(c => !c.isPaid).reduce((acc, c) => acc + c.amount, 0);
+
       return {
         matrixData: mData,
         fixedColumns,
@@ -592,6 +617,10 @@ export function useNominasData() {
         totalAdvances: tAdvances,
         finalBalance: fBalance,
         selectedMember: member,
+        commissionsList: staffCommissions,
+        totalAgentCommissions,
+        totalAgentCommissionsPaid,
+        totalAgentCommissionsPending,
         month,
         year
       };
@@ -613,6 +642,10 @@ export function useNominasData() {
   const totalAdvances = singleStaffData?.totalAdvances || 0;
   const finalBalance = singleStaffData?.finalBalance || 0;
   const selectedMember = singleStaffData?.selectedMember || null;
+  const commissionsList = singleStaffData?.commissionsList || [];
+  const totalAgentCommissions = singleStaffData?.totalAgentCommissions || 0;
+  const totalAgentCommissionsPaid = singleStaffData?.totalAgentCommissionsPaid || 0;
+  const totalAgentCommissionsPending = singleStaffData?.totalAgentCommissionsPending || 0;
 
   // AUTO-SAVE LOGIC (Disabled for ALL mode)
   useEffect(() => {
@@ -647,6 +680,10 @@ export function useNominasData() {
     fixedColumns, dynamicActivities, matrixData, attendanceData,
     totalComm, totalAssists, totalAdj, totalAdvances, finalBalance,
     selectedMember,
+    commissionsList,
+    totalAgentCommissions,
+    totalAgentCommissionsPaid,
+    totalAgentCommissionsPending,
     getPayrollDataForStaff,
     invoiceItems,
     payoutRules,

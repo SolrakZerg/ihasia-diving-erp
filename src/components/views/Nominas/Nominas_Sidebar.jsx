@@ -14,7 +14,8 @@ export default function Nominas_Sidebar({
   advances,
   addAdvance,
   removeAdvance,
-  updateAdvance
+  updateAdvance,
+  totalAgentCommissions = 0
 }) {
   const [showAdvForm, setShowAdvForm] = useState(false);
   const [currentAdvId, setCurrentAdvId] = useState(null);
@@ -60,6 +61,24 @@ export default function Nominas_Sidebar({
           <div className="h-px bg-surface-edge/50 my-2" />
           <div className="flex justify-between items-center text-rose-400"><span className="text-base font-bold">Cobrado</span><span className="text-base font-black">-{totalAdvances.toLocaleString()} ฿</span></div>
         </div>
+
+        {/* INFORMATIVE COMMISSIONS BOX */}
+        {totalAgentCommissions > 0 && (
+          <div className="bg-surface p-3.5 rounded-2xl border border-indigo-500/25 flex items-center justify-between shadow-sm">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-indigo-300">Comisiones de Venta</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 font-bold uppercase tracking-wider">Gastos</span>
+              </div>
+              <p className="text-[10px] text-gray-500 mt-0.5">Informativo · Gestión en Gastos</p>
+            </div>
+            <div className="text-right">
+              <span className="text-base font-black text-indigo-300 font-mono">
+                {totalAgentCommissions.toLocaleString()} ฿
+              </span>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="space-y-4 flex-1 flex flex-col min-h-0">

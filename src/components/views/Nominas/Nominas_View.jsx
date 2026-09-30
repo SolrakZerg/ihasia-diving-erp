@@ -27,6 +27,10 @@ export default function Nominas_View() {
     fixedColumns, dynamicActivities, matrixData, attendanceData,
     totalComm, totalAssists, totalAdj, totalAdvances, finalBalance,
     selectedMember,
+    commissionsList,
+    totalAgentCommissions,
+    totalAgentCommissionsPaid,
+    totalAgentCommissionsPending,
     getPayrollDataForStaff,
     invoiceItems,
     payoutRules,
@@ -63,7 +67,11 @@ export default function Nominas_View() {
         totalAssists,
         totalAdj,
         totalAdvances,
-        finalBalance
+        finalBalance,
+        commissionsList,
+        totalAgentCommissions,
+        totalAgentCommissionsPaid,
+        totalAgentCommissionsPending
       };
       downloadInstructorPDF(currentPayrollData);
     }
@@ -99,7 +107,11 @@ export default function Nominas_View() {
         totalAssists,
         totalAdj,
         totalAdvances,
-        finalBalance
+        finalBalance,
+        commissionsList,
+        totalAgentCommissions,
+        totalAgentCommissionsPaid,
+        totalAgentCommissionsPending
       };
       previewInstructorPDF(currentPayrollData);
     }
@@ -119,7 +131,11 @@ export default function Nominas_View() {
     totalAssists,
     totalAdj,
     totalAdvances,
-    finalBalance
+    finalBalance,
+    commissionsList,
+    totalAgentCommissions,
+    totalAgentCommissionsPaid,
+    totalAgentCommissionsPending
   };
 
   return (
@@ -204,6 +220,7 @@ export default function Nominas_View() {
             addAdvance={addAdvance}
             removeAdvance={removeAdvance}
             updateAdvance={updateAdvance}
+            totalAgentCommissions={totalAgentCommissions}
           />
         </div>
       )}
