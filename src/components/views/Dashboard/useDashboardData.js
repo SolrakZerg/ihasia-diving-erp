@@ -224,7 +224,7 @@ export default function useDashboardData() {
           totalEarned: realComms + totalBonus,
           pending: Number(s.total_payout) || 0
         };
-      }).filter(s => s.totalEarned > 0).sort((a, b) => b.totalEarned - a.totalEarned);
+      }).filter(s => s.totalEarned > 0 || s.pending !== 0).sort((a, b) => b.totalEarned - a.totalEarned);
       
       setStaffData(finalStaff);
       setMetrics(mObj);

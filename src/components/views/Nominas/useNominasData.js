@@ -64,15 +64,24 @@ export function useNominasData() {
     const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
     const lastDay = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
     
-    // Buscar instructores con cursos facturados o ajustes/extras en este mes
-    const [invRes, adjRes] = await Promise.all([
-      supabase.from('invoice_items').select('instructor_id').gte('date', firstDay).lte('date', lastDay),
-      supabase.from('staff_adjustments').select('staff_id').eq('year', year).eq('month', month)
+    // Buscar instructores con cursos facturados, comisiones, ajustes/extras, adelantos, actividad o liquidaciones este mes
+    const [invRes, adjRes, advRes, actRes, setRes] = await Promise.all([
+      supabase.from('invoice_items').select('instructor_id, comm_recipient_id').gte('date', firstDay).lte('date', lastDay),
+      supabase.from('staff_adjustments').select('staff_id').eq('year', year).eq('month', month),
+      supabase.from('staff_advances').select('staff_id').eq('year', year).eq('month', month),
+      supabase.from('staff_daily_activity').select('staff_id').eq('year', year).eq('month', month),
+      supabase.from('staff_settlements').select('staff_id').eq('year', year).eq('month', month)
     ]);
     
     const ids = new Set();
-    (invRes.data || []).forEach(i => i.instructor_id && ids.add(i.instructor_id));
+    (invRes.data || []).forEach(i => {
+      if (i.instructor_id) ids.add(i.instructor_id);
+      if (i.comm_recipient_id) ids.add(i.comm_recipient_id);
+    });
     (adjRes.data || []).forEach(a => a.staff_id && ids.add(a.staff_id));
+    (advRes.data || []).forEach(a => a.staff_id && ids.add(a.staff_id));
+    (actRes.data || []).forEach(a => a.staff_id && ids.add(a.staff_id));
+    (setRes.data || []).forEach(s => s.staff_id && ids.add(s.staff_id));
     
     setActiveStaffIds(ids);
     
