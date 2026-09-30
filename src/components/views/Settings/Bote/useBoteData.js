@@ -110,12 +110,12 @@ export default function useBoteData() {
         .lte('date', endOfMonth);
       const tshirtsCount = items?.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0) || 0;
 
-      // 3. Ingresos por seguros (timestamptz: desde el primer segundo del mes hasta antes del día 1 del mes siguiente)
+      // 3. Ingresos por seguros (timestamptz: desde el primer segundo del mes hasta antes del día 1 del mes siguiente en horario de Tailandia UTC+7)
       const { data: batches } = await supabase
         .from('insurance_batches')
         .select('total_pax')
-        .gte('created_at', `${startOfMonth}T00:00:00`)
-        .lt('created_at', `${startOfNextMonth}T00:00:00`);
+        .gte('created_at', `${startOfMonth}T00:00:00+07:00`)
+        .lt('created_at', `${startOfNextMonth}T00:00:00+07:00`);
       const insurancesCount = batches?.reduce((acc, b) => acc + (b.total_pax || 0), 0) || 0;
 
       setStats({ tshirts: tshirtsCount, insurances: insurancesCount });
