@@ -70,6 +70,10 @@ export default function useBoteData() {
       const lastDay = new Date(year, month, 0).getDate();
       const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
 
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const nextYear = month === 12 ? year + 1 : year;
+      const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+
       // 1. Saldo inicial del mes actual
       const { data: boteData } = await supabase
         .from('bote_monthly')
@@ -106,12 +110,12 @@ export default function useBoteData() {
         .lte('date', endOfMonth);
       const tshirtsCount = items?.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0) || 0;
 
-      // 3. Ingresos por seguros
+      // 3. Ingresos por seguros (timestamptz: desde el primer segundo del mes hasta antes del día 1 del mes siguiente)
       const { data: batches } = await supabase
         .from('insurance_batches')
         .select('total_pax')
-        .gte('created_at', startOfMonth)
-        .lte('created_at', endOfMonth);
+        .gte('created_at', `${startOfMonth}T00:00:00`)
+        .lt('created_at', `${startOfNextMonth}T00:00:00`);
       const insurancesCount = batches?.reduce((acc, b) => acc + (b.total_pax || 0), 0) || 0;
 
       setStats({ tshirts: tshirtsCount, insurances: insurancesCount });
