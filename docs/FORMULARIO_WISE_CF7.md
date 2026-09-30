@@ -34,11 +34,28 @@ Documento oficial de respaldo con el código final probado y validado en producc
       [tel* whatsapp placeholder "+34 612 345 678"]
       <span class="iw-hint">Imprescindible incluir prefijo (+34, etc.)</span>
     </div>
+  </div>
 
-    <div class="iw-field iw-highlight">
-      <label>Titular de la cuenta Wise</label>
-      [text titular_wise placeholder "(solo si es diferente a tu nombre)"]
-      <span class="iw-hint">⚠️ Si pagaste desde la cuenta de otra persona o empresa.</span>
+  <!-- TARJETA DESTACADA EN AMARILLO: ¿PAGÓ OTRA PERSONA? -->
+  <div class="iw-payer-card" style="background: #fffbeb !important; border: 1.5px dashed #f59e0b !important; border-radius: 12px !important; padding: 14px 18px !important; margin: 14px 0 18px 0 !important; box-sizing: border-box !important;">
+    <label class="iw-checkbox-label" style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important; cursor: pointer !important; margin: 0 !important; padding: 0 !important;">
+      <input type="checkbox" id="iw-toggle-titular" onchange="window.toggleTitularField(this)" style="width: 22px !important; height: 22px !important; min-width: 22px !important; max-width: 22px !important; margin: 0 !important; padding: 0 !important; accent-color: #d97706 !important; cursor: pointer !important; flex-shrink: 0 !important; display: inline-block !important;">
+      <span style="font-size: 15px !important; font-weight: 700 !important; color: #92400e !important; line-height: 1.2 !important; display: inline-block !important;">¿Hizo la transferencia otra persona por ti?</span>
+    </label>
+    <div style="font-size: 12.5px !important; color: #b45309 !important; font-weight: normal !important; margin-top: 4px !important; padding-left: 34px !important; line-height: 1.4 !important;">
+      Marca esta casilla <strong>ÚNICAMENTE</strong> si el dinero salió de una cuenta que no está a tu nombre (pareja, amigo, etc.).
+    </div>
+
+    <!-- CAMPO OCULTO: SOLO SE DESPLIEGA SI MARCA LA CASILLA -->
+    <div id="iw-titular-wrap" style="display: none; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #fcd34d !important;">
+      <label for="titular_wise" style="font-size: 13px !important; font-weight: 700 !important; color: #78350f !important; display: block !important; margin-bottom: 6px !important;">Nombre y apellidos del titular de la cuenta Wise:</label>
+      [text titular_wise id:titular_wise placeholder "Nombre oficial de quien envió el dinero"]
+      <span class="iw-hint" style="font-size: 11.5px !important; color: #92400e !important; margin-top: 4px !important; display: block !important;">⚠️ Pon su <strong>NOMBRE Y APELLIDOS</strong> tal como figura en su cuenta bancaria/Wise para poder localizar el pago.</span>
+      
+      <!-- AVISO EN VIVO SI EL CLIENTE PONE SU PROPIO NOMBRE -->
+      <div id="iw-titular-warning" style="display: none; margin-top: 10px; background: #fee2e2 !important; border: 1.5px solid #ef4444 !important; color: #991b1b !important; padding: 10px 14px !important; border-radius: 8px !important; font-size: 12.5px !important; line-height: 1.4 !important;">
+        ⚠️ <strong>¡Atención!</strong> Estás poniendo tu propio nombre. Si la transferencia la hiciste tú desde tu cuenta, <strong>desmarca la casilla de arriba</strong> y déjalo vacío.
+      </div>
     </div>
   </div>
 
@@ -169,10 +186,58 @@ window.recalculateWiseTotal = function() {
   }
 };
 
-// Por si alguien teclea a mano en el campo
+// Por si alguien teclea a mano en el campo de pax
 document.addEventListener('input', function(e) {
   if (e.target && e.target.classList.contains('iw-pax-input')) {
     window.recalculateWiseTotal();
+  }
+});
+
+// Control del Switch de Titular Wise
+window.toggleTitularField = function(checkbox) {
+  var wrap = document.getElementById('iw-titular-wrap');
+  var input = document.getElementById('titular_wise') || document.querySelector('input[name="titular_wise"]');
+  var warn = document.getElementById('iw-titular-warning');
+  if (!wrap) return;
+  if (checkbox.checked) {
+    wrap.style.display = 'block';
+    if (input) input.focus();
+  } else {
+    wrap.style.display = 'none';
+    if (input) input.value = '';
+    if (warn) warn.style.display = 'none';
+  }
+};
+
+// Detector en tiempo real de despistados
+document.addEventListener('input', function(e) {
+  if (e.target && (e.target.id === 'titular_wise' || e.target.name === 'titular_wise')) {
+    var titularVal = e.target.value.trim().toLowerCase();
+    var nameInput = document.querySelector('input[name="nombre_cliente"]');
+    var clienteVal = nameInput ? nameInput.value.trim().toLowerCase() : '';
+    var warn = document.getElementById('iw-titular-warning');
+    if (!warn || titularVal.length < 3) {
+      if (warn) warn.style.display = 'none';
+      return;
+    }
+    var primerNombreCliente = clienteVal.split(' ')[0];
+    var primerNombreTitular = titularVal.split(' ')[0];
+    var esMismoNombre = (primerNombreCliente.length >= 3 && primerNombreTitular === primerNombreCliente);
+    var contiene = clienteVal.indexOf(titularVal) !== -1 || titularVal.indexOf(clienteVal) !== -1;
+    if (esMismoNombre || contiene) {
+      warn.style.display = 'block';
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+});
+
+// Limpieza antes de enviar si no estaba marcado
+document.addEventListener('wpcf7submit', function() {
+  var chk = document.getElementById('iw-toggle-titular');
+  var input = document.getElementById('titular_wise') || document.querySelector('input[name="titular_wise"]');
+  if (chk && !chk.checked && input) {
+    input.value = '';
   }
 });
 </script>

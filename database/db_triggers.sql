@@ -301,7 +301,7 @@ CREATE TRIGGER trg_sync_suppliers_to_report AFTER INSERT OR DELETE OR UPDATE ON 
 -- Trigger: trg_reconcile_wise_payment
 -- Evento: BEFORE INSERT ON public.wise_payments
 -- Función: public.reconcile_wise_payment()
--- Propósito: Normaliza importes, detecta moneda y precalcula depósitos recibidos vía Wise.
+-- Propósito: Reconciliación automática bidireccional entre transferencias de Wise y formularios web con coincidencia cruzada (remitente oficial, alumno y titular).
 -- --------------------------------------------------------------------------------
-CREATE TRIGGER trg_reconcile_wise_payment BEFORE INSERT ON public.wise_payments FOR EACH ROW EXECUTE FUNCTION reconcile_wise_payment();
+CREATE TRIGGER trg_reconcile_wise_payment BEFORE INSERT ON public.wise_payments FOR EACH ROW EXECUTE FUNCTION public.reconcile_wise_payment();
 

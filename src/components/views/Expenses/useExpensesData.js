@@ -341,6 +341,22 @@ export const useExpensesData = () => {
     })).sort((a, b) => b.amount - a.amount);
   }, [commissions, recipientOptions]);
 
+  const paidByRecipient = useMemo(() => {
+    const map = {};
+    commissions.filter(c => c.is_comm_paid && c.comm_recipient_id).forEach(c => {
+      const rid = c.comm_recipient_id;
+      const amt = (c.comm_amount_thb != null ? parseFloat(c.comm_amount_thb) : parseFloat(c.activities?.price_thb || 0) * 0.1);
+      if (!map[rid]) map[rid] = 0;
+      map[rid] += amt;
+    });
+    return Object.entries(map).map(([id, amount]) => ({
+      id,
+      name: getRecipientName(id),
+      amount,
+      type: getRecipientType(id)
+    })).sort((a, b) => b.amount - a.amount);
+  }, [commissions, recipientOptions]);
+
   return {
     expenses, setExpenses,
     commissions, setCommissions,
@@ -387,6 +403,7 @@ export const useExpensesData = () => {
     recipientOptions,
     getRecipientName,
     getRecipientType,
-    pendingByRecipient
+    pendingByRecipient,
+    paidByRecipient
   };
 };

@@ -73,8 +73,26 @@ const Expenses_View = () => {
     startEditingCat,
     cancelEditingCat,
     recipientOptions,
-    pendingByRecipient
+    pendingByRecipient,
+    paidByRecipient
   } = useExpensesData();
+
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState([]);
+
+  const handleToggleRecipientFilter = (id) => {
+    setSelectedRecipientIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleClearRecipientFilter = () => {
+    setSelectedRecipientIds([]);
+  };
+
+  const displayedCommissions = useMemo(() => {
+    if (!selectedRecipientIds || selectedRecipientIds.length === 0) return commissions;
+    return commissions.filter(c => selectedRecipientIds.includes(c.comm_recipient_id));
+  }, [commissions, selectedRecipientIds]);
 
   if (loading) {
     return <div className="h-full flex items-center justify-center text-white">Cargando datos...</div>;
@@ -141,7 +159,7 @@ const Expenses_View = () => {
             {/* COLUMNA DERECHA (COL-8) */}
             <div className="lg:col-span-8 flex flex-col lg:h-[calc(100vh-260px)] gap-6 max-w-[900px]">
               <Expenses_Commissions_Table 
-                commissions={commissions}
+                commissions={displayedCommissions}
                 commissionsPaid={commissionsPaid}
                 commissionsPending={commissionsPending}
                 recipientOptions={recipientOptions}
@@ -150,12 +168,19 @@ const Expenses_View = () => {
                 editCommVal={editCommVal}
                 setEditCommVal={setEditCommVal}
                 updateItem={updateItem}
+                selectedRecipientIds={selectedRecipientIds}
+                onToggleRecipient={handleToggleRecipientFilter}
+                onClearRecipient={handleClearRecipientFilter}
               />
 
               <Expenses_Sidebar
                 sidebarOpen={true}
                 pendingByRecipient={pendingByRecipient}
+                paidByRecipient={paidByRecipient}
                 inline={true}
+                selectedRecipientIds={selectedRecipientIds}
+                onToggleRecipient={handleToggleRecipientFilter}
+                onClearRecipient={handleClearRecipientFilter}
               />
 
               <Expenses_Oxygen_Table 
@@ -172,7 +197,11 @@ const Expenses_View = () => {
         <Expenses_Sidebar
           sidebarOpen={sidebarOpen}
           pendingByRecipient={pendingByRecipient}
+          paidByRecipient={paidByRecipient}
           inline={false}
+          selectedRecipientIds={selectedRecipientIds}
+          onToggleRecipient={handleToggleRecipientFilter}
+          onClearRecipient={handleClearRecipientFilter}
         />
       </div>
 

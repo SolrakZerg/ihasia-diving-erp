@@ -12,7 +12,10 @@ const Expenses_Commissions_Table = ({
    setEditingCommId,
    editCommVal,
    setEditCommVal,
-   updateItem
+   updateItem,
+   selectedRecipientIds = [],
+   onToggleRecipient,
+   onClearRecipient
 }) => {
    const [refreshKey, setRefreshKey] = React.useState(0);
    const [isNarrow, setIsNarrow] = useState(false);
@@ -32,7 +35,39 @@ const Expenses_Commissions_Table = ({
    return (
       <div className="bg-surface-soft border border-surface-edge rounded-2xl shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden" ref={containerRef}>
          <div className={`py-1.5 border-b border-surface-edge bg-surface-soft/50 flex-none flex gap-2 ${isNarrow ? 'flex-col items-center px-2' : 'flex-row items-center justify-between px-4'}`}>
-            <h3 className={`text-[11px] font-black text-text-header uppercase tracking-widest flex items-center gap-2 ${isNarrow ? 'text-center' : 'text-left'}`}>Comisiones</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+               <h3 className={`text-[11px] font-black text-text-header uppercase tracking-widest flex items-center gap-2 ${isNarrow ? 'text-center' : 'text-left'}`}>Comisiones</h3>
+               {selectedRecipientIds.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap ml-1">
+                     <span className="text-[10px] text-text-muted font-bold">Filtro:</span>
+                     {selectedRecipientIds.map(id => {
+                        const rec = recipientOptions.find(r => r.id === id);
+                        const name = rec ? (rec.name || rec.initials || 'Agente') : 'Agente';
+                        return (
+                           <button
+                              key={id}
+                              type="button"
+                              onClick={() => onToggleRecipient && onToggleRecipient(id)}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 text-[10px] font-bold transition-all group/chip"
+                              title="Quitar de la selección"
+                           >
+                              <span>{name}</span>
+                              <X className="w-2.5 h-2.5 opacity-70 group-hover/chip:opacity-100" />
+                           </button>
+                        );
+                     })}
+                     {selectedRecipientIds.length > 1 && (
+                        <button
+                           type="button"
+                           onClick={onClearRecipient}
+                           className="text-[10px] font-bold text-text-muted hover:text-white underline ml-0.5"
+                        >
+                           Limpiar todos
+                        </button>
+                     )}
+                  </div>
+               )}
+            </div>
             <div className={`flex flex-wrap gap-3 ${isNarrow ? 'justify-center' : 'justify-end'}`}>
                <div className="stats-pill" style={{ '--widget-color': 'var(--color-success)' }}>
                   <span className="stats-pill-title">Pagado:</span>
@@ -69,7 +104,24 @@ const Expenses_Commissions_Table = ({
                </thead>
                <tbody className="divide-y divide-surface-edge/10">
                   {commissions.length === 0 ? (
-                     <tr><td colSpan="5" className="py-24 text-center text-text-header/60 italic text-xs">No hay facturas marcadas como comisionables este mes.</td></tr>
+                     <tr>
+                        <td colSpan="5" className="py-24 text-center text-text-header/60 italic text-xs">
+                           {selectedRecipientIds.length > 0 ? (
+                              <div className="flex flex-col items-center gap-2 not-italic">
+                                 <span>No hay comisiones para los agentes seleccionados en este mes.</span>
+                                 <button
+                                    type="button"
+                                    onClick={onClearRecipient}
+                                    className="px-3 py-1 bg-surface-edge/30 hover:bg-surface-edge text-indigo-300 text-xs font-bold rounded-lg border border-surface-edge/50 transition-all"
+                                 >
+                                    Quitar filtro y ver todas
+                                 </button>
+                              </div>
+                           ) : (
+                              'No hay facturas marcadas como comisionables este mes.'
+                           )}
+                        </td>
+                     </tr>
                   ) : (
                      commissions.map(c => (
                         <tr key={c.id} className="hover:bg-brand/5 transition-colors group">
