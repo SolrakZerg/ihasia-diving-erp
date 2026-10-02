@@ -11,7 +11,8 @@ import {
   Loader2,
   FileText,
   Plus,
-  Trash2
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { cleanPhone } from './Bizums_Utils';
 import WisePayments_MiniCalendar from './WisePayments_MiniCalendar';
@@ -62,6 +63,13 @@ export default function WisePayments_ProcessForm({
   savingEdit,
   onSaveEdit
 }) {
+  // Discrepancia entre depósito bancario y número de personas (1.000 THB por Pax)
+  const bankAmount = Number(payment?.amount_raw || payment?.amount_eur || 0);
+  const numPax = Number(payment?.num_people || 1);
+  const expectedDeposit = numPax * 1000;
+  const hasDepositDiscrepancy = bankAmount > 0 && bankAmount !== expectedDeposit;
+  const depositDiff = bankAmount - expectedDeposit;
+
   return (
     <div className="p-4 sm:p-5 space-y-3 max-h-[88vh] overflow-y-auto custom-scrollbar flex-1">
       
@@ -303,6 +311,18 @@ export default function WisePayments_ProcessForm({
       {!isPaxCountValid && (
         <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs text-center font-bold animate-pulse">
           ⚠️ Debes asignar los {payment?.num_people || 1} Pax de la reserva (actualmente hay {totalAssignedPax}).
+        </div>
+      )}
+
+      {hasDepositDiscrepancy && (
+        <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-200 text-xs sm:text-sm font-semibold flex items-center gap-2.5">
+          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+          <div>
+            <span className="text-amber-300 font-extrabold block">⚠️ Depósito recibido no coincide con Pax:</span>
+            <span>
+              Transferencia: <strong>{bankAmount} THB</strong> vs Esperado: <strong>{expectedDeposit} THB</strong> ({numPax} Pax). {depositDiff < 0 ? `Faltan ${Math.abs(depositDiff)} THB por cobrar en el centro.` : `Hay un exceso de +${depositDiff} THB.`}
+            </span>
+          </div>
         </div>
       )}
 

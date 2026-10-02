@@ -21,6 +21,35 @@ export default function useWisePaymentsData() {
   const [processModalPayment, setProcessModalPayment] = useState(null);
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
 
+  // Link Modal State (Vinculación manual de reservas web y transferencias huérfanas)
+  const [linkModalPayment, setLinkModalPayment] = useState(null);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+
+  // Unlink Modal State (Desvinculación con modal personalizado)
+  const [unlinkModalPayment, setUnlinkModalPayment] = useState(null);
+  const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
+
+  const openLinkModal = (payment) => {
+    setLinkModalPayment(payment);
+    setIsLinkModalOpen(true);
+  };
+
+  const closeLinkModal = () => {
+    setLinkModalPayment(null);
+    setIsLinkModalOpen(false);
+  };
+
+  const openUnlinkModal = (payment) => {
+    setUnlinkModalPayment(payment);
+    setIsUnlinkModalOpen(true);
+  };
+
+  const closeUnlinkModal = () => {
+    setUnlinkModalPayment(null);
+    setIsUnlinkModalOpen(false);
+  };
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -251,6 +280,73 @@ export default function useWisePaymentsData() {
     }
   };
 
+  // Confirm Unlink from custom modal
+  const confirmUnlinkModal = async () => {
+    if (!unlinkModalPayment) return;
+    const payment = unlinkModalPayment;
+    const studentName = payment.customer_name || payment.sender_name;
+
+    try {
+      setUnlinkLoading(true);
+      const now = new Date();
+      const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const timePart = now.toTimeString().slice(0, 8).replace(/:/g, '');
+      const randPart = Math.floor(100 + Math.random() * 900);
+      const webId = `WEB_${datePart}_${timePart}_${randPart}`;
+
+      // 1. Restaurar el formulario web pendiente con su fecha/hora original
+      const originalWebDate = payment.web_created_at || payment.created_at;
+      const { error: insertError } = await supabase
+        .from('wise_payments')
+        .insert({
+          id: webId,
+          created_at: originalWebDate,
+          sender_name: studentName,
+          customer_name: studentName,
+          titular_wise: null,
+          booking_date: payment.booking_date,
+          phone: payment.phone,
+          activity: payment.activity,
+          activity_lines: payment.activity_lines,
+          num_people: payment.num_people || 1,
+          is_english: payment.is_english ?? true,
+          is_paid: false,
+          is_processed: false,
+          amount_raw: 0,
+          currency: 'THB',
+          amount_eur: 0
+        });
+
+      if (insertError) throw insertError;
+
+      // 2. Limpiar los datos del alumno de la transferencia del banco
+      const { error: updateError } = await supabase
+        .from('wise_payments')
+        .update({
+          customer_name: null,
+          titular_wise: null,
+          booking_date: null,
+          phone: null,
+          activity: null,
+          activity_lines: null,
+          web_created_at: null,
+          is_paid: true,
+          is_processed: false
+        })
+        .eq('id', payment.id);
+
+      if (updateError) throw updateError;
+
+      closeUnlinkModal();
+      await fetchPayments();
+    } catch (err) {
+      console.error('Error unlinking payment:', err);
+      alert('Error al desvincular: ' + err.message);
+    } finally {
+      setUnlinkLoading(false);
+    }
+  };
+
   return {
     payments,
     loading,
@@ -280,6 +376,17 @@ export default function useWisePaymentsData() {
     setProcessModalPayment,
     isProcessModalOpen,
     setIsProcessModalOpen,
+    linkModalPayment,
+    isLinkModalOpen,
+    openLinkModal,
+    closeLinkModal,
+    unlinkModalPayment,
+    isUnlinkModalOpen,
+    unlinkLoading,
+    openUnlinkModal,
+    closeUnlinkModal,
+    confirmUnlinkModal,
+    handleUnlink: openUnlinkModal,
     fetchPayments
   };
 }

@@ -9,6 +9,8 @@ import WisePayments_Header from './WisePayments_Header';
 import WisePayments_Row from './WisePayments_Row';
 import WisePayments_RetentionModal from './WisePayments_RetentionModal';
 import WisePayments_ProcessModal from './WisePayments_ProcessModal';
+import WisePayments_LinkModal from './WisePayments_LinkModal';
+import WisePayments_UnlinkModal from './WisePayments_UnlinkModal';
 
 export default function WisePayments_Table() {
   const {
@@ -38,6 +40,17 @@ export default function WisePayments_Table() {
     processModalPayment,
     isProcessModalOpen,
     setIsProcessModalOpen,
+    linkModalPayment,
+    isLinkModalOpen,
+    openLinkModal,
+    closeLinkModal,
+    unlinkModalPayment,
+    isUnlinkModalOpen,
+    unlinkLoading,
+    openUnlinkModal,
+    closeUnlinkModal,
+    confirmUnlinkModal,
+    handleUnlink,
     togglePaid,
     fetchPayments
   } = useWisePaymentsData();
@@ -101,6 +114,8 @@ export default function WisePayments_Table() {
         onToggleSettled={toggleSettled}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onOpenLinkModal={openLinkModal}
+        onUnlink={openUnlinkModal}
       />
     ));
   };
@@ -238,6 +253,23 @@ export default function WisePayments_Table() {
         isEditMode={true}
         onClose={() => setIsEditModalOpen(false)}
         onProcessedSuccess={fetchPayments}
+      />
+
+      {/* Modal de Vinculación Manual (Unificar reserva web con transferencia huérfana) */}
+      <WisePayments_LinkModal
+        isOpen={isLinkModalOpen}
+        sourcePayment={linkModalPayment}
+        onClose={closeLinkModal}
+        onLinkSuccess={fetchPayments}
+      />
+
+      {/* Modal de Desvinculación Elegante (Volver a separar registros) */}
+      <WisePayments_UnlinkModal
+        isOpen={isUnlinkModalOpen}
+        payment={unlinkModalPayment}
+        loading={unlinkLoading}
+        onClose={closeUnlinkModal}
+        onConfirm={confirmUnlinkModal}
       />
     </div>
   );

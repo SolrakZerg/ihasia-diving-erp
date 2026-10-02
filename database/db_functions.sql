@@ -1623,117 +1623,7 @@ $function$;
 COMMENT ON FUNCTION public.fn_trg_billing_auto_import_calendar_deposit() IS 'Importa automáticamente reservas desde Google Calendar como ítems de factura.';
 
 
--- --------------------------------------------------------------------------------
--- Función: public.reconcile_wise_payment()
--- Propósito: Función trigger BEFORE INSERT para la tabla wise_payments.
---            Reconcilia transferencias bancarias de Wise con formularios web pendientes,
---            fusionando los datos y evitando registros duplicados.
--- Retorna: trigger (NEW / NULL)
--- ERP Módulo: Módulo de Gestión de Ingresos de Wise.
--- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.reconcile_wise_payment()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-DECLARE
-    matched_row RECORD;
-    clean_sender text;
-BEGIN
-    -- CASO 1: Llega una transferencia bancaria de Wise / Gmail
-    IF NEW.id NOT LIKE 'WEB_%' THEN
-        NEW.is_paid := true;
-        clean_sender := LOWER(TRIM(NEW.sender_name));
 
-        -- Buscar si hay un formulario web previo pendiente
-        SELECT * INTO matched_row
-        FROM public.wise_payments
-        WHERE id LIKE 'WEB_%'
-          AND is_processed = false
-          AND (
-              clean_sender LIKE '%' || LOWER(TRIM(sender_name)) || '%'
-              OR LOWER(TRIM(sender_name)) LIKE '%' || clean_sender || '%'
-              OR (titular_wise IS NOT NULL AND titular_wise <> '' AND clean_sender LIKE '%' || LOWER(TRIM(titular_wise)) || '%')
-              OR (customer_name IS NOT NULL AND customer_name <> '' AND clean_sender LIKE '%' || LOWER(TRIM(customer_name)) || '%')
-          )
-        ORDER BY created_at DESC
-        LIMIT 1;
-
-        -- Si encontramos el formulario web previo, heredamos sus datos
-        IF matched_row.id IS NOT NULL THEN
-            IF matched_row.booking_date IS NOT NULL THEN
-                NEW.booking_date := matched_row.booking_date;
-            END IF;
-            IF matched_row.phone IS NOT NULL THEN
-                NEW.phone := matched_row.phone;
-            END IF;
-            IF matched_row.activity IS NOT NULL THEN
-                NEW.activity := matched_row.activity;
-            END IF;
-            IF matched_row.activity_lines IS NOT NULL THEN
-                NEW.activity_lines := matched_row.activity_lines;
-            END IF;
-            IF matched_row.customer_name IS NOT NULL THEN
-                NEW.customer_name := matched_row.customer_name;
-            END IF;
-            IF matched_row.titular_wise IS NOT NULL THEN
-                NEW.titular_wise := matched_row.titular_wise;
-            END IF;
-            IF matched_row.is_english IS NOT NULL THEN
-                NEW.is_english := matched_row.is_english;
-            END IF;
-            IF matched_row.num_people IS NOT NULL AND matched_row.num_people > 0 THEN
-                NEW.num_people := matched_row.num_people;
-            END IF;
-
-            -- Eliminar la fila web temporal
-            DELETE FROM public.wise_payments WHERE id = matched_row.id;
-        END IF;
-
-        RETURN NEW;
-
-    -- CASO 2: Llega un formulario web (ID empieza por 'WEB_')
-    ELSE
-        clean_sender := LOWER(TRIM(NEW.sender_name));
-
-        -- Buscar si ya existe una transferencia de Wise en el banco
-        SELECT * INTO matched_row
-        FROM public.wise_payments
-        WHERE id NOT LIKE 'WEB_%'
-          AND is_processed = false
-          AND (
-              clean_sender LIKE '%' || LOWER(TRIM(sender_name)) || '%'
-              OR LOWER(TRIM(sender_name)) LIKE '%' || clean_sender || '%'
-              OR (titular_wise IS NOT NULL AND titular_wise <> '' AND clean_sender LIKE '%' || LOWER(TRIM(titular_wise)) || '%')
-              OR (customer_name IS NOT NULL AND customer_name <> '' AND clean_sender LIKE '%' || LOWER(TRIM(customer_name)) || '%')
-              OR (NEW.titular_wise IS NOT NULL AND NEW.titular_wise <> '' AND LOWER(TRIM(sender_name)) LIKE '%' || LOWER(TRIM(NEW.titular_wise)) || '%')
-          )
-        ORDER BY created_at DESC
-        LIMIT 1;
-
-        -- Si ya existe la transferencia del banco, la actualizamos con los datos del formulario:
-        IF matched_row.id IS NOT NULL THEN
-            UPDATE public.wise_payments
-            SET 
-                booking_date   = COALESCE(NEW.booking_date, matched_row.booking_date),
-                phone          = COALESCE(NEW.phone, matched_row.phone),
-                activity       = COALESCE(NEW.activity, matched_row.activity),
-                activity_lines = COALESCE(NEW.activity_lines, matched_row.activity_lines),
-                customer_name  = COALESCE(NEW.customer_name, matched_row.customer_name),
-                titular_wise   = COALESCE(NEW.titular_wise, matched_row.titular_wise),
-                is_english     = COALESCE(NEW.is_english, matched_row.is_english),
-                num_people     = CASE WHEN NEW.num_people > 0 THEN NEW.num_people ELSE matched_row.num_people END,
-                is_paid        = true
-            WHERE id = matched_row.id;
-
-            -- Cancelar la inserción de la fila WEB_ para que no haya duplicados
-            RETURN NULL;
-        END IF;
-
-        -- Si no existe ninguna transferencia previa en el banco, se inserta la fila web pendiente
-        RETURN NEW;
-    END IF;
-END;
-$function$;
 
 COMMENT ON FUNCTION public.reconcile_wise_payment() IS 'Reconcilia pagos de Wise entre extractos bancarios y formularios web CF7.';
 
@@ -3115,6 +3005,15 @@ $function$;
 
 
 -- --------------------------------------------------------------------------------
+-- Función: public.delete_wise_temp_web(p_id text)
+-- Propósito: Función auxiliar para eliminar una fila temporal web al reconciliar pagos Wise.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.delete_wise_temp_web(p_id text)
+RETURNS void
+LANGUAGE sql
+AS $$ DELETE FROM public.wise_payments WHERE id = p_id; $$;
+
+-- --------------------------------------------------------------------------------
 -- Función: public.reconcile_wise_payment()
 -- Propósito: Reconciliación automática bidireccional entre transferencias de Wise (bancarias/Gmail)
 --            y formularios web de reserva (Contact Form 7).
@@ -3193,9 +3092,12 @@ BEGIN
             IF matched_row.num_people IS NOT NULL AND matched_row.num_people > 0 THEN
                 NEW.num_people := matched_row.num_people;
             END IF;
+            IF matched_row.created_at IS NOT NULL THEN
+                NEW.web_created_at := matched_row.created_at;
+            END IF;
 
             -- Eliminar la fila web temporal
-            DELETE FROM public.wise_payments WHERE id = matched_row.id;
+            PERFORM public.delete_wise_temp_web(matched_row.id);
         END IF;
 
         RETURN NEW;
@@ -3248,6 +3150,7 @@ BEGIN
                 titular_wise   = COALESCE(NEW.titular_wise, matched_row.titular_wise),
                 is_english     = COALESCE(NEW.is_english, matched_row.is_english),
                 num_people     = CASE WHEN NEW.num_people > 0 THEN NEW.num_people ELSE matched_row.num_people END,
+                web_created_at = COALESCE(NEW.created_at, NOW()),
                 is_paid        = true
             WHERE id = matched_row.id;
 

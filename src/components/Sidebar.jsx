@@ -102,13 +102,13 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
   ];
 
   return (
-    <aside className={`fixed sm:sticky top-0 left-0 h-screen ${isCollapsed ? 'w-64 sm:w-20' : 'w-64'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-surface-soft border-r border-surface-edge flex flex-col transition-all duration-300 ease-in-out z-[150]`}>
+    <aside className={`fixed sm:sticky top-0 left-0 h-screen ${isCollapsed ? 'w-64 sm:w-14' : 'w-64'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-surface-soft border-r border-surface-edge flex flex-col transition-all duration-300 ease-in-out z-[150]`}>
 
       {/* Toggle Button (placed outside scroll container to avoid clipping) */}
       <button
         onClick={onToggleCollapse}
         aria-label={isCollapsed ? "Expandir menú lateral" : "Colapsar menú lateral"}
-        className={`hidden sm:flex sidebar-collapse-btn absolute -right-3 ${isCollapsed ? 'top-[40px]' : 'top-[96px]'} -translate-y-1/2 w-6 h-6 rounded-full bg-surface-edge border border-surface-edge items-center justify-center text-gray-300 hover:text-white hover:scale-110 transition-all z-50 shadow-lg focus-visible:ring-2 focus-visible:ring-brand`}
+        className={`hidden sm:flex sidebar-collapse-btn absolute -right-3 ${isCollapsed ? 'top-[80px]' : 'top-[96px]'} -translate-y-1/2 w-6 h-6 rounded-full bg-surface-edge border border-surface-edge items-center justify-center text-gray-300 hover:text-white hover:scale-110 transition-all z-50 shadow-lg focus-visible:ring-2 focus-visible:ring-brand`}
       >
         {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </button>
@@ -117,14 +117,14 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0">
 
         {/* Logo Header */}
-        <div className={`p-4 flex items-center justify-center border-b border-surface-edge relative ${isCollapsed ? 'sm:h-20 h-48' : 'h-48'} flex-shrink-0`}>
+        <div className={`flex items-center justify-center border-b border-surface-edge relative ${isCollapsed ? 'sm:h-20 sm:px-1 sm:py-3 p-4 h-48' : 'p-4 h-48'} flex-shrink-0`}>
 
           {/* Small Logo (visible when collapsed on desktop) */}
-          <div className={`sidebar-logo-small ${isCollapsed ? 'hidden sm:block' : 'hidden'}`}>
+          <div className={`sidebar-logo-small ${isCollapsed ? 'hidden sm:flex sm:items-center sm:justify-center w-full' : 'hidden'}`}>
             <img
               src={logos.small}
               alt="Logo"
-              className="h-10 w-auto object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert"
+              className="h-8 max-w-full w-auto object-contain animate-in fade-in zoom-in duration-500 brightness-0 invert"
             />
           </div>
 
@@ -146,7 +146,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-2">
+        <nav className={`flex-1 ${isCollapsed ? 'sm:px-1 py-3 space-y-2' : 'p-3 space-y-2'}`}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -155,7 +155,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
                 title={isCollapsed ? item.label : ''}
-                className={`w-full flex items-center ${isCollapsed ? 'sm:justify-center justify-between' : 'justify-between'} p-3 rounded-xl transition-all group relative border border-transparent focus-visible:border-brand-light focus-visible:bg-brand/10 ${isActive
+                className={`w-full flex items-center ${isCollapsed ? 'sm:justify-center justify-between py-3 px-[5px]' : 'justify-between p-3'} rounded-xl transition-all group relative border border-transparent focus-visible:border-brand-light focus-visible:bg-brand/10 ${isActive
                   ? 'bg-brand text-white shadow-lg shadow-brand/20'
                   : 'text-gray-300 hover:bg-surface hover:text-white focus-visible:text-white'
                   }`}
@@ -180,8 +180,8 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
         </nav>
 
         {/* Footer Area (User & Logout) */}
-        <div className="p-3 border-t border-surface-edge space-y-4 flex-shrink-0">
-          <div className={`px-3 py-2 bg-surface rounded-xl border border-surface-edge overflow-hidden ${isCollapsed ? 'flex justify-center sm:justify-center' : ''}`}>
+        <div className={`${isCollapsed ? 'sm:px-1 py-3 space-y-4' : 'p-3 space-y-4'} border-t border-surface-edge flex-shrink-0`}>
+          <div className={`bg-surface rounded-xl border border-surface-edge overflow-hidden ${isCollapsed ? 'py-2 px-1 flex justify-center sm:justify-center' : 'px-3 py-2'}`}>
             {/* Small view (user icon) */}
             <div className={`sidebar-user-small ${isCollapsed ? 'block sm:block' : 'hidden'}`}>
               <User className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} text-gray-400`} />
@@ -195,7 +195,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
           <button
             onClick={() => onViewChange('manual')}
             aria-label="Manual de Uso"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center sm:justify-center' : 'gap-3'} p-3 rounded-xl transition-all font-bold text-sm border ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center sm:justify-center py-3 px-[5px]' : 'gap-3 p-3'} rounded-xl transition-all font-bold text-sm border ${
               activeView === 'manual'
                 ? 'bg-brand text-white shadow-lg shadow-brand/20 border-brand'
                 : 'text-brand-light hover:bg-brand/10 hover:text-white border-transparent'
@@ -208,7 +208,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
           <button
             onClick={onLogout}
             aria-label="Cerrar Sesión"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center sm:justify-center' : 'gap-3'} p-3 rounded-xl text-red-400 hover:bg-red-500/10 focus-visible:bg-red-500/20 transition-all font-bold text-sm border border-transparent focus-visible:border-red-500/50`}
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center sm:justify-center py-3 px-[5px]' : 'gap-3 p-3'} rounded-xl text-red-400 hover:bg-red-500/10 focus-visible:bg-red-500/20 transition-all font-bold text-sm border border-transparent focus-visible:border-red-500/50`}
             title={isCollapsed ? 'Cerrar Sesión' : ''}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />

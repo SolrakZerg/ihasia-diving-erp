@@ -5,8 +5,8 @@
  * Archivo: ihasia-cf7-to-supabase.php
  * 
  * Gestiona automáticamente las reservas de:
- * 1. Wise ("Reserva por Wise", "Wise Booking") -> tabla public.wise_payments
- * 2. Bizum ("Reserva por Bizum")               -> tabla public.bizums
+ * 1. Wise ("Booking with Wise", "Reserva por Wise") -> tabla public.wise_payments
+ * 2. Bizum ("Reserva por Bizum")                   -> tabla public.bizums
  * 
  * Instrucciones:
  * Pega este código en el plugin "WPCode" / "Code Snippets" reemplazando el anterior.
@@ -23,7 +23,7 @@ function ihasia_sync_cf7_to_supabase($contact_form) {
     }
 
     $posted_data = $submission->get_posted_data();
-    $form_title  = method_exists($contact_form, 'title') ? $contact_form->title() : '';
+    $form_title  = method_exists($contact_form, 'title') ? trim($contact_form->title()) : '';
 
     // 2. Credenciales de Supabase
     $supabase_url = 'https://mowoxxyusicasgxouhxv.supabase.co';
@@ -41,9 +41,21 @@ function ihasia_sync_cf7_to_supabase($contact_form) {
         return;
     }
 
-    $fecha_reserva  = !empty($posted_data['fecha_reserva']) ? sanitize_text_field($posted_data['fecha_reserva']) : null;
+    $fecha_raw      = !empty($posted_data['fecha_reserva']) ? sanitize_text_field($posted_data['fecha_reserva']) : null;
     $nombre_cliente = !empty($posted_data['nombre_cliente']) ? sanitize_text_field($posted_data['nombre_cliente']) : '';
     $whatsapp       = !empty($posted_data['whatsapp']) ? sanitize_text_field($posted_data['whatsapp']) : '';
+
+    // Normalizar formato de fecha a YYYY-MM-DD para evitar confusión entre DD/MM/YYYY y MM/DD/YYYY
+    $fecha_reserva = $fecha_raw;
+    if (!empty($fecha_raw)) {
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $fecha_raw, $matches)) {
+            // Formato DD/MM/YYYY -> YYYY-MM-DD
+            $fecha_reserva = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+        } elseif (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $fecha_raw, $matches)) {
+            // Ya viene en formato YYYY-MM-DD
+            $fecha_reserva = sprintf('%04d-%02d-%02d', $matches[1], $matches[2], $matches[3]);
+        }
+    }
 
     // 4. Desglose de actividades con nombres oficiales del ERP
     $activities_map = [
@@ -91,8 +103,6 @@ function ihasia_sync_cf7_to_supabase($contact_form) {
         // Si no indicó teléfono específico de Bizum, usamos su WhatsApp
         $bizum_phone = !empty($telefono_bizum) ? $telefono_bizum : $whatsapp;
 
-        // Si se indicó un titular de Bizum distinto, se anota en las notas
-        // El número de personas que bucean y pagan depósito viene del campo superior
         $num_people_real = !empty($posted_data['num_personas']) ? intval($posted_data['num_personas']) : $total_pax;
         if ($num_people_real < 1) $num_people_real = 1;
 
@@ -122,10 +132,11 @@ function ihasia_sync_cf7_to_supabase($contact_form) {
     }
 
     // =========================================================================
-    // CASO B: RESERVA POR WISE ("Reserva por Wise" / "Wise Booking") -> public.wise_payments
+    // CASO B: RESERVA POR WISE -> public.wise_payments
+    // Soporta: "Booking with Wise" (EN), "Reserva por Wise" (ES), "Wise Booking"
     // =========================================================================
-    $allowed_wise_titles = ['Reserva por Wise', 'Wise Booking'];
-    if (in_array($form_title, $allowed_wise_titles, true)) {
+    $allowed_wise_titles = ['Booking with Wise', 'Reserva por Wise', 'Wise Booking'];
+    if (in_array($form_title, $allowed_wise_titles, true) || stripos($form_title, 'Wise') !== false) {
         $titular_wise = !empty($posted_data['titular_wise']) ? sanitize_text_field($posted_data['titular_wise']) : '';
         $is_english   = (isset($posted_data['is_english']) && $posted_data['is_english'] === 'true') ? true : false;
         $sender_name  = !empty($titular_wise) ? $titular_wise : $nombre_cliente;

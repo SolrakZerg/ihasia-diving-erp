@@ -787,7 +787,8 @@ CREATE TABLE public.wise_payments (
     is_english boolean DEFAULT true,
     is_paid boolean DEFAULT false,
     customer_name text,
-    titular_wise text
+    titular_wise text,
+    web_created_at timestamp with time zone
 );
 ALTER TABLE public.wise_payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all operations for anon and authenticated users on wise_p" ON public.wise_payments FOR ALL TO public USING (true) WITH CHECK (true);

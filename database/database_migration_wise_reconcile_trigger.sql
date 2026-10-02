@@ -8,6 +8,7 @@ ALTER TABLE public.wise_payments
   ADD COLUMN IF NOT EXISTS is_paid boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS customer_name text,
   ADD COLUMN IF NOT EXISTS titular_wise text,
+  ADD COLUMN IF NOT EXISTS web_created_at timestamp with time zone,
   ALTER COLUMN amount_raw DROP NOT NULL,
   ALTER COLUMN currency DROP NOT NULL,
   ALTER COLUMN amount_eur DROP NOT NULL;
@@ -17,7 +18,13 @@ ALTER TABLE public.wise_payments
   ALTER COLUMN currency SET DEFAULT 'THB',
   ALTER COLUMN amount_eur SET DEFAULT 0;
 
--- 2. Función Trigger de Reconciliación
+-- 2. Función auxiliar para borrado temporal
+CREATE OR REPLACE FUNCTION public.delete_wise_temp_web(p_id text)
+RETURNS void
+LANGUAGE sql
+AS $$ DELETE FROM public.wise_payments WHERE id = p_id; $$;
+
+-- 3. Función Trigger de Reconciliación
 CREATE OR REPLACE FUNCTION public.reconcile_wise_payment()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -88,9 +95,12 @@ BEGIN
             IF matched_row.num_people IS NOT NULL AND matched_row.num_people > 0 THEN
                 NEW.num_people := matched_row.num_people;
             END IF;
+            IF matched_row.created_at IS NOT NULL THEN
+                NEW.web_created_at := matched_row.created_at;
+            END IF;
 
             -- Eliminar la fila web temporal
-            DELETE FROM public.wise_payments WHERE id = matched_row.id;
+            PERFORM public.delete_wise_temp_web(matched_row.id);
         END IF;
 
         RETURN NEW;
@@ -143,6 +153,7 @@ BEGIN
                 titular_wise   = COALESCE(NEW.titular_wise, matched_row.titular_wise),
                 is_english     = COALESCE(NEW.is_english, matched_row.is_english),
                 num_people     = CASE WHEN NEW.num_people > 0 THEN NEW.num_people ELSE matched_row.num_people END,
+                web_created_at = COALESCE(NEW.created_at, NOW()),
                 is_paid        = true
             WHERE id = matched_row.id;
 
