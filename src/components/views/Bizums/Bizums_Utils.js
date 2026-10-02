@@ -112,7 +112,7 @@ export function getShortCodeFromActivityName(activityName) {
   if (upper.includes('AVANZADO') || upper.includes('ADVANCED') || upper.includes('AA')) return 'AA';
   if (upper.includes('REFRESH') || upper.includes('SR')) return 'SR';
   if (upper.includes('FUN') || upper.includes('FD')) return 'FD';
-  if (upper.includes('RESCUE')) return 'Rescue';
+  if (upper.includes('RESCUE') || upper.includes('RESCATE') || upper.includes('RES')) return 'Rescue';
   return 'OW';
 }
 

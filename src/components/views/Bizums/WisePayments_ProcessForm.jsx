@@ -161,6 +161,7 @@ export default function WisePayments_ProcessForm({
               <option value="DSD">DSD</option>
               <option value="SR">SR</option>
               <option value="FD">FD</option>
+              <option value="Rescue">Rescue</option>
             </select>
 
             <div className="grid grid-cols-2 p-1 bg-surface-soft border border-surface-edge rounded-xl gap-1">
@@ -253,6 +254,7 @@ export default function WisePayments_ProcessForm({
                     <option value="DSD">DSD</option>
                     <option value="SR">SR</option>
                     <option value="FD">FD</option>
+                    <option value="Rescue">Rescue</option>
                   </select>
                   {activityLines.length > 1 && (
                     <button

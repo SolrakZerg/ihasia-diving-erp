@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { cleanPhone } from './Bizums_Utils';
+import { cleanPhone, getShortCodeFromActivityName } from './Bizums_Utils';
 import { createCustomGoogleCalendarEvent } from './googleCalendarApi';
 
 const ACTIVITY_TRANSLATIONS = {
-  "OW 2": { en: "Open Water Course", es: "Open Water", code: "OW" },
+  "OW 2": { en: "Open Water Course (in 2 days)", es: "Open Water (en 2 días)", code: "OW" },
   "OW": { en: "Open Water Course", es: "Open Water", code: "OW" },
   "AA": { en: "Advanced Course", es: "Curso Avanzado", code: "AA" },
-  "DSD": { en: "Try Dive", es: "Bautizo de Buceo", code: "DSD" },
+  "DSD": { en: "Try Scuba", es: "Bautizo de Buceo", code: "DSD" },
   "SR": { en: "Scuba Refresh", es: "Refresh", code: "SR" },
   "FD": { en: "Fun Dives", es: "Fun Dives", code: "FD" },
   "RES": { en: "Rescue Diver Course", es: "Curso de Rescate", code: "RES" },
@@ -57,10 +57,14 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         ? payment.activity_lines 
         : null;
 
-      const savedLines = rawLines ? rawLines.map(l => ({
-        count: parseInt(l.count || l.pax || 1, 10),
-        code: (l.code || l.activity || 'OW').toUpperCase()
-      })) : null;
+      const savedLines = rawLines ? rawLines.map(l => {
+        const rawCode = l.code || l.activity || l.name || '';
+        const shortCode = getShortCodeFromActivityName(rawCode);
+        return {
+          count: parseInt(l.count || l.pax || 1, 10),
+          code: shortCode
+        };
+      }) : null;
 
       if (savedLines && (savedLines.length > 1 || (savedLines.length === 1 && numPax > 1 && savedLines[0].count < numPax))) {
         setIsMultipleActivities(true);
@@ -68,18 +72,18 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         setActivity(savedLines[0].code || 'OW');
       } else {
         setIsMultipleActivities(false);
-        const initialActivity = (payment.activity && !payment.activity.includes(',')) 
-          ? payment.activity.replace(/\s*x\d+.*$/i, '').trim() 
-          : 'OW';
-        setActivity(initialActivity || 'OW');
-        const secondaryCode = initialActivity === 'OW' ? 'AA' : 'OW';
+        const resolvedCode = (savedLines && savedLines.length > 0 && savedLines[0].code)
+          ? savedLines[0].code
+          : getShortCodeFromActivityName(payment.activity);
+        setActivity(resolvedCode || 'OW');
+        const secondaryCode = resolvedCode === 'OW' ? 'AA' : 'OW';
         if (numPax > 1) {
           setActivityLines([
-            { count: numPax - 1, code: initialActivity || 'OW' },
+            { count: numPax - 1, code: resolvedCode || 'OW' },
             { count: 1, code: secondaryCode }
           ]);
         } else {
-          setActivityLines([{ count: 1, code: initialActivity || 'OW' }]);
+          setActivityLines([{ count: 1, code: resolvedCode || 'OW' }]);
         }
       }
 
