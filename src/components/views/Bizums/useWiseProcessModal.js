@@ -4,10 +4,10 @@ import { cleanPhone, getShortCodeFromActivityName } from './Bizums_Utils';
 import { createCustomGoogleCalendarEvent } from './googleCalendarApi';
 
 const ACTIVITY_TRANSLATIONS = {
-  "OW 2": { en: "Open Water Course (in 2 days)", es: "Open Water (en 2 días)", code: "OW" },
+  "OW 2": { en: "Open Water Course", es: "Open Water", code: "OW" },
   "OW": { en: "Open Water Course", es: "Open Water", code: "OW" },
   "AA": { en: "Advanced Course", es: "Curso Avanzado", code: "AA" },
-  "DSD": { en: "Try Scuba", es: "Bautizo de Buceo", code: "DSD" },
+  "DSD": { en: "Try Dive", es: "Bautizo de Buceo", code: "DSD" },
   "SR": { en: "Scuba Refresh", es: "Refresh", code: "SR" },
   "FD": { en: "Fun Dives", es: "Fun Dives", code: "FD" },
   "RES": { en: "Rescue Diver Course", es: "Curso de Rescate", code: "RES" },
