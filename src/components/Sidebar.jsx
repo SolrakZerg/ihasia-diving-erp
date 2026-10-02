@@ -214,7 +214,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout, isCo
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span className={`sidebar-logout-text animate-in fade-in duration-300 ${isCollapsed ? 'hidden sm:hidden' : ''}`}>Cerrar Sesión</span>
           </button>
-          <div className="text-[10px] text-gray-500 font-bold font-mono tracking-wider text-center mt-2">
+          <div className="text-[11px] text-slate-300 font-black font-mono tracking-wider text-center mt-2 select-all">
             v{APP_VERSION}
           </div>
         </div>
