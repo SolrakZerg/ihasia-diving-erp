@@ -1276,22 +1276,13 @@ BEGIN
 
   v_booking_date_str := to_char(COALESCE(p_booking_date, CURRENT_DATE), 'YYYY-MM-DD');
 
-  -- Color en Google Calendar: WISE CR -> 7 (Peacock/Cyan), WISE BT -> 3 (Grape/Purple) o 9 (Blueberry)
-  IF v_method_str = 'WISE CR' THEN
-    v_color_id := '7';
-  ELSIF v_method_str = 'WISE BT' THEN
-    v_color_id := '3';
-  ELSE
-    v_color_id := '9';
-  END IF;
-
-  -- 3. Crear Evento en Google Calendar API v3
+  -- 3. Crear Evento en Google Calendar API v3 (Siempre color original '9' - Blueberry)
   v_cal_req_body := jsonb_build_object(
     'summary', v_title,
     'description', v_desc_html,
     'start', jsonb_build_object('date', v_booking_date_str, 'timeZone', 'Asia/Bangkok'),
     'end', jsonb_build_object('date', v_booking_date_str, 'timeZone', 'Asia/Bangkok'),
-    'colorId', v_color_id,
+    'colorId', '9',
     'reminders', jsonb_build_object('useDefault', false, 'overrides', '[]'::jsonb)
   )::text;
 
