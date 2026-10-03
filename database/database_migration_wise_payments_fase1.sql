@@ -24,3 +24,6 @@ ON public.wise_payments
 FOR ALL
 USING (true)
 WITH CHECK (true);
+
+-- Explicit Data API Grants (Supabase PostgREST)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.wise_payments TO anon, authenticated, service_role;

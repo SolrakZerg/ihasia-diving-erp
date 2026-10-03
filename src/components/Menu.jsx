@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Sidebar from './Sidebar';
 import Dashboard_View from './views/Dashboard/Dashboard_View';
@@ -13,6 +13,7 @@ import CRBT_View from './views/CRBT/CRBT_View';
 import Carabao_View from './views/Carabao/Carabao_Header';
 import Bizums_View from './views/Bizums/Bizums_View';
 import Manual_View from './views/Manual/Manual_View';
+import CashReservationModal from './views/Bizums/Cash/CashReservationModal';
 import { ChevronRight } from 'lucide-react';
 import { UndoProvider } from '../context/UndoContext';
 
@@ -26,6 +27,27 @@ export default function Dashboard({ user }) {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Shortcut Alt + B (case insensitive)
+      if (e.altKey && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        setIsCashModalOpen(prev => !prev);
+      }
+    };
+
+    const handleOpenCash = () => setIsCashModalOpen(true);
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('open-cash-reservation', handleOpenCash);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('open-cash-reservation', handleOpenCash);
+    };
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(prev => {
@@ -104,6 +126,12 @@ export default function Dashboard({ user }) {
           <ChevronRight className="w-4 h-4" />
         </button>
       )}
+
+      {/* Global Cash Reservation Modal (Accessible via Alt + B anywhere) */}
+      <CashReservationModal
+        isOpen={isCashModalOpen}
+        onClose={() => setIsCashModalOpen(false)}
+      />
     </div>
     </UndoProvider>
   );

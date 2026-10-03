@@ -793,3 +793,49 @@ CREATE TABLE public.wise_payments (
 ALTER TABLE public.wise_payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all operations for anon and authenticated users on wise_p" ON public.wise_payments FOR ALL TO public USING (true) WITH CHECK (true);
 COMMENT ON TABLE public.wise_payments IS 'Registro de depósitos recibidos vía transferencia Wise en bahts tailandeses.';
+
+-- ================================================================================
+-- 41. cash_reservations (Gestión y Control de Depósitos de Reservas en Efectivo)
+-- ================================================================================
+CREATE TABLE public.cash_reservations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    created_at timestamp with time zone DEFAULT now(),
+    booking_date date DEFAULT CURRENT_DATE NOT NULL,
+    first_name text DEFAULT ''::text NOT NULL,
+    last_name text DEFAULT ''::text,
+    phone text DEFAULT ''::text,
+    customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL,
+    activity_code text DEFAULT 'OW'::text,
+    num_people integer DEFAULT 1 NOT NULL,
+    amount_thb numeric DEFAULT 1000.00 NOT NULL,
+    is_english boolean DEFAULT true,
+    notes text DEFAULT ''::text,
+    source text DEFAULT 'erp_modal'::text,
+    calendar_event_id text,
+    calendar_event_summary text,
+    calendar_html_link text,
+    imported_to_invoice boolean DEFAULT false,
+    invoice_id uuid REFERENCES public.invoices(id) ON DELETE SET NULL,
+    imported_at timestamp with time zone,
+    CONSTRAINT unique_cash_reservation_cust_date UNIQUE (customer_id, booking_date)
+);
+ALTER TABLE public.cash_reservations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all operations for anon and authenticated users on cash_reservations" ON public.cash_reservations FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE INDEX idx_cash_reservations_cust_date ON public.cash_reservations (customer_id, booking_date);
+CREATE INDEX idx_cash_reservations_phone ON public.cash_reservations (phone);
+CREATE INDEX idx_cash_reservations_pending ON public.cash_reservations (imported_to_invoice) WHERE (imported_to_invoice = false);
+COMMENT ON TABLE public.cash_reservations IS 'Registro unificado de reservas cobradas en efectivo (Cash), control de importación a facturas y candado anti-duplicados.';
+
+-- ================================================================================
+-- PERMISOS GLOBALES DATA API (PostgREST / Supabase Client)
+-- Requerido a partir de octubre 2026 para nuevas instancias o migraciones
+-- ================================================================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- Configurar privilegios por defecto para cualquier tabla/secuencia creada en el futuro
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;

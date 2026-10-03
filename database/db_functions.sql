@@ -1300,6 +1300,217 @@ $function$;
 
 COMMENT ON FUNCTION public.create_custom_google_calendar_event(text, text, text, integer, date, text, text, text, boolean, text, text) IS 'Crea eventos en Google Calendar con formato THB estándar para facturación Koh Tao.';
 
+-- --------------------------------------------------------------------------------
+-- Función: public.create_cash_calendar_event()
+-- Propósito: Crea un evento en Google Calendar para una reserva en efectivo y guarda
+--            simultáneamente el registro en la tabla unificada cash_reservations.
+-- ERP Módulo: AddToCalendar Cash ERP / Depósitos.
+-- --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.create_cash_calendar_event(
+  p_customer_name text,
+  p_activity_codes text,
+  p_num_people integer DEFAULT 1,
+  p_booking_date date DEFAULT CURRENT_DATE,
+  p_phone text DEFAULT ''::text,
+  p_reserva_pax integer DEFAULT 0,
+  p_amount_thb numeric DEFAULT 1000.00,
+  p_is_english boolean DEFAULT false,
+  p_wa_message text DEFAULT ''::text,
+  p_sufijo_dias text DEFAULT ''::text,
+  p_notes text DEFAULT ''::text,
+  p_payment_method text DEFAULT 'CASH'
+)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+  v_client_id text;
+  v_client_secret text;
+  v_refresh_token text;
+  
+  v_num_people int;
+  v_title text;
+  v_formatted_date text;
+  v_desc_html text;
+  v_wa_link text;
+  v_btn_text text;
+  v_reserva_line text := '';
+  v_color_id text := NULL;
+  v_method_clean text;
+  
+  v_token_req_body text;
+  v_token_res http_response;
+  v_token_json jsonb;
+  v_access_token text;
+  
+  v_cal_req_json jsonb;
+  v_cal_res http_response;
+  v_cal_json jsonb;
+  v_html_link text;
+  v_summary text;
+  v_booking_date_str text;
+  v_phone_clean text;
+  v_cash_res_id uuid;
+BEGIN
+  -- 1. Obtener credenciales de Google OAuth desde Vault
+  SELECT decrypted_secret INTO v_client_id FROM vault.decrypted_secrets WHERE name = 'GOOGLE_CLIENT_ID' LIMIT 1;
+  SELECT decrypted_secret INTO v_client_secret FROM vault.decrypted_secrets WHERE name = 'GOOGLE_CLIENT_SECRET' LIMIT 1;
+  SELECT decrypted_secret INTO v_refresh_token FROM vault.decrypted_secrets WHERE name = 'GOOGLE_REFRESH_TOKEN' LIMIT 1;
+
+  IF v_client_id IS NULL OR v_client_secret IS NULL OR v_refresh_token IS NULL THEN
+    RAISE EXCEPTION 'No se encontraron las credenciales de Google OAuth en Vault';
+  END IF;
+
+  v_num_people := COALESCE(p_num_people, 1);
+  IF v_num_people <= 0 THEN v_num_people := 1; END IF;
+
+  -- 2. Título (formato idéntico a Addtocalendar 5.2)
+  v_title := COALESCE(p_customer_name, 'Cliente') || ' ' || COALESCE(p_activity_codes, 'OW') || COALESCE(p_sufijo_dias, '');
+  
+  IF p_is_english THEN
+    v_title := v_title || ' - Inglés';
+    v_btn_text := '📲 SEND CONFIRMATION MESSAGE';
+  ELSE
+    v_btn_text := '📲 ENVIAR MENSAJE CONFIRMACIÓN';
+  END IF;
+
+  -- Formato fecha para viñeta
+  v_formatted_date := to_char(COALESCE(p_booking_date, CURRENT_DATE), 'DD') || ' ' ||
+                      CASE extract(month from COALESCE(p_booking_date, CURRENT_DATE))::int
+                        WHEN 1 THEN 'ENE' WHEN 2 THEN 'FEB' WHEN 3 THEN 'MAR'
+                        WHEN 4 THEN 'ABR' WHEN 5 THEN 'MAY' WHEN 6 THEN 'JUN'
+                        WHEN 7 THEN 'JUL' WHEN 8 THEN 'AGO' WHEN 9 THEN 'SEP'
+                        WHEN 10 THEN 'OCT' WHEN 11 THEN 'NOV' WHEN 12 THEN 'DIC'
+                        ELSE '---'
+                      END || ' ' ||
+                      to_char(COALESCE(p_booking_date, CURRENT_DATE), 'YY');
+
+  v_phone_clean := replace(replace(COALESCE(p_phone, ''), '+', ''), ' ', '');
+  v_method_clean := COALESCE(NULLIF(trim(p_payment_method), ''), 'CASH');
+
+  -- Línea de reserva (CASH, WISE CR o WISE BT) o color Rosa si es 0
+  IF p_reserva_pax > 0 THEN
+    v_reserva_line := '<li>Reserva: <b>' || p_reserva_pax::text || ' personas -> ' || (p_reserva_pax * 1000)::text || ' thb a ' || v_method_clean || '</b></li>';
+  ELSE
+    v_color_id := '4'; -- Color Rosa Chicle (Flamingo) para reservas pendientes sin fianza
+  END IF;
+
+  -- Descripción HTML con link directo a WhatsApp
+  IF length(v_phone_clean) > 0 THEN
+    v_wa_link := 'https://wa.me/' || v_phone_clean || '?text=' || urlencode(COALESCE(p_wa_message, ''));
+    v_desc_html := 'https://wa.me/' || v_phone_clean || '<br><br><b><a href="' || v_wa_link || '">' || v_btn_text || '</a></b><br><br><b>' || v_title || '</b><ul><li>Fecha de inicio: <b>' || v_formatted_date || '</b></li>' || v_reserva_line || '</ul>';
+  ELSE
+    v_desc_html := '<b>' || v_title || '</b><ul><li>Fecha de inicio: <b>' || v_formatted_date || '</b></li>' || v_reserva_line || '</ul>';
+  END IF;
+
+  -- 3. Renovar Access Token usando Google OAuth2 API
+  v_token_req_body := 'client_id=' || urlencode(v_client_id) ||
+                      '&client_secret=' || urlencode(v_client_secret) ||
+                      '&refresh_token=' || urlencode(v_refresh_token) ||
+                      '&grant_type=refresh_token';
+
+  v_token_res := http((
+    'POST',
+    'https://oauth2.googleapis.com/token',
+    ARRAY[http_header('Content-Type', 'application/x-www-form-urlencoded')],
+    'application/x-www-form-urlencoded',
+    v_token_req_body
+  )::http_request);
+
+  IF v_token_res.status >= 300 THEN
+    RAISE EXCEPTION 'Error al obtener Access Token de Google (status %): %', v_token_res.status, v_token_res.content;
+  END IF;
+
+  v_token_json := v_token_res.content::jsonb;
+  v_access_token := v_token_json->>'access_token';
+
+  IF v_access_token IS NULL THEN
+    RAISE EXCEPTION 'No se pudo obtener access_token de la respuesta de Google';
+  END IF;
+
+  v_booking_date_str := to_char(COALESCE(p_booking_date, CURRENT_DATE), 'YYYY-MM-DD');
+
+  -- 4. Crear Evento en Google Calendar API v3
+  v_cal_req_json := jsonb_build_object(
+    'summary', v_title,
+    'description', v_desc_html,
+    'start', jsonb_build_object('date', v_booking_date_str, 'timeZone', 'Asia/Bangkok'),
+    'end', jsonb_build_object('date', v_booking_date_str, 'timeZone', 'Asia/Bangkok'),
+    'reminders', jsonb_build_object('useDefault', false, 'overrides', '[]'::jsonb)
+  );
+
+  IF v_color_id IS NOT NULL THEN
+    v_cal_req_json := jsonb_set(v_cal_req_json, '{colorId}', to_jsonb(v_color_id));
+  END IF;
+
+  v_cal_res := http((
+    'POST',
+    'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+    ARRAY[
+      http_header('Authorization', 'Bearer ' || v_access_token),
+      http_header('Content-Type', 'application/json')
+    ],
+    'application/json',
+    v_cal_req_json::text
+  )::http_request);
+
+  IF v_cal_res.status >= 300 THEN
+    RAISE EXCEPTION 'Error creando evento en Google Calendar (status %): %', v_cal_res.status, v_cal_res.content;
+  END IF;
+
+  v_cal_json := v_cal_res.content::jsonb;
+  v_html_link := v_cal_json->>'htmlLink';
+  v_summary := v_cal_json->>'summary';
+
+  -- 5. Guardar en public.cash_reservations
+  INSERT INTO public.cash_reservations (
+    first_name,
+    phone,
+    booking_date,
+    activity_code,
+    num_people,
+    amount_thb,
+    is_english,
+    notes,
+    source,
+    calendar_event_id,
+    calendar_event_summary,
+    calendar_html_link,
+    imported_to_invoice,
+    payment_method
+  ) VALUES (
+    COALESCE(p_customer_name, ''),
+    COALESCE(p_phone, ''),
+    COALESCE(p_booking_date, CURRENT_DATE),
+    COALESCE(p_activity_codes, 'OW'),
+    v_num_people,
+    CASE WHEN p_reserva_pax > 0 THEN p_reserva_pax * 1000 ELSE 0 END,
+    p_is_english,
+    p_notes,
+    'erp_modal',
+    v_cal_json->>'id',
+    v_summary,
+    v_html_link,
+    false,
+    v_method_clean
+  )
+  RETURNING id INTO v_cash_res_id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'id', v_cash_res_id,
+    'htmlLink', v_html_link,
+    'summary', v_summary,
+    'eventId', v_cal_json->>'id',
+    'payment_method', v_method_clean
+  );
+END;
+$function$;
+
+GRANT EXECUTE ON FUNCTION public.create_cash_calendar_event(text, text, integer, date, text, integer, numeric, boolean, text, text, text, text) TO anon, authenticated, service_role;
+COMMENT ON FUNCTION public.create_cash_calendar_event IS 'Crea eventos en Google Calendar para reservas (CASH, WISE CR, WISE BT) y los guarda en cash_reservations.';
+
 
 -- --------------------------------------------------------------------------------
 -- Función: public.fn_trg_bizums_before_save()
@@ -1510,15 +1721,51 @@ DECLARE
   v_cal_res jsonb;
   v_reserva_exists boolean;
   v_bizum_exists boolean;
+  v_cash_processed boolean;
   v_event_already_imported boolean;
   v_reserva_activity_id uuid := '06ee3b83-af61-462e-9e98-b8dc90107ef9';
 BEGIN
-  -- 1. Evitar recursividad
+  -- 1. CASO DAVID (Reserva manual creada directamente en la factura):
+  -- Si la línea que se está insertando/modificando ES la propia 'Reserva':
   IF NEW.activity_id = v_reserva_activity_id THEN
+    -- Si es pago en CASH (o vacío/efectivo), sellar en cash_reservations
+    IF NEW.customer_id IS NOT NULL AND (NEW.payment_method IS NULL OR NEW.payment_method ILIKE '%cash%') THEN
+      SELECT booking_date, first_name, last_name, phone INTO v_cust FROM public.customers WHERE id = NEW.customer_id;
+      IF FOUND AND v_cust.booking_date IS NOT NULL THEN
+        INSERT INTO public.cash_reservations (
+          customer_id, 
+          booking_date, 
+          first_name, 
+          last_name, 
+          phone, 
+          amount_thb, 
+          source, 
+          imported_to_invoice, 
+          invoice_id, 
+          imported_at, 
+          notes
+        )
+        VALUES (
+          NEW.customer_id, 
+          v_cust.booking_date, 
+          v_cust.first_name, 
+          COALESCE(v_cust.last_name, ''), 
+          COALESCE(v_cust.phone, ''), 
+          COALESCE(NEW.total_thb, 1000), 
+          'manual_invoice', 
+          true, 
+          NEW.invoice_id, 
+          now(), 
+          'Reserva manual en factura (Caso David)'
+        )
+        ON CONFLICT (customer_id, booking_date) 
+        DO UPDATE SET imported_to_invoice = true, invoice_id = EXCLUDED.invoice_id, imported_at = now();
+      END IF;
+    END IF;
     RETURN NEW;
   END IF;
 
-  -- 2. Ejecutar solo si tiene cliente asignado y es una nueva asignación
+  -- 2. Ejecutar solo si tiene cliente asignado
   IF NEW.customer_id IS NULL THEN
     RETURN NEW;
   END IF;
@@ -1529,8 +1776,7 @@ BEGIN
     END IF;
   END IF;
 
-  -- 3. OPTIMIZACIÓN CRÍTICA: Si ya tiene un depósito de Bizum asignado o existe uno coincidente
-  -- en la base de datos local (ventana ±3 días), omitir por completo la llamada a Google Calendar.
+  -- 3. Si ya tiene un depósito de Bizum asignado o existe uno coincidente, omitir
   IF NEW.bizum_deposit_eur IS NOT NULL THEN
     RETURN NEW;
   END IF;
@@ -1543,7 +1789,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- 4. Comprobar si ya existe una línea de Reserva para ESTA factura
+  -- 4. Comprobar si ya existe una línea de Reserva en ESTA factura
   SELECT EXISTS (
     SELECT 1 
     FROM public.invoice_items 
@@ -1565,7 +1811,22 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- 6. Consultar Google Calendar
+  -- 6. EL CANDADO CASH (1 ms):
+  -- Comprobar si para este cliente y su booking_date ya existe una reserva procesada/consumida
+  SELECT EXISTS (
+    SELECT 1 
+    FROM public.cash_reservations 
+    WHERE (customer_id = NEW.customer_id OR (COALESCE(v_cust.phone, '') <> '' AND (phone = v_cust.phone OR replace(phone, '+', '') = replace(v_cust.phone, '+', ''))))
+      AND booking_date = v_cust.booking_date 
+      AND imported_to_invoice = true
+  ) INTO v_cash_processed;
+
+  IF v_cash_processed THEN
+    -- CANDADO CERRADO: Ya se importó/consumió para este viaje. NO consultar Calendar, NO resucitar zombi.
+    RETURN NEW;
+  END IF;
+
+  -- 7. Consultar Google Calendar
   BEGIN
     v_cal_res := public.fn_match_google_calendar_deposit(v_cust.first_name, v_cust.last_name, v_cust.phone, v_cust.booking_date);
   EXCEPTION WHEN OTHERS THEN
@@ -1573,10 +1834,9 @@ BEGIN
     RETURN NEW;
   END;
 
-  -- 7. Si hay coincidencia de Wise, insertar la línea de Reserva
+  -- 8. Si hay coincidencia en Calendar:
   IF v_cal_res->>'matched' = 'true' THEN
-    -- 7.5. PREVENIR DUPLICIDAD GLOBAL: Comprobar si este evento de Google Calendar ya fue importado
-    -- en cualquier otra factura del sistema usando el texto de la nota (independiente de la fecha de la fila)
+    -- Prevenir duplicidad global por la nota
     SELECT EXISTS (
       SELECT 1 
       FROM public.invoice_items 
@@ -1587,7 +1847,53 @@ BEGIN
       RETURN NEW;
     END IF;
 
-    -- Insertamos el registro de reserva con DATE = NULL para que lo establezcas manualmente
+    -- Activar candado en cash_reservations (para CASH, WISE BT o WISE CR):
+    SELECT id INTO v_cash_res_id
+    FROM public.cash_reservations
+    WHERE (customer_id = NEW.customer_id OR (COALESCE(v_cust.phone, '') <> '' AND (phone = v_cust.phone OR replace(phone, '+', '') = replace(v_cust.phone, '+', ''))))
+      AND booking_date = v_cust.booking_date
+    ORDER BY created_at DESC
+    LIMIT 1;
+
+    IF v_cash_res_id IS NOT NULL THEN
+      UPDATE public.cash_reservations
+      SET imported_to_invoice = true,
+          invoice_id = NEW.invoice_id,
+          customer_id = NEW.customer_id,
+          imported_at = now()
+      WHERE id = v_cash_res_id;
+    ELSE
+      INSERT INTO public.cash_reservations (
+        customer_id, 
+        booking_date, 
+        first_name, 
+        last_name, 
+        phone, 
+        amount_thb, 
+        source, 
+        calendar_event_summary, 
+        imported_to_invoice, 
+        invoice_id, 
+        imported_at,
+        payment_method
+      )
+      VALUES (
+        NEW.customer_id, 
+        v_cust.booking_date, 
+        v_cust.first_name, 
+        COALESCE(v_cust.last_name, ''), 
+        COALESCE(v_cust.phone, ''), 
+        COALESCE((v_cal_res->>'deposit_thb')::numeric, 1000), 
+        'python_calendar', 
+        v_cal_res->>'event_summary', 
+        true, 
+        NEW.invoice_id, 
+        now(),
+        COALESCE(v_cal_res->>'payment_method', 'CASH')
+      );
+    END IF;
+
+    -- Insertar la línea de Reserva en invoice_items
     INSERT INTO public.invoice_items (
       invoice_id,
       customer_id,
@@ -1603,7 +1909,7 @@ BEGIN
       NEW.invoice_id,
       NEW.customer_id,
       v_reserva_activity_id,
-      NULL, -- date is NULL, forcing manual selection in UI
+      NULL,
       (v_cal_res->>'num_people')::integer,
       CASE 
         WHEN (v_cal_res->>'num_people')::integer > 0 THEN ((v_cal_res->>'deposit_thb')::numeric / (v_cal_res->>'num_people')::integer)::numeric
@@ -1611,7 +1917,7 @@ BEGIN
       END,
       (v_cal_res->>'deposit_thb')::numeric,
       'Paid',
-      COALESCE(v_cal_res->>'payment_method', 'WISE BT'),
+      COALESCE(v_cal_res->>'payment_method', 'CASH'),
       'Auto-importado de Google Calendar: ' || (v_cal_res->>'event_summary')
     );
   END IF;
@@ -1620,7 +1926,7 @@ BEGIN
 END;
 $function$;
 
-COMMENT ON FUNCTION public.fn_trg_billing_auto_import_calendar_deposit() IS 'Importa automáticamente reservas desde Google Calendar como ítems de factura.';
+COMMENT ON FUNCTION public.fn_trg_billing_auto_import_calendar_deposit() IS 'Importa automáticamente reservas desde Google Calendar como ítems de factura con candado de reservas Cash.';
 
 
 
@@ -2776,6 +3082,7 @@ CREATE OR REPLACE FUNCTION public.push_backup_to_github(p_file_content text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
+ SET statement_timeout = '60s'
 AS $function$
 DECLARE
   v_pat text;
@@ -2786,6 +3093,9 @@ DECLARE
   v_body jsonb;
   v_json_resp jsonb;
 BEGIN
+  -- 0. Configurar timeout de cURL (60s) para permitir subida de archivos pesados
+  PERFORM http_set_curlopt('CURLOPT_TIMEOUT', '60');
+
   -- 1. Obtener Token cifrado desde Vault
   SELECT decrypted_secret INTO v_pat FROM vault.decrypted_secrets WHERE name = 'GITHUB_PAT' LIMIT 1;
   IF v_pat IS NULL THEN
@@ -2870,6 +3180,7 @@ CREATE OR REPLACE FUNCTION public.generate_and_push_github_backup()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
+ SET statement_timeout = '60s'
 AS $function$
 DECLARE
   v_pat text;
@@ -2881,6 +3192,9 @@ DECLARE
   v_body jsonb;
   v_json_resp jsonb;
 BEGIN
+  -- 0. Configurar timeout de cURL (60s) para permitir subida de archivos pesados (+10 MB)
+  PERFORM http_set_curlopt('CURLOPT_TIMEOUT', '60');
+
   -- 1. Obtener Token cifrado desde Vault
   SELECT decrypted_secret INTO v_pat FROM vault.decrypted_secrets WHERE name = 'GITHUB_PAT' LIMIT 1;
   IF v_pat IS NULL THEN

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, CreditCard, Layers } from 'lucide-react';
+import { CheckCircle2, CreditCard, Layers, Banknote } from 'lucide-react';
 import useBizumsData from './useBizumsData';
 import Bizums_Header from './Bizums_Header';
 import Bizums_Table from './Bizums_Table';
@@ -7,9 +7,10 @@ import Bizums_ActionsModal from './Bizums_ActionsModal';
 import Bizums_EditModal from './Bizums_EditModal';
 import ConfirmModal from '../../common/ConfirmModal';
 import WisePayments_Table from './WisePayments_Table';
+import CashReservations_Table from './Cash/CashReservations_Table';
 
 export default function Bizums_View() {
-  const [subSection, setSubSection] = useState('reservas'); // 'reservas' or 'wise'
+  const [subSection, setSubSection] = useState('reservas'); // 'reservas' | 'wise' | 'cash'
   
   const {
     // Data & Pagination
@@ -88,6 +89,17 @@ export default function Bizums_View() {
           <CreditCard className="w-4 h-4" />
           Ingresos de Wise
         </button>
+        <button
+          onClick={() => setSubSection('cash')}
+          className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+            subSection === 'cash'
+              ? 'bg-brand text-white shadow-lg shadow-brand/20 border border-brand/30 scale-[1.02]'
+              : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+          }`}
+        >
+          <Banknote className="w-4 h-4" />
+          Reservas Cash
+        </button>
       </div>
 
       {subSection === 'reservas' ? (
@@ -125,10 +137,15 @@ export default function Bizums_View() {
             />
           </div>
         </div>
+      ) : subSection === 'wise' ? (
+        <div className="flex-1 md:overflow-hidden p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col h-full">
+          {/* Cabecera Wise */}
+          <WisePayments_Table />
+        </div>
       ) : (
         <div className="flex-1 md:overflow-hidden p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col h-full">
-          {/* Cabecera Wise con la misma tarjeta y estructura que Bizum */}
-          <WisePayments_Table />
+          {/* Reservas Cash */}
+          <CashReservations_Table />
         </div>
       )}
 

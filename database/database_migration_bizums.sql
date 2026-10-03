@@ -25,3 +25,6 @@ ON public.bizums
 FOR ALL
 USING (true)
 WITH CHECK (true);
+
+-- Explicit Data API Grants (Supabase PostgREST)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bizums TO anon, authenticated, service_role;
