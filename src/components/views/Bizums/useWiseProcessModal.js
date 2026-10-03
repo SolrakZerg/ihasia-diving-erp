@@ -30,6 +30,10 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
   const [isSettled, setIsSettled] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Detección de coincidencia bancaria real con correo de Wise
+  const isWiseMatched = Boolean(payment && !payment.id?.startsWith('WEB_'));
+  const [paymentMethod, setPaymentMethod] = useState(() => isWiseMatched ? 'WISE BT' : (payment?.payment_method || 'WISE BT'));
+
   const [loadingCalendar, setLoadingCalendar] = useState(false);
   const [eventLink, setEventLink] = useState(null);
   const [calendarError, setCalendarError] = useState(null);
@@ -92,6 +96,7 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
       setIsRetained(!!payment.is_retained);
       setRetainedPeople(payment.retained_people || payment.num_people || 1);
       setIsSettled(!!payment.is_settled);
+      setPaymentMethod(isWiseMatched ? 'WISE BT' : (payment.payment_method || 'WISE BT'));
       setCompletedList([]);
       setEventLink(null);
       setCalendarError(null);
@@ -104,7 +109,7 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         autoReadClipboard();
       }
     }
-  }, [isOpen, payment]);
+  }, [isOpen, payment, isWiseMatched]);
 
   const extractCleanPhone = (rawText) => {
     if (!rawText) return '';
@@ -358,7 +363,8 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         booking_date: formattedBookingDate,
         activity: activityStr,
         activity_lines: isMultipleActivities ? activityLines : null,
-        is_english: isEnglish
+        is_english: isEnglish,
+        payment_method: isWiseMatched ? 'WISE BT' : paymentMethod
       };
 
       const { error } = await supabase
@@ -406,7 +412,8 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         currency: payment.currency,
         isEnglish: isEnglish,
         waMessage: generateWhatsappMessageText(),
-        sufijoDias: sufijoDiasTitulo
+        sufijoDias: sufijoDiasTitulo,
+        paymentMethod: isWiseMatched ? 'WISE BT' : paymentMethod
       });
 
       if (res && res.htmlLink) {
@@ -467,7 +474,8 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         currency: payment.currency,
         isEnglish: isEnglish,
         waMessage: generateWhatsappMessageText(),
-        sufijoDias: sufijoDiasTitulo
+        sufijoDias: sufijoDiasTitulo,
+        paymentMethod: isWiseMatched ? 'WISE BT' : paymentMethod
       });
 
       if (res && res.htmlLink) {
@@ -511,7 +519,8 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
         booking_date: formattedBookingDate,
         activity: activityStr,
         activity_lines: isMultipleActivities ? activityLines : null,
-        is_english: isEnglish
+        is_english: isEnglish,
+        payment_method: isWiseMatched ? 'WISE BT' : paymentMethod
       };
       const { error } = await supabase
         .from('wise_payments')
@@ -574,6 +583,9 @@ export default function useWiseProcessModal({ payment, isOpen, onClose, onProces
     isSettled,
     setIsSettled,
     savingEdit,
-    handleSaveEdit
+    handleSaveEdit,
+    paymentMethod,
+    setPaymentMethod,
+    isWiseMatched
   };
 }

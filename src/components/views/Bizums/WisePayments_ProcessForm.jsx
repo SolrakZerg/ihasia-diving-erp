@@ -12,7 +12,8 @@ import {
   FileText,
   Plus,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react';
 import { cleanPhone } from './Bizums_Utils';
 import WisePayments_MiniCalendar from './WisePayments_MiniCalendar';
@@ -61,7 +62,10 @@ export default function WisePayments_ProcessForm({
   isSettled,
   onChangeIsSettled,
   savingEdit,
-  onSaveEdit
+  onSaveEdit,
+  paymentMethod,
+  onChangePaymentMethod,
+  isWiseMatched
 }) {
   // Discrepancia entre depósito bancario y número de personas (1.000 THB por Pax)
   const bankAmount = Number(payment?.amount_raw || payment?.amount_eur || 0);
@@ -93,14 +97,36 @@ export default function WisePayments_ProcessForm({
           placeholder="Nombre del cliente o Empresa"
           className="flex-1 min-w-0 bg-surface-soft border border-surface-edge rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold placeholder-gray-500 focus:outline-none focus:border-brand transition-all"
         />
-        <div className="w-36 sm:w-40 shrink-0 flex items-center justify-end gap-1.5">
+        <div className="shrink-0 flex items-center justify-end gap-1.5">
           <span className="px-2 py-1 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 font-black text-xs">
             {payment.num_people} PAX
           </span>
-          <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black text-xs flex items-center gap-1">
-            <CreditCard className="w-3 h-3" />
-            WISE BT
-          </span>
+          {isWiseMatched ? (
+            <span 
+              className="px-2.5 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 font-black text-xs flex items-center gap-1.5 shadow-sm"
+              title="Transferencia verificada en la cuenta Wise de Berta (no editable)"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-purple-400" />
+              WISE BT
+            </span>
+          ) : (
+            <div className="relative group/method">
+              <select
+                value={paymentMethod || 'WISE BT'}
+                onChange={(e) => onChangePaymentMethod(e.target.value)}
+                title="⚠️ Sin verificación bancaria automática: selecciona a quién corresponde el depósito (WISE BT o WISE CR / Revolut)"
+                className={`text-xs font-black rounded-xl px-2.5 py-1.5 pr-6 border transition-all cursor-pointer appearance-none ${
+                  paymentMethod === 'WISE CR'
+                    ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400 shadow-sm shadow-cyan-500/20 ring-1 ring-cyan-400/50'
+                    : 'bg-amber-500/20 text-amber-200 border-amber-400 shadow-sm shadow-amber-500/30 ring-2 ring-amber-400/50'
+                }`}
+              >
+                <option value="WISE BT" className="bg-surface font-bold text-purple-300">🟣 WISE BT</option>
+                <option value="WISE CR" className="bg-surface font-bold text-cyan-300">🔵 WISE CR</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none group-hover/method:text-white transition-colors" />
+            </div>
+          )}
         </div>
       </div>
 

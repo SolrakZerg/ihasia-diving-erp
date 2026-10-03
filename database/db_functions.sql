@@ -1156,7 +1156,20 @@ COMMENT ON FUNCTION public.create_custom_google_calendar_event(text, text, text,
 -- Retorna: jsonb {success, htmlLink, summary}
 -- ERP Módulo: AddToCalendar v5.1 / Generador de reservas para facturación en Koh Tao.
 -- --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.create_custom_google_calendar_event(p_customer_name text, p_activity_codes text, p_activity_full text, p_num_people integer DEFAULT 1, p_booking_date date DEFAULT CURRENT_DATE, p_phone text DEFAULT ''::text, p_amount_raw text DEFAULT ''::text, p_currency text DEFAULT 'THB'::text, p_is_english boolean DEFAULT true, p_wa_message text DEFAULT ''::text, p_sufijo_dias text DEFAULT ''::text)
+CREATE OR REPLACE FUNCTION public.create_custom_google_calendar_event(
+  p_customer_name text, 
+  p_activity_codes text, 
+  p_activity_full text, 
+  p_num_people integer DEFAULT 1, 
+  p_booking_date date DEFAULT CURRENT_DATE, 
+  p_phone text DEFAULT ''::text, 
+  p_amount_raw text DEFAULT ''::text, 
+  p_currency text DEFAULT 'THB'::text, 
+  p_is_english boolean DEFAULT true, 
+  p_wa_message text DEFAULT ''::text, 
+  p_sufijo_dias text DEFAULT ''::text,
+  p_payment_method text DEFAULT 'WISE BT'::text
+)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -1173,6 +1186,8 @@ DECLARE
   v_wa_link text;
   v_btn_text text;
   v_thb_amount text;
+  v_method_str text;
+  v_color_id text;
   
   v_token_req_body text;
   v_token_res http_response;
@@ -1199,8 +1214,8 @@ BEGIN
   v_num_people := COALESCE(p_num_people, 1);
   IF v_num_people <= 0 THEN v_num_people := 1; END IF;
 
-  -- Para facturación en Koh Tao: la reserva en el calendario siempre se computa como (Pax * 1000 thb)
   v_thb_amount := (v_num_people * 1000)::text || ' thb';
+  v_method_str := UPPER(TRIM(COALESCE(NULLIF(p_payment_method, ''), 'WISE BT')));
 
   -- Título idéntico a Addtocalendar 5.1
   v_title := COALESCE(p_customer_name, 'Cliente') || ' ' || COALESCE(p_activity_codes, 'ACT') || COALESCE(p_sufijo_dias, '');
@@ -1229,9 +1244,9 @@ BEGIN
   -- Construir HTML del evento (Con formato estándar de reserva en THB para el lector de facturas)
   IF length(v_phone_clean) > 0 THEN
     v_wa_link := 'https://wa.me/' || v_phone_clean || '?text=' || urlencode(COALESCE(p_wa_message, ''));
-    v_desc_html := 'https://wa.me/' || v_phone_clean || '<br><br><b><a href=\"' || v_wa_link || '\">' || v_btn_text || '</a></b><br><br><b>' || v_title || '</b><ul><li>Fecha de inicio: <b>' || v_formatted_date || '</b></li><li>Reserva: <b>' || v_num_people::text || ' personas -> ' || v_thb_amount || ' a WISE BT</b></li></ul>';
+    v_desc_html := 'https://wa.me/' || v_phone_clean || '<br><br><b><a href=\"' || v_wa_link || '\">' || v_btn_text || '</a></b><br><br><b>' || v_title || '</b><ul><li>Fecha de inicio: <b>' || v_formatted_date || '</b></li><li>Reserva: <b>' || v_num_people::text || ' personas -> ' || v_thb_amount || ' a ' || v_method_str || '</b></li></ul>';
   ELSE
-    v_desc_html := '<b>' || v_title || '</b><ul><li>Fecha de inicio: <b>' || v_formatted_date || '</b></li><li>Reserva: <b>' || v_num_people::text || ' personas -> ' || v_thb_amount || ' a WISE BT</b></li></ul>';
+    v_desc_html := '<b>' || v_title || '</b><ul><li>Fecha de inicio: <b>' || v_formatted_date || '</b></li><li>Reserva: <b>' || v_num_people::text || ' personas -> ' || v_thb_amount || ' a ' || v_method_str || '</b></li></ul>';
   END IF;
 
   -- 2. Renovar Access Token usando Google OAuth2 API
@@ -1261,13 +1276,22 @@ BEGIN
 
   v_booking_date_str := to_char(COALESCE(p_booking_date, CURRENT_DATE), 'YYYY-MM-DD');
 
+  -- Color en Google Calendar: WISE CR -> 7 (Peacock/Cyan), WISE BT -> 3 (Grape/Purple) o 9 (Blueberry)
+  IF v_method_str = 'WISE CR' THEN
+    v_color_id := '7';
+  ELSIF v_method_str = 'WISE BT' THEN
+    v_color_id := '3';
+  ELSE
+    v_color_id := '9';
+  END IF;
+
   -- 3. Crear Evento en Google Calendar API v3
   v_cal_req_body := jsonb_build_object(
     'summary', v_title,
     'description', v_desc_html,
     'start', jsonb_build_object('date', v_booking_date_str, 'timeZone', 'Asia/Bangkok'),
     'end', jsonb_build_object('date', v_booking_date_str, 'timeZone', 'Asia/Bangkok'),
-    'colorId', '9',
+    'colorId', v_color_id,
     'reminders', jsonb_build_object('useDefault', false, 'overrides', '[]'::jsonb)
   )::text;
 
@@ -1294,6 +1318,41 @@ BEGIN
     'success', true,
     'htmlLink', v_html_link,
     'summary', v_summary
+  );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.create_custom_google_calendar_event(
+  p_customer_name text, 
+  p_activity_codes text, 
+  p_activity_full text, 
+  p_num_people integer DEFAULT 1, 
+  p_booking_date date DEFAULT CURRENT_DATE, 
+  p_phone text DEFAULT ''::text, 
+  p_amount_raw text DEFAULT ''::text, 
+  p_currency text DEFAULT 'THB'::text, 
+  p_is_english boolean DEFAULT true, 
+  p_wa_message text DEFAULT ''::text, 
+  p_sufijo_dias text DEFAULT ''::text
+)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+BEGIN
+  RETURN public.create_custom_google_calendar_event(
+    p_customer_name, 
+    p_activity_codes, 
+    p_activity_full, 
+    p_num_people, 
+    p_booking_date, 
+    p_phone, 
+    p_amount_raw, 
+    p_currency, 
+    p_is_english, 
+    p_wa_message, 
+    p_sufijo_dias, 
+    'WISE BT'
   );
 END;
 $function$;

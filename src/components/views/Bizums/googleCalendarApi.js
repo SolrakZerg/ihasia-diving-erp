@@ -39,7 +39,8 @@ export async function createCustomGoogleCalendarEvent({
   currency, 
   isEnglish, 
   waMessage,
-  sufijoDias
+  sufijoDias,
+  paymentMethod = 'WISE BT'
 }) {
   const { data, error } = await supabase.rpc('create_custom_google_calendar_event', {
     p_customer_name: customerName,
@@ -52,7 +53,8 @@ export async function createCustomGoogleCalendarEvent({
     p_currency: currency || 'thb',
     p_is_english: !!isEnglish,
     p_wa_message: waMessage || '',
-    p_sufijo_dias: sufijoDias || ''
+    p_sufijo_dias: sufijoDias || '',
+    p_payment_method: paymentMethod || 'WISE BT'
   });
 
   if (error) {

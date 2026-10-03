@@ -60,7 +60,10 @@ export default function WisePayments_ProcessModal({
     isSettled,
     setIsSettled,
     savingEdit,
-    handleSaveEdit
+    handleSaveEdit,
+    paymentMethod,
+    setPaymentMethod,
+    isWiseMatched
   } = useWiseProcessModal({ payment, isOpen, onClose, onProcessedSuccess });
 
   if (!isOpen || !payment) return null;
@@ -143,6 +146,9 @@ export default function WisePayments_ProcessModal({
             onChangeIsSettled={setIsSettled}
             savingEdit={savingEdit}
             onSaveEdit={handleSaveEdit}
+            paymentMethod={paymentMethod}
+            onChangePaymentMethod={setPaymentMethod}
+            isWiseMatched={isWiseMatched}
           />
         ) : (
           /* Vista de Éxito Limpia con Enlace Directo a Calendar */

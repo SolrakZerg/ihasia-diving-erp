@@ -303,6 +303,16 @@ export default function WisePayments_Row({
           <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
           <span>{formatNumber(payment.amount_raw)} {payment.currency || 'THB'}</span>
         </div>
+        {payment.payment_method === 'WISE CR' && (
+          <div className="mt-1 flex items-center justify-end">
+            <span 
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs tracking-wider"
+              title="Depósito asignado a Carlos (WISE CR / Revolut)"
+            >
+              WISE CR
+            </span>
+          </div>
+        )}
         {hasDepositDiscrepancy && (
           <div className="mt-1 flex items-center justify-end">
             <span 
